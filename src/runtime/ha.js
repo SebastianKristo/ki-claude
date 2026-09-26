@@ -132,6 +132,7 @@ export function createBridge(card) {
     // ── async data (cached, re-renders on arrival) ──
     /** Hourly history of a numeric sensor (last `hours`), [{t: Date, v: number}]. */
     history(id, hours = 24) {
+      use(id);
       if (!hass || !id) return null;
       const k = 'hist|' + id + '|' + hours;
       const c = cache.get(k);
@@ -149,15 +150,16 @@ export function createBridge(card) {
       return c?.data || null;
     },
     /** Upcoming calendar events for `id` in the next `days`. */
-    events(id, days = 31) {
+    events(id, days = 31, back = 0) {
+      use(id);
       if (!hass || !id) return null;
-      const k = 'cal|' + id + '|' + days;
+      const k = 'cal|' + id + '|' + days + '|' + back;
       const c = cache.get(k);
       if (c && Date.now() - c.at < 10 * 60e3) return c.data;
       if (!c || !c.pending) {
         cache.set(k, { at: c?.at || 0, data: c?.data || null, pending: true });
-        const s = new Date(); s.setHours(0, 0, 0, 0);
-        const e = new Date(s.getTime() + days * 864e5);
+        const s = new Date(); s.setHours(0, 0, 0, 0); s.setDate(s.getDate() - back);
+        const e = new Date(s.getTime() + (days + back) * 864e5);
         hass.callApi('GET', `calendars/${id}?start=${encodeURIComponent(s.toISOString())}&end=${encodeURIComponent(e.toISOString())}`)
           .then(r => { cache.set(k, { at: Date.now(), data: r || [] }); ha.bump(id); })
           .catch(() => cache.set(k, { at: Date.now(), data: [] }));
@@ -166,6 +168,7 @@ export function createBridge(card) {
     },
     /** Items of a todo list entity. */
     todo(id) {
+      use(id);
       if (!hass || !id) return null;
       const k = 'todo|' + id + '|' + (hass.states[id]?.last_updated || '');
       const c = cache.get(k);
@@ -176,6 +179,7 @@ export function createBridge(card) {
     },
     /** Weather forecast via weather.get_forecasts (type: daily|hourly). */
     forecast(id, type = 'daily') {
+      use(id);
       if (!hass || !id) return null;
       const k = 'fc|' + id + '|' + type;
       const c = cache.get(k);

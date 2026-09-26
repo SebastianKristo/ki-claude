@@ -113,7 +113,7 @@ function loadLive() {
     const upd = timeOf(ha.state(x.bensin || x.diesel)?.last_updated);
     rows.push([x.kjede || x.navn || 'Stasjon', x.sted || '', x.adresse || '', x.km ?? null, upd[0], b, d, brandCol(x.kjede || x.navn || ''), ri, upd[1], x.bensin || x.diesel]);
   });
-  if (!rows.length) return null;
+  if (!rows.length && !regions.length) return null;
   return { regions, rows };
 }
 
@@ -130,7 +130,7 @@ class Component extends DCLogic {
     const P = v => v == null ? Infinity : v;
     src = [...src].sort((a, b) => k === 'diesel' ? P(a[6]) - P(b[6]) : k === 'bensin' ? P(a[5]) - P(b[5]) : k === 'upd' ? (L ? (b[9] || 0) - (a[9] || 0) : b[4].localeCompare(a[4])) : P(a[3]) - P(b[3]));
     const minB = Math.min(...src.map(x => P(x[5]))), minD = Math.min(...src.map(x => P(x[6])));
-    const cheapest = i => all.reduce((m, x) => P(x[i]) < P(m[i]) ? x : m, all[0]);
+    const cheapest = i => all.length ? all.reduce((m, x) => P(x[i]) < P(m[i]) ? x : m, all[0]) : null;
     const cb = cheapest(5), cd = cheapest(6);
     const pStyle = on => ({ textAlign: 'right', fontSize: 14, fontWeight: on ? 600 : 500, fontVariantNumeric: 'tabular-nums', color: on ? GREEN : '#fafafa' });
     const nm = x => [x[0], x[1]].filter(Boolean).join(' ');

@@ -228,6 +228,25 @@ const CT = [['script', 'Script', 'script.turn_on'], ['button', 'Button', 'button
 const DOM = [['button', 'Button', 'button.press'], ['script', 'Script', 'script.turn_on'], ['switch', 'Switch', 'switch.turn_on']];
 const VDEF = { appletv: { mode: 'btn', up: 'switch.tcl_google_tv_series_volume_up', down: 'switch.tcl_google_tv_series_volume_down', mute: 'button.tcl_google_tv_series_button_mute_toggle' }, sony: { mode: 'media', up: '', down: '', mute: '' } };
 const svcOf = e => { const d = String(e || '').split('.')[0]; return (DOM.find(x => x[0] === d) || [0, 0, 'media_player.volume_up'])[2]; };
+// ─────────── Live (media_player.*) ───────────
+const OFF = ['off', 'standby', 'unavailable', 'unknown'];
+const RCMD = { apple: { up: 'up', down: 'down', left: 'left', right: 'right', ok: 'select', back: 'menu', home: 'home', menu: 'top_menu', play: 'play_pause' },
+  google: { up: 'DPAD_UP', down: 'DPAD_DOWN', left: 'DPAD_LEFT', right: 'DPAD_RIGHT', ok: 'DPAD_CENTER', back: 'BACK', home: 'HOME', menu: 'MENU', play: 'MEDIA_PLAY_PAUSE' } };
+const isTvEnt = (id, st) => st.attributes?.device_class === 'tv' || /(^|_)tv($|_)|apple_?tv|chromecast|shield|android|telia|box|google_tv/i.test(id);
+const platOfEnt = id => { const p = ha.hass?.entities?.[id]?.platform || ''; return /android|cast|google/.test(p) || /google|android|chromecast|shield|telia/.test(id) ? 'google' : 'apple'; };
+// Sources per tab: card config `media: {tv: [...], musikk: [...]}` (entity, name, icon, remote, platform, presets)
+// → else the design's own sources whose (configured) entity exists → else every media_player.* (TV vs. music by device_class/name).
+function liveSources(comp, tab) {
+  if (!ha.live) return null;
+  const cfg = ha.config.media && Array.isArray(ha.config.media[tab]) ? ha.config.media[tab] : null;
+  const mk = (c, i) => { const ent = c.entity || c.ent; const obj = String(ent).split('.')[1] || 'x';
+    return { id: 'c_' + tab + i, name: c.name || ha.name(ent, obj), ent, icon: c.icon || (tab === 'tv' ? 'tv' : 'speaker'), kind: tab === 'tv' ? 'tv' : 'input', remote: c.remote || ha.first(null, 'remote.' + obj), plat: c.platform || platOfEnt(ent), hw: c.name || ha.name(ent, obj), live: true, list: [], presets: c.presets, volBtn: !!c.volume_buttons }; };
+  if (cfg) return cfg.map(mk).filter(c => ha.state(c.ent));
+  const own = SRC[tab].filter(d => ha.state(comp.entOf(d)));
+  if (own.length) return own.map(d => ({ ...d, ent: comp.entOf(d), live: true, remote: ha.state(d.remote) ? d.remote : ha.first(null, 'remote.' + comp.entOf(d).split('.')[1]) }));
+  const auto = ha.domain('media_player', (st, id) => tab === 'tv' ? isTvEnt(id, st) : !isTvEnt(id, st)).sort();
+  return auto.map(ent => mk({ entity: ent }, auto.indexOf(ent)));
+}
 const TABORD = (comp, key, list) => {
   const LK = 'tab-order:' + key; let ord = null; try { ord = JSON.parse(localStorage.getItem(LK) || 'null'); } catch (e) {}
   const st = comp.state.__tdrag; let L = list.map((t, i) => ({ t, k: String(t.label ?? i) }));
@@ -261,10 +280,54 @@ class Component extends DCLogic {
   setV(id, p) { const n = { ...(this.state.vcfg || {}), [id]: { ...this.vcfg(id), ...p } }; try { localStorage.setItem('media-v4-vol', JSON.stringify(n)); } catch (e) {} this.setState({ vcfg: n }); }
   state = { vcfg: this.loadV(), cfgOpen: false, tab: 'musikk', idx: { musikk: 0, tv: 0 }, st: {}, repeat: false, shuffle: false, lastKey: '', muted: false };
   swRef = React.createRef();
-  cur() { const s = this.state, L = SRC[s.tab], i = Math.min(s.idx[s.tab] || 0, L.length - 1), d = L[i]; return { L, i, d, x: { power: true, playing: true, sel: d.sel, app: d.app, vol: d.vol ?? 30, ...(s.st[d.id] || {}) } }; }
+  srcs(tab) { const l = liveSources(this, tab); return l && l.length ? l : SRC[tab]; }
+  // Live state of one media_player card (replaces the design's local simulation)
+  liveX(c) {
+    const st = ha.state(c.ent), A = st?.attributes || {}, s = this.state;
+    const dv = s.volDrag && s.volDrag.id === c.id && Date.now() - s.volDrag.t < 1500 ? s.volDrag.v : null;
+    return { power: !!st && !OFF.includes(st.state), playing: st?.state === 'playing', sel: -1, app: A.app_name || A.source || '', src: A.source || '', vol: dv ?? Math.round((A.volume_level ?? 0) * 100), muted: !!A.is_volume_muted,
+      title: A.media_title || A.app_name || A.source || (st ? ({ playing: 'Spiller', paused: 'Pause', idle: 'Klar', on: 'På' })[st.state] || '' : ''), artist: [A.media_artist || A.media_series_title || A.media_album_name, A.media_artist ? null : null].filter(Boolean)[0] || A.app_name || c.name,
+      pic: A.entity_picture || A.entity_picture_local || null, repeat: A.repeat && A.repeat !== 'off', shuffle: !!A.shuffle, sources: A.source_list || [] };
+  }
+  cur() { const s = this.state, L = this.srcs(s.tab), i = Math.min(s.idx[s.tab] || 0, L.length - 1), d = L[i]; return { L, i, d, x: d.live ? this.liveX(d) : { power: true, playing: true, sel: d.sel, app: d.app, vol: d.vol ?? 30, ...(s.st[d.id] || {}) } }; }
+  mp(d, service, data) { this.setState({ lastKey: `media_player.${service} → ${d.ent}` }); return ha.call('media_player', service, { entity_id: d.ent, ...(data || {}) }); }
+  rc(d, k, hold) { const pl = RCMD[this.platOf(d)] || RCMD.apple, cmd = pl[k] || k, rem = this.vcfg(d.id).remote || d.remote;
+    if (!rem) { this.setState({ lastKey: `${d.name} · ingen remote-entitet` }); return; }
+    this.setState({ lastKey: `remote.send_command ${cmd}${hold ? ' (hold_secs: 1)' : ''} → ${rem}` });
+    return ha.call('remote', 'send_command', { entity_id: rem, command: cmd, ...(hold ? { hold_secs: 1 } : {}) }); }
+  fireEnt(e) { const dom = e.split('.')[0]; return dom === 'button' ? ha.press(e) : dom === 'script' ? ha.call('script', 'turn_on', { entity_id: e }) : ha.call(dom, 'turn_on', { entity_id: e }); }
+  setVolLive(d, v) { this.setState({ volDrag: { id: d.id, v, t: Date.now() } }); clearTimeout(this._vt); this._vt = setTimeout(() => ha.call('media_player', 'volume_set', { entity_id: d.ent, volume_level: Math.round(v) / 100 }), 120); }
   up(id, p) { this.setState(s => ({ st: { ...s.st, [id]: { ...this.cur().x, ...(s.st[id] || {}), ...p } } })); }
   go(i) { const el = this.swRef.current; if (el) el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' }); }
   key(l) { const { d } = this.cur(); this.setState({ lastKey: `${d.hw || d.name} · ${l}` }); }
+  liveCard(c, eq) {
+    const y = this.liveX(c), run = y.power && y.playing, tv = c.kind === 'tv', AP = tv ? this.appsOf(c.id) : [];
+    const ap = tv ? AP.find(a => a[0] === y.app || a[3] === y.app || a[3] === y.src) : null, col = ap ? ap[2] : null;
+    const t = !y.power ? 'Av' : y.title;
+    return { hasWatch: false, watch: [], icon: c.icon, label: y.app ? `${c.name} · ${y.app}` : c.name, ent: c.ent, eq: eq(4, '#979797', run),
+      level: [0.5, 0.7, 0.8, 0.9, 0.75, 0.6, 0.45, 0.3, 0.8, 0.95, 0.7, 0.55, 0.4, 0.3].map((v, k) => ({ flex: 1, height: `${v * 100}%`, borderRadius: 2, background: '#696969', transformOrigin: 'center', animation: run ? `eq ${0.8 + (k % 4) * 0.15}s ease-in-out ${k * 0.07}s infinite` : 'none', transform: run ? undefined : 'scaleY(.25)' })),
+      title: t, artist: !y.power ? c.name : y.artist, artIcon: y.power && y.pic ? '' : ap ? ap[1] : c.icon,
+      marquee: { display: 'inline-block', fontSize: 22, fontWeight: 500, letterSpacing: '-0.01em', whiteSpace: 'pre', animation: run ? 'mq 14s linear infinite' : 'none' },
+      mq: run ? `${t}      ${t}      ` : t,
+      power: () => { this.setState({ lastKey: `media_player.${y.power ? 'turn_off' : 'turn_on'} → ${c.ent}` }); ha.turn(c.ent, !y.power); },
+      powerBtn: { width: 40, height: 40, borderRadius: 20, flex: 'none', display: 'grid', placeItems: 'center', background: y.power ? '#3a3a3a' : 'rgb(242 128 115 / 0.2)', color: y.power ? '#fafafa' : 'rgb(242 128 115)' },
+      card: { flex: 'none', width: '100%', boxSizing: 'border-box', scrollSnapAlign: 'start', display: 'flex', gap: 14, padding: 18, borderRadius: 28, background: 'radial-gradient(90% 120% at 20% 0%, #26262a, #2f2f2f 70%)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.04)', opacity: y.power ? 1 : 0.55, transition: 'opacity .3s' },
+      art: { width: 112, height: 112, flex: 'none', borderRadius: 20, display: 'grid', placeItems: 'center', background: y.power ? (y.pic ? `center / cover no-repeat url("${y.pic}")` : col || PINK) : '#3a3a3a', color: y.power ? (col ? '#fff' : '#2a1720') : '#7f7f7f' } };
+  }
+  // Chips: TV → configured apps (select_source, or remote.turn_on activity for Google TV app-IDs); music → presets (script/button/source) or the player's source_list
+  liveChips(d, x) {
+    if (d.kind === 'tv') return this.appsOf(d.id).map(([name, icon, col, src, appId]) => ({ name, icon, col, act: !!x.power && (x.app === name || (src && x.src === src)),
+      go: () => { const rem = this.vcfg(d.id).remote || d.remote;
+        if (appId && rem && this.platOf(d) === 'google') { this.setState({ lastKey: `remote.turn_on activity ${appId} → ${rem}` }); return ha.call('remote', 'turn_on', { entity_id: rem, activity: appId }); }
+        return this.mp(d, 'select_source', { source: src || name }); } }));
+    const own = this.vcfg(d.id).pres, cfgP = Array.isArray(d.presets) ? d.presets.map(p => [p.name, p.icon || 'radio', p.type || (p.source ? 'source' : String(p.entity || '').split('.')[0]), p.source || p.entity]) : null;
+    const def = PRE[d.id] && PRE[d.id].some(p => p[2] === 'source' ? (x.sources || []).includes(p[3]) : ha.state(p[3])) ? PRE[d.id] : null;
+    const P = Array.isArray(own) ? own : cfgP || def || (x.sources || []).map(sname => [sname, /spotify/i.test(sname) ? 'graphic_eq' : /airplay/i.test(sname) ? 'airplay' : /radio/i.test(sname) ? 'radio' : /tv|hdmi/i.test(sname) ? 'tv' : /phono|vinyl/i.test(sname) ? 'album' : 'input', 'source', sname]);
+    return P.map(([name, icon, typ, tgt]) => ({ name, icon, act: typ === 'source' ? x.src === tgt : false,
+      go: () => { const ct = CT.find(c => c[0] === typ) || CT[0]; this.setState({ actInfo: typ === 'source' ? `${ct[2]} → ${d.ent} · source: ${tgt}` : `${ct[2]} → ${tgt}` });
+        if (typ === 'source') return ha.call('media_player', 'select_source', { entity_id: d.ent, source: tgt });
+        return tgt && this.fireEnt(tgt); } }));
+  }
   __tabWrap(v) { if (v && Array.isArray(v.tabs)) v.tabs = TABORD(this, 'media', v.tabs); return v; }
   renderVals() { return this.__tabWrap(this.__rv()); }
   __rv() {
@@ -272,8 +335,8 @@ class Component extends DCLogic {
     const eq = (n, col, run) => Array.from({ length: n }, (_, k) => ({ width: 2, height: 10, borderRadius: 1, background: col, transformOrigin: 'bottom', animation: run ? `eq ${0.7 + (k % 3) * 0.18}s ease-in-out ${k * 0.12}s infinite` : 'none', transform: run ? undefined : 'scaleY(.3)' }));
     const round = act => ({ width: 44, height: 44, borderRadius: 22, display: 'grid', placeItems: 'center', color: act ? PINKC : '#7f7f7f', background: act ? 'rgb(242 133 201 / 0.14)' : 'transparent' });
     const seg = (k, label) => ({ label, go: () => { this.setState({ tab: k, lastKey: '', actInfo: '' }); requestAnimationFrame(() => { const el = this.swRef.current; if (el) el.scrollLeft = (s.idx[k] || 0) * el.clientWidth; }); }, style: { height: 38, padding: '0 18px', borderRadius: 19, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: s.tab === k ? PINK : 'transparent', color: s.tab === k ? '#2a1720' : '#afafaf' } });
-    const step = dd => { if (d.kind === 'tv') return this.key(dd > 0 ? 'Neste' : 'Forrige'); this.up(d.id, { sel: (x.sel + dd + d.list.length) % d.list.length, playing: true, power: true }); };
-    const cards = L.map((c, j) => { const y = { power: true, playing: true, sel: c.sel, app: c.app, ...(s.st[c.id] || {}) }, run = y.power && y.playing, tv = c.kind === 'tv', AP = tv ? this.appsOf(c.id) : [], ap = AP.find(a => a[0] === y.app) || [y.app, 'apps', null, y.app], item = tv ? (SHOWS[y.app] || [y.app, ap[3] || 'App']) : c.list[y.sel];
+    const step = dd => { if (d.live) return this.mp(d, dd > 0 ? 'media_next_track' : 'media_previous_track'); if (d.kind === 'tv') return this.key(dd > 0 ? 'Neste' : 'Forrige'); this.up(d.id, { sel: (x.sel + dd + d.list.length) % d.list.length, playing: true, power: true }); };
+    const cards = L.map((c, j) => { if (c.live) return this.liveCard(c, eq); const y = { power: true, playing: true, sel: c.sel, app: c.app, ...(s.st[c.id] || {}) }, run = y.power && y.playing, tv = c.kind === 'tv', AP = tv ? this.appsOf(c.id) : [], ap = AP.find(a => a[0] === y.app) || [y.app, 'apps', null, y.app], item = tv ? (SHOWS[y.app] || [y.app, ap[3] || 'App']) : c.list[y.sel];
       const col = tv ? ap[2] : null;
       return { hasWatch: !!c.watch, watch: [{ label: 'I dag', val: '2 t 14 min' }, { label: 'Måned', val: '48 t' }], icon: c.icon, label: tv ? `${c.name} · ${y.app}` : `${c.name} · ${c.list[y.sel][0]}`, ent: c.ent, eq: eq(4, '#979797', run),
         level: [0.5, 0.7, 0.8, 0.9, 0.75, 0.6, 0.45, 0.3, 0.8, 0.95, 0.7, 0.55, 0.4, 0.3].map((v, k) => ({ flex: 1, height: `${v * 100}%`, borderRadius: 2, background: '#696969', transformOrigin: 'center', animation: run ? `eq ${0.8 + (k % 4) * 0.15}s ease-in-out ${k * 0.07}s infinite` : 'none', transform: run ? undefined : 'scaleY(.25)' })),
@@ -285,35 +348,37 @@ class Component extends DCLogic {
         card: { flex: 'none', width: '100%', boxSizing: 'border-box', scrollSnapAlign: 'start', display: 'flex', gap: 14, padding: 18, borderRadius: 28, background: 'radial-gradient(90% 120% at 20% 0%, #26262a, #2f2f2f 70%)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.04)', opacity: y.power ? 1 : 0.55, transition: 'opacity .3s' },
         art: { width: 112, height: 112, flex: 'none', borderRadius: 20, display: 'grid', placeItems: 'center', background: y.power ? (col || PINK) : '#3a3a3a', color: y.power ? (col ? '#fff' : '#2a1720') : '#7f7f7f' } }; });
     const isTv = d.kind === 'tv';
-    const chips = isTv ? this.appsOf(d.id).map(([name, icon, col]) => ({ name, icon, act: name === x.app, go: () => { this.up(d.id, { app: name, power: true, playing: true }); this.key(`Åpner ${name}`); }, col }))
+    const chips = d.live ? this.liveChips(d, x) : isTv ? this.appsOf(d.id).map(([name, icon, col]) => ({ name, icon, act: name === x.app, go: () => { this.up(d.id, { app: name, power: true, playing: true }); this.key(`Åpner ${name}`); }, col }))
       : this.presOf(d).map(([name, icon, typ, tgt], j) => ({ name, icon, act: j === x.sel, go: () => { this.up(d.id, { sel: Math.min(j, d.list.length - 1), power: true, playing: true }); const ct = CT.find(c => c[0] === typ) || CT[0]; this.setState({ actInfo: typ === 'source' ? `${ct[2]} → ${this.entOf(d)} · source: ${tgt}` : `${ct[2]} → ${tgt}` }); } }));
     const V = this.vcfg(d.id), useBtn = isTv && V.mode === 'btn';
-    const fire = (k, l) => { const e = V[k]; this.setState({ lastKey: e ? `${svcOf(e)} → ${e}` : `${d.ent} · ${l}` }); };
+    const LV = !!d.live;
+    const fire = (k, l) => { const e = V[k]; this.setState({ lastKey: e ? `${svcOf(e)} → ${e}` : `${d.ent} · ${l}` }); if (LV) { if (e && ha.state(e)) this.fireEnt(e); else if (k === 'mute') this.mp(d, 'volume_mute', { is_volume_muted: !x.muted }); else this.mp(d, k === 'up' ? 'volume_up' : 'volume_down'); } };
     const vb = (icon, label, go, act) => ({ icon, label, go, style: { height: '100%', display: 'grid', placeItems: 'center', color: act ? 'rgb(242 128 115)' : '#fafafa', background: 'transparent', transition: 'background .15s' } });
-    const mpOpts = cur => [...(MPS.some(m => m[0] === cur) ? [] : [[cur, cur]]), ...MPS].map(([id, n]) => ({ id, label: `${n} · ${id}` }));
+    const MPL = ha.live && ha.domain('media_player').length ? ha.domain('media_player').sort().map(id => [id, ha.name(id, id)]) : MPS;
+    const mpOpts = cur => [...(MPL.some(m => m[0] === cur) ? [] : [[cur, cur]]), ...MPL].map(([id, n]) => ({ id, label: `${n} · ${id}` }));
     const TYP = (cur, set) => DOM.map(([v, l]) => ({ label: l, go: () => set(v), style: { height: 28, padding: '0 10px', borderRadius: 12, fontSize: 12, fontWeight: 500, background: cur === v ? PINK : 'transparent', color: cur === v ? '#2a1720' : '#afafaf' } }));
     return {
       swRef: this.swRef, cards,
       onSwipe: e => { const el = e.currentTarget, n = Math.round(el.scrollLeft / el.clientWidth); if (n !== (this.state.idx[this.state.tab] || 0)) this.setState(st => ({ idx: { ...st.idx, [st.tab]: n }, lastKey: '' })); },
       dots: L.map((_, j) => ({ go: () => this.go(j), style: { width: j === i ? 18 : 6, height: 6, borderRadius: 3, background: j === i ? '#fafafa' : '#545454', transition: 'all .25s' } })),
       tabs: [seg('tv', 'TV'), seg('musikk', 'Musikk')],
-      hasChips: true, hasAct: !isTv && !!s.actInfo, actInfo: s.actInfo || '', chipTitle: isTv ? `Apper · ${PLAT[this.platOf(d)][0]}` : d.kind === 'radio' ? 'Radio' : 'Kilde',
+      hasChips: !LV || chips.length > 0, hasAct: !isTv && !!s.actInfo, actInfo: s.actInfo || '', chipTitle: isTv ? `Apper · ${PLAT[this.platOf(d)][0]}` : d.kind === 'radio' ? 'Radio' : 'Kilde',
       chips: chips.map(c => ({ ...c, iconStyle: { fontSize: 24, fontVariationSettings: "'FILL' 1", color: c.act ? (c.col ? '#fff' : '#2a1720') : (c.col || '#fafafa') },
         style: { flex: 'none', width: isTv ? 92 : 88, height: 88, borderRadius: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, background: c.act ? (c.col || PINK) : '#2f2f2f', color: c.act ? (c.col ? '#fff' : '#2a1720') : '#fafafa', transition: 'background .2s, transform .12s' } })),
       hasTransport: !isTv, hasRemote: isTv, hasWatch: false,
       watch: [{ label: 'Seertid i dag', val: '2 t 14 min' }, { label: 'Denne måneden', val: '48 t' }],
-      playIcon: on ? 'pause' : 'play_arrow', togglePlay: () => this.up(d.id, { playing: !x.playing, power: true }), next: () => step(1), prev: () => step(-1),
-      repeatBtn: round(s.repeat), shuffleBtn: round(s.shuffle), toggleRepeat: () => this.setState({ repeat: !s.repeat }), toggleShuffle: () => this.setState({ shuffle: !s.shuffle }),
-      dUp: () => this.key('Opp'), dDown: () => this.key('Ned'), dLeft: () => this.key('Venstre'), dRight: () => this.key('Høyre'), dOk: () => this.key('OK'),
+      playIcon: on ? 'pause' : 'play_arrow', togglePlay: () => LV ? this.mp(d, 'media_play_pause') : this.up(d.id, { playing: !x.playing, power: true }), next: () => step(1), prev: () => step(-1),
+      repeatBtn: round(LV ? x.repeat : s.repeat), shuffleBtn: round(LV ? x.shuffle : s.shuffle), toggleRepeat: () => LV ? this.mp(d, 'repeat_set', { repeat: x.repeat ? 'off' : 'all' }) : this.setState({ repeat: !s.repeat }), toggleShuffle: () => LV ? this.mp(d, 'shuffle_set', { shuffle: !x.shuffle }) : this.setState({ shuffle: !s.shuffle }),
+      dUp: () => LV ? this.rc(d, 'up') : this.key('Opp'), dDown: () => LV ? this.rc(d, 'down') : this.key('Ned'), dLeft: () => LV ? this.rc(d, 'left') : this.key('Venstre'), dRight: () => LV ? this.rc(d, 'right') : this.key('Høyre'), dOk: () => LV ? this.rc(d, 'ok') : this.key('OK'),
       keys: [['arrow_back', 'Tilbake', 'menu'], ['home', 'Hjem', 'home'], ['menu', 'Meny', 'menu'], ['play_pause', 'Spill/pause', 'play']].map(([icon, label, cmd]) => { const pl = PLAT[this.platOf(d)], hold = cmd === 'home';
         return { icon, label: hold ? `${label} · hold for ${pl[1]}` : label, hasHold: hold,
           style: { position: 'relative', height: 56, borderRadius: 20, background: '#2f2f2f', display: 'grid', placeItems: 'center', color: '#afafaf', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' },
-          down: () => { if (!hold) return; clearTimeout(this._ht); this._held = false; this._ht = setTimeout(() => { this._held = true; this.setState({ lastKey: `${pl[0]} · ${pl[1]} · remote.send_command ${cmd} (hold_secs: 1)` }); }, 550); },
+          down: () => { if (!hold) return; clearTimeout(this._ht); this._held = false; this._ht = setTimeout(() => { this._held = true; if (LV) return this.rc(d, 'home', true); this.setState({ lastKey: `${pl[0]} · ${pl[1]} · remote.send_command ${cmd} (hold_secs: 1)` }); }, 550); },
           up: () => clearTimeout(this._ht), ctx: e => e.preventDefault(),
-          go: () => { if (this._held) { this._held = false; return; } if (label === 'Spill/pause') this.up(d.id, { playing: !x.playing }); this.key(label); } }; }),
-      lastKey: s.lastKey || `${d.hw || d.name} · ${d.remote || d.ent}`,
+          go: () => { if (this._held) { this._held = false; return; } if (LV) return this.rc(d, ({ Tilbake: 'back', Hjem: 'home', Meny: 'menu', 'Spill/pause': 'play' })[label]); if (label === 'Spill/pause') this.up(d.id, { playing: !x.playing }); this.key(label); } }; }),
+      lastKey: s.lastKey || `${d.hw || d.name} · ${(LV && this.vcfg(d.id).remote) || d.remote || d.ent}`,
       volSlider: !useBtn, volButtons: useBtn, vol: x.vol,
-      volBtns: [vb('volume_down', 'Volum ned', () => fire('down', 'Volum ned')), vb('no_sound', 'Demp', () => { this.setState({ muted: !s.muted }); fire('mute', 'Demp'); }, s.muted), vb('volume_up', 'Volum opp', () => fire('up', 'Volum opp'))],
+      volBtns: [vb('volume_down', 'Volum ned', () => fire('down', 'Volum ned')), vb('no_sound', 'Demp', () => { if (!LV) this.setState({ muted: !s.muted }); fire('mute', 'Demp'); }, LV ? x.muted : s.muted), vb('volume_up', 'Volum opp', () => fire('up', 'Volum opp'))],
       cfgOpen: s.cfgOpen, openCfg: () => this.setState({ cfgOpen: true }), closeCfg: () => this.setState({ cfgOpen: false }),
       cfgMus: SRC.musikk.map(c => { const P = this.presOf(c), setP = p => this.setV(c.id, { pres: p }), sq = on => ({ width: 30, height: 30, borderRadius: 15, flex: 'none', display: 'grid', placeItems: 'center', background: '#232323', color: on ? '#fafafa' : '#545454' });
         const upP = (i, k, val) => setP(P.map((p, j) => { if (j !== i) return p; const b = [...p]; b[k] = val; return b; })), mvP = (i, dd) => { const n = [...P], j = i + dd; if (j < 0 || j >= n.length) return; [n[i], n[j]] = [n[j], n[i]]; setP(n); };
@@ -336,8 +401,8 @@ class Component extends DCLogic {
         modes: [['media', 'Mediaspiller'], ['btn', 'Knapper']].map(([m, l]) => ({ label: l, go: () => this.setV(c.id, { mode: m }), style: { height: 30, padding: '0 12px', borderRadius: 14, fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', background: v.mode === m ? PINK : 'transparent', color: v.mode === m ? '#2a1720' : '#afafaf' } })),
         rows: [['up', 'Volum opp', 'volume_up'], ['down', 'Volum ned', 'volume_down'], ['mute', 'Demp', 'no_sound']].map(([k, label, icon]) => { const e = v[k] || '', dom = e.split('.')[0], obj = e.split('.').slice(1).join('.') || `${c.id}_${k}`;
           return { label, icon, ent: e, ph: `switch.${c.id}_volum_${k}`, set: ev => this.setV(c.id, { [k]: ev.target.value.trim() }), svc: e ? `Kaller ${svcOf(e)}` : 'Ikke satt – bruker media_player', types: TYP(DOM.some(x => x[0] === dom) ? dom : '', t => this.setV(c.id, { [k]: `${t}.${obj}` })) }; }) }; }),
-      dragVol: e => { e.currentTarget.setPointerCapture?.(e.pointerId); const r = e.currentTarget.getBoundingClientRect(); this.up(d.id, { vol: Math.round(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * 100) }); },
-      moveVol: e => { if (!e.buttons) return; const r = e.currentTarget.getBoundingClientRect(); this.up(d.id, { vol: Math.round(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * 100) }); },
+      dragVol: e => { e.currentTarget.setPointerCapture?.(e.pointerId); const r = e.currentTarget.getBoundingClientRect(), v = Math.round(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * 100); LV ? this.setVolLive(d, v) : this.up(d.id, { vol: v }); },
+      moveVol: e => { if (!e.buttons) return; const r = e.currentTarget.getBoundingClientRect(), v = Math.round(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * 100); LV ? this.setVolLive(d, v) : this.up(d.id, { vol: v }); },
       volFill: { position: 'absolute', left: 0, top: 15, height: 6, borderRadius: 3, width: `${x.vol}%`, background: PINK },
       volKnob: { position: 'absolute', top: 6, left: `calc(${x.vol}% - 12px)`, width: 24, height: 24, borderRadius: 12, background: '#fafafa', boxShadow: '0 2px 8px rgba(0,0,0,0.4)' },
     };

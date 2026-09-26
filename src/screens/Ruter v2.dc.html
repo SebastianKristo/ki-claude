@@ -159,7 +159,7 @@ const kindOf = (line, mode) => { const m = String(mode || '').toLowerCase(); if 
 const ICON = { metro: 'subway', tram: 'tram', bus: 'directions_bus', rail: 'train', water: 'directions_boat' };
 const isStop = (st, id) => { const a = st.attributes || {}; return (ha.hass?.entities?.[id]?.platform === 'entur_public_transport') || ((/^sensor\.(entur|transport)_/.test(id)) && (a.route != null || a.due_at != null || a.stop_id != null)); };
 function liveStops() { return ha.domain('sensor', isStop).map(id => { const a = ha.state(id).attributes || {}; const d = liveDeps(id)[0];
-  return [id, String(a.friendly_name || id).replace(/^(Entur|Transport)\s+/i, ''), String(a.stop_id || ''), ICON[kindOf(d && d[0], a.transport_mode)] || 'directions_bus']; }); }
+  return [id, String(a.friendly_name || id.split('.')[1].replace(/^(entur|transport)_/, '').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())).replace(/^(Entur|Transport)\s+/i, ''), String(a.stop_id || ''), ICON[kindOf(d && d[0], a.transport_mode)] || 'directions_bus']; }); }
 function liveDeps(id) {
   const st = ha.state(id); if (!st) return [];
   const a = st.attributes || {}, out = [];

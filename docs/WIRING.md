@@ -40,7 +40,7 @@ skjermens script via det globale objektet **`ha`**.
 | `ha.toggle(id)` / `ha.turn(id, på, ekstra)` / `ha.press(id)` / `ha.setNumber(id, v)` / `ha.select(id, valg)` | vanlige handlinger |
 | `ha.moreInfo(id)` | åpner Home Assistants more-info-dialog |
 | `ha.history(id, timer)` | `[{t: Date, v: number}]` (asynkront, `null` til data er lastet) |
-| `ha.events(kalender, dager)` | kalenderhendelser (asynkront) |
+| `ha.events(kalender, dager, dagerTilbake?)` | kalenderhendelser (asynkront) |
 | `ha.todo(id)` | gjøremål i en todo-liste (asynkront) |
 | `ha.forecast(id, 'daily'|'hourly')` | værvarsel (asynkront) |
 | `ha.config` | kortets YAML-konfig (`entities`, `images`, `props` …) |

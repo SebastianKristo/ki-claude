@@ -243,7 +243,7 @@ function loadLive(cfg) {
       devs.push([k, did, dn, devIcon(dn + ' ' + (devices[did]?.model || '')), online]);
       let graph = false;
       ids.forEach(id => { const st = ha.state(id), dom = id.split('.')[0], ec = ents[id].entity_category;
-        const nmRaw = String(st.attributes.friendly_name || id).replace(new RegExp('^' + dn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*', 'i'), '') || dn;
+        const nmRaw = String(st.attributes.friendly_name || id.split('.')[1].replace(ha.norm(dn) + '_', '').replace(/_/g, ' ')).replace(new RegExp('^' + dn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*', 'i'), '') || dn;
         const numeric = dom === 'sensor' && Number.isFinite(parseFloat(st.state)) && st.attributes.unit_of_measurement;
         let role = dom === 'button' ? 'action' : ec === 'config' ? 'hide' : 'detail';
         if (di === 0 && numeric && /cpu|processor|memory|minne|latency|ping/i.test(id) && list.filter(x => x[1] === k && x[6] === 'sum').length < 4) role = 'sum';

@@ -208,7 +208,7 @@ function loadLive() {
   }
   if (!E.strompris) E.strompris = ha.first('strompris', 'sensor.strompris_na', 'sensor.nordpool_kwh_no1_nok_3_10_025', 'sensor.ki_energi_pris_na');
   const n = id => ha.num(id, null);
-  const battery = n(E.batteri) ?? 0;
+  const battery = n(E.batteri);
   let range = n(E.rekkevidde);
   if (range != null && /mi/.test(ha.unit(E.rekkevidde, 'km'))) range *= 1.609;
   let kw = n(E.effekt) ?? 0; if (ha.unit(E.effekt, 'kW') === 'W') kw /= 1000;
@@ -262,7 +262,7 @@ class Component extends DCLogic {
     const L = this.L = loadLive();
     if (L && L.km7) { KM = L.km7.map(x => x.km); DAYS = L.km7.map(x => WD[x.d.getDay()]); DAYL = L.km7.map((x, i) => i === 6 ? 'I dag' : WDL[x.d.getDay()]); }
     else { KM = DEMO_KM; DAYS = DEMO_DAYS; DAYL = DEMO_DAYL; }
-    const s = L ? { ...this.state, battery: L.battery, limit: L.limit ?? this.state.limit, charging: L.charging, smart: L.smart ?? this.state.smart, locked: L.locked, sentry: L.sentry, climate: L.climate, frunk: L.frunk, trunk: L.trunk } : this.state;
+    const s = L ? { ...this.state, battery: L.battery ?? 0, limit: L.limit ?? this.state.limit, charging: L.charging, smart: L.smart ?? this.state.smart, locked: L.locked, sentry: L.sentry, climate: L.climate, frunk: L.frunk, trunk: L.trunk } : this.state;
     const b = Math.floor(s.battery);
     const cap = L ? L.cap : 75;
     const need = Math.max(0, s.limit - s.battery) / 100 * cap, mins = Math.round(need / (L && L.kw > 0.5 ? L.kw : 11) * 60);
@@ -281,7 +281,7 @@ class Component extends DCLogic {
     return {
       carName: L ? L.name : 'Tesla Model Y',
       chips: chipList.map(c => ({ ...c, style: { height: 26, padding: '0 10px 0 8px', borderRadius: 13, display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap', background: '#2f2f2f', color: c.loc ? '#afafaf' : s.sentry ? C.red : '#afafaf' } })),
-      battery: b, heroSub: `${range} km · grense ${s.limit} %`,
+      battery: L && L.battery == null ? '–' : b, heroSub: `${L && L.battery == null && L.range == null ? '–' : range} km · grense ${s.limit} %`,
       tiles: [
         tile('lock', s.locked ? 'lock' : 'lock_open', s.locked ? 'Låst' : 'Ulåst', !s.locked, C.amber, { locked: !s.locked }),
         tile('horn', 'campaign', 'Tut', s.bump === 'horn', C.blue, {}),
