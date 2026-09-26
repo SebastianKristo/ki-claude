@@ -14,7 +14,8 @@ piksel likt prototypen, og koblet til ki-integrasjonene:
 | Søvn | [ki-sovn](https://github.com/SebastianKristo/ki-sovn), [ki-vekking](https://github.com/SebastianKristo/ki-vekking) |
 | Planter | [ki-planter](https://github.com/SebastianKristo/ki-planter) |
 | Sikkerhet, Dører | [ki-varslinger](https://github.com/SebastianKristo/ki-varslinger), [ki-hyttebes-k](https://github.com/SebastianKristo/ki-hyttebes-k), `lock.*`, `alarm_control_panel.*` |
-| Vær, Kalender, Bursdager og post, Gjøremål, Søppel, Media, Støvsuger, Gressklipper, Kamera, Person, Bil, 3D-printer, Drivstoff, Helse, Datamaskiner, Server, Ruter, Innstillinger, iPad | standard HA-entiteter (autodeteksjon + alias) |
+| Innstillinger | [ki-nattmodus](https://github.com/SebastianKristo/ki-nattmodus), [ki-utelys](https://github.com/SebastianKristo/ki-utelys), [ki-varslinger](https://github.com/SebastianKristo/ki-varslinger) |
+| Vær, Kalender, Bursdager og post, Gjøremål, Søppel, Media, Støvsuger, Gressklipper, Kamera, Person, Bil, 3D-printer, Drivstoff, Helse, Datamaskiner, Server, Ruter (Entur), iPad | standard HA-entiteter (autodeteksjon + alias), Kalender-hytta via [ki-hyttebes-k](https://github.com/SebastianKristo/ki-hyttebes-k) |
 
 Finnes ikke en integrasjon/entitet, viser skjermen designets egne demodata – så alt ser alltid
 ut som i Claude Design, og blir «levende» etter hvert som integrasjonene er på plass.
