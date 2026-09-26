@@ -1878,7 +1878,7 @@ class Component extends DCLogic {
     const series = (s.day === 'today' ? SPOT : TMR).map(price);
     const isToday = s.day === 'today';
     const future = series.map((p, h) => [p, h]).filter(([, h]) => !isToday || h > NOW_H);
-    const cheap = future.reduce((m, x) => x[0] < m[0] ? x : m);
+    const cheap = (future.length ? future : series.map((p, h) => [p, h])).reduce((m, x) => x[0] < m[0] ? x : m, [Infinity, 0]);
     const maxP = Math.max(...series);
     const mode = s.pcMode || 'total', raw48 = [...SPOT, ...TMR];
     const tot48 = raw48.map(price).map(p => p * 100);
