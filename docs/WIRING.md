@@ -44,6 +44,12 @@ skjermens script via det globale objektet **`ha`**.
 | `ha.todo(id)` | gjøremål i en todo-liste (asynkront) |
 | `ha.forecast(id, 'daily'|'hourly')` | værvarsel (asynkront) |
 | `ha.config` | kortets YAML-konfig (`entities`, `images`, `props` …) |
+| `ha.watchAll()` | skjermen re-rendres ved enhver state-endring (maks 1/s) – for hele-huset-oversikter |
+
+## Shadow DOM
+
+Scriptene kan bruke `document.querySelector(...)`, `document.addEventListener('scroll', …)` o.l.
+som i prototypen – runtime-en sender slike kall til kortets shadow root.
 
 ## Overstyre entiteter
 
