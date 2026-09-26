@@ -234,7 +234,10 @@ function loadLive(cfg) {
     use.flatMap(([p]) => byPlat[p]).sort().forEach(id => { if (hide.has(id)) return; const e = ents[id], did = e.device_id || ('plat:' + e.platform);
       const dn = devices[e.device_id]?.name_by_user || devices[e.device_id]?.name || use[0][1];
       (devMap[did] = devMap[did] || { dn, ids: [] }).ids.push(id); });
-    Object.entries(devMap).forEach(([did, { dn, ids }], di) => {
+    const RANK = ['router', 'dns', 'hard_drive', 'lan', 'wifi'], DOM = ['binary_sensor', 'sensor', 'switch', 'update', 'button'];
+    const rank = ([did, { dn }]) => { const r = RANK.indexOf(devIcon(dn + ' ' + (devices[did]?.model || ''))); return r < 0 ? 9 : r; };
+    Object.entries(devMap).sort((a, b) => rank(a) - rank(b)).forEach(([did, { dn, ids }], di) => {
+      ids.sort((a, b) => { const x = DOM.indexOf(a.split('.')[0]), y = DOM.indexOf(b.split('.')[0]); return (x < 0 ? 5 : x) - (y < 0 ? 5 : y); });
       const run = ids.find(id => id.startsWith('binary_sensor.') && (ha.attr(id, 'device_class') === 'running' || /status|running/i.test(id)));
       const online = run ? ha.val(run) === 'on' : ids.some(id => !['unavailable', 'unknown'].includes(ha.state(id)?.state));
       devs.push([k, did, dn, devIcon(dn + ' ' + (devices[did]?.model || '')), online]);

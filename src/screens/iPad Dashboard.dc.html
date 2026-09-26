@@ -47,13 +47,13 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
   <!-- Column 1 -->
   <div style="grid-column:2;display:flex;flex-direction:column;gap:16px;min-height:0">
     <div style="padding:6px 8px 0;font-size:21px;line-height:1.95;font-weight:400;color:#afafaf;text-wrap:pretty">
-      Ute er det <span style="display:inline-flex;align-items:center;gap:6px;padding:2px 12px;border-radius:14px;background:#232326;color:#fafafa;font-weight:500;line-height:1.4"><span class="ms" style="font-size:18px;color:#7f7f7f">cloud</span>overskyet og 13,7°</span>. Strømmen koster <span style="display:inline-flex;align-items:center;gap:6px;padding:2px 12px;border-radius:14px;background:#232326;color:#fafafa;font-weight:500;line-height:1.4"><span style="width:7px;height:7px;border-radius:4px;background:rgb(242 128 115)"></span>1,31 kr</span> og vi bruker <span style="display:inline-flex;padding:2px 12px;border-radius:14px;background:#232326;color:#fafafa;font-weight:500;line-height:1.4;font-variant-numeric:tabular-nums">{{ watts }} W</span> med <span style="display:inline-flex;align-items:center;gap:6px;padding:2px 12px;border-radius:14px;background:rgb(242 181 115 / 0.16);color:rgb(242 181 115);font-weight:500;line-height:1.4"><span class="ms" style="font-size:18px">lightbulb</span>{{ onCount }} lys</span> på. Vi har <span style="display:inline-flex;align-items:center;gap:6px;padding:2px 12px;border-radius:14px;background:#232326;color:#fafafa;font-weight:500;line-height:1.4"><span class="ms" style="font-size:18px;color:#7f7f7f">event</span>4 hendelser</span> i dag.
+      Ute er det <span style="display:inline-flex;align-items:center;gap:6px;padding:2px 12px;border-radius:14px;background:#232326;color:#fafafa;font-weight:500;line-height:1.4"><span class="ms" style="font-size:18px;color:#7f7f7f">{{ wxIcon }}</span>{{ wxText }}</span>. Strømmen koster <span style="display:inline-flex;align-items:center;gap:6px;padding:2px 12px;border-radius:14px;background:#232326;color:#fafafa;font-weight:500;line-height:1.4"><span style="{{ priceDot }}"></span>{{ price }} kr</span> og vi bruker <span style="display:inline-flex;padding:2px 12px;border-radius:14px;background:#232326;color:#fafafa;font-weight:500;line-height:1.4;font-variant-numeric:tabular-nums">{{ watts }} W</span> med <span style="display:inline-flex;align-items:center;gap:6px;padding:2px 12px;border-radius:14px;background:rgb(242 181 115 / 0.16);color:rgb(242 181 115);font-weight:500;line-height:1.4"><span class="ms" style="font-size:18px">lightbulb</span>{{ onCount }} lys</span> på. Vi har <span style="display:inline-flex;align-items:center;gap:6px;padding:2px 12px;border-radius:14px;background:#232326;color:#fafafa;font-weight:500;line-height:1.4"><span class="ms" style="font-size:18px;color:#7f7f7f">event</span>{{ eventsLabel }}</span> i dag.
     </div>
 
     <div style="background:#1b1b1d;border:1px solid rgba(255,255,255,0.05);border-radius:28px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between">
       <div style="display:flex;flex-direction:column;gap:2px">
         <div style="font-size:13px;color:#7f7f7f">Familien</div>
-        <div style="font-size:17px;font-weight:500">2 av 3 hjemme</div>
+        <div style="font-size:17px;font-weight:500">{{ homeLabel }}</div>
       </div>
       <div style="display:flex;gap:14px">
         <sc-for list="{{ family }}" as="p" hint-placeholder-count="3">
@@ -89,7 +89,7 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
     <div style="background:#1b1b1d;border:1px solid rgba(255,255,255,0.05);border-radius:28px;padding:18px;display:flex;gap:16px">
       <div style="flex:1;display:flex;flex-direction:column;gap:14px;min-width:0">
         <div style="display:flex;align-items:center;gap:8px">
-          <div style="height:26px;padding:0 10px 0 8px;border-radius:13px;background:#2a2a2a;white-space:nowrap;flex:none;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500"><span class="ms" style="font-size:15px;color:#979797">speaker</span>Rn602-stue</div>
+          <div style="height:26px;padding:0 10px 0 8px;border-radius:13px;background:#2a2a2a;white-space:nowrap;flex:none;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500"><span class="ms" style="font-size:15px;color:#979797">speaker</span>{{ mediaName }}</div>
           <div style="display:flex;gap:4px"><span style="width:14px;height:5px;border-radius:3px;background:#fafafa"></span><span style="width:5px;height:5px;border-radius:3px;background:#48474a"></span></div>
         </div>
         <div style="display:flex;flex-direction:column;gap:3px">
@@ -99,10 +99,10 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
         <div style="display:flex;gap:8px;margin-top:auto">
           <button onClick="{{ toggleMedia }}" style="{{ mediaPowerStyle }}"><span class="ms" style="font-size:20px">power_settings_new</span></button>
           <button onClick="{{ toggleMedia }}" style="width:40px;height:40px;border-radius:20px;background:#29292c;display:grid;place-items:center"><span class="ms" style="font-size:20px">{{ playIcon }}</span></button>
-          <button style="width:40px;height:40px;border-radius:20px;background:#29292c;display:grid;place-items:center"><span class="ms" style="font-size:20px">skip_next</span></button>
+          <button onClick="{{ mediaNext }}" style="width:40px;height:40px;border-radius:20px;background:#29292c;display:grid;place-items:center"><span class="ms" style="font-size:20px">skip_next</span></button>
         </div>
       </div>
-      <div style="width:120px;height:120px;border-radius:20px;flex:none;background:repeating-linear-gradient(135deg,#252528 0 6px,#2a2a2d 6px 12px);display:grid;place-items:center;font:10px ui-monospace,Menlo,monospace;color:#696969;text-align:center">albumcover</div>
+      <div style="width:120px;height:120px;border-radius:20px;flex:none;background:repeating-linear-gradient(135deg,#252528 0 6px,#2a2a2d 6px 12px);display:grid;place-items:center;font:10px ui-monospace,Menlo,monospace;color:#696969;text-align:center;position:relative;overflow:hidden">{{ artText }}<sc-if value="{{ artImg }}" hint-placeholder-val="{{ false }}"><img src="{{ artImg }}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></img></sc-if></div>
     </div>
 
     <div style="flex:1;min-height:0;background:#1b1b1d;border:1px solid rgba(255,255,255,0.05);border-radius:28px;padding:18px;display:flex;flex-direction:column">
@@ -110,7 +110,7 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
         <div style="width:44px;height:44px;border-radius:22px;background:rgb(242 181 115 / 0.18);color:rgb(242 181 115);display:grid;place-items:center"><span class="ms" style="font-size:22px">home_iot_device</span></div>
         <div style="display:flex;flex-direction:column;gap:2px">
           <div style="font-size:13px;color:#7f7f7f">Varme</div>
-          <div style="font-size:16px;font-weight:500">KI Energi styrer · {{ heatCount }}</div>
+          <div style="font-size:16px;font-weight:500">{{ heatTitle }} · {{ heatCount }}</div>
         </div>
       </div>
       <div style="flex:1;display:flex;flex-direction:column">
@@ -129,11 +129,11 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
       </div>
     </div>
 
-    <div style="background:#1b1b1d;border:1px solid rgba(255,255,255,0.05);border-radius:28px;padding:16px 18px;display:flex;align-items:center;gap:12px">
+    <div onClick="{{ plexGo }}" style="background:#1b1b1d;border:1px solid rgba(255,255,255,0.05);border-radius:28px;padding:16px 18px;display:flex;align-items:center;gap:12px">
       <div style="width:44px;height:44px;border-radius:22px;background:#2a2a2a;display:grid;place-items:center"><span class="ms" style="font-size:22px;color:rgb(242 210 111)">play_circle</span></div>
       <div style="flex:1;display:flex;flex-direction:column;gap:2px">
         <div style="font-size:13px;color:#7f7f7f">Nytt i Plex</div>
-        <div style="font-size:16px;font-weight:500">Ingenting nytt</div>
+        <div style="font-size:16px;font-weight:500">{{ plexText }}</div>
       </div>
       <span class="ms" style="font-size:20px;color:#696969">chevron_right</span>
     </div>
@@ -145,7 +145,7 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
       <div style="display:flex;align-items:center;gap:12px;padding:0 4px">
         <div style="{{ lightHeadIcon }}"><span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">lightbulb</span></div>
         <div style="flex:1;display:flex;flex-direction:column;gap:2px">
-          <div style="font-size:13px;color:#7f7f7f">Lys i stua</div>
+          <div style="font-size:13px;color:#7f7f7f">{{ lightTitle }}</div>
           <div style="font-size:16px;font-weight:500">{{ onLabel }}</div>
         </div>
         <button onClick="{{ allLights }}" style="height:36px;padding:0 14px;border-radius:18px;background:#29292c;font-size:13px;font-weight:500">{{ allLabel }}</button>

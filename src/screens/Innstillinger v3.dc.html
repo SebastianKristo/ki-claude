@@ -84,23 +84,53 @@ const TABORD = (comp, key, list) => {
       style: d ? { ...t.style, position: 'relative', zIndex: 5, transform: `translateX(${st.dx}px) scale(1.06)`, boxShadow: '0 8px 20px rgba(0,0,0,0.45), inset 0 0 0 1.5px rgb(242 133 201)', transition: 'none', touchAction: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }
         : mine ? { ...t.style, opacity: 0.65, transition: 'opacity .2s' } : { ...t.style, WebkitTouchCallout: 'none', userSelect: 'none' } }; });
 };
+// ── Live-kobling: dashboardinnstillinger ─────────────────────────────────────────────
+// Nattmodus = switch.nattmodus (ki_nattmodus, alias `nattmodus`), vekketid = sensor.*_vekking_neste_alarm
+// (ki_vekking/ki_sovn, alias `vekking`). Hver rad kobles til en bryter via alias (se ROWENT) eller
+// `innstillinger: { automasjoner: [{ entity, navn, ikon, tekst }], push: [...] }` i kortkonfig.
+// Rader uten entitet er rene dashboardvalg og lagres i localStorage per HA-bruker.
+const ROWENT = {
+  face: ['ansiktsgjenkjenning', 'switch.ansiktsgjenkjenning_dorlas_ansiktsgjenkjenning_dorlas'],
+  ute: ['utelys_automatikk', 'switch.ki_utelys_auto'],
+  door: ['varsel_dorklokke', 'switch.dorklokke_varsling', 'switch.dorklokke_varsel'],
+  motion: ['varsel_bevegelse', 'switch.bevegelse_ute_varsling', 'switch.bevegelse_ute_varsel'],
+  wash: ['varsel_vaskemaskin', 'switch.vaskemaskin_ferdig_varsling', 'switch.vaskemaskin_varsling'],
+  price: ['varsel_strompris', 'switch.hoy_strompris_varsling', 'switch.strompris_varsling'],
+};
+const ON0 = { face: true, ute: true, door: true, motion: true, wash: false, price: true };
+const lsKey = () => 'innstillinger-v3:' + (ha.hass?.user?.id || ha.hass?.user?.name || 'lokal');
+const lsLoad = () => { try { return JSON.parse(localStorage.getItem(lsKey()) || 'null'); } catch (e) { return null; } };
+const hhmm = t => String(t || '').slice(0, 5);
 class Component extends DCLogic {
-  state = { night: true, tab: 'auto', on: { face: true, ute: true, door: true, motion: true, wash: false, price: true } };
+  state = { night: true, tab: 'auto', on: { ...ON0, ...((lsLoad() || {}).on || {}) } };
+  saveOn(on) { try { localStorage.setItem(lsKey(), JSON.stringify({ on })); } catch (e) {} this.setState({ on }); }
   __tabWrap(v) { if (v && Array.isArray(v.tabs)) v.tabs = TABORD(this, 'innstillinger', v.tabs); return v; }
   renderVals() { return this.__tabWrap(this.__rv()); }
   __rv() {
-    const s = this.state, n = s.night;
+    const s = this.state;
+    const nightId = ha.first('nattmodus', 'switch.nattmodus') || ha.domain('switch', (st, id) => ha.hass?.entities?.[id]?.platform === 'ki_nattmodus')[0] || null;
+    const n = nightId ? ha.on(nightId, false) : s.night;
+    const alarmId = ha.first('vekking', 'sensor.soverom_vekking_neste_alarm') || ha.domain('sensor', (st, id) => /_vekking_neste_alarm$/.test(id))[0] || null;
+    const alarm = alarmId ? ha.val(alarmId, null) : null, tidPa = nightId ? ha.attr(nightId, 'tid_pa', null) : null;
+    const hr = new Date().getHours();
+    const heroTitle = !nightId ? (n ? 'God natt' : 'God morgen') : n ? 'God natt' : hr < 5 ? 'God natt' : hr < 12 ? 'God morgen' : hr < 18 ? 'God dag' : 'God kveld';
+    const heroSub = !nightId && !alarmId ? (n ? 'Vekking kl. 07:00' : 'Nattmodus starter kl. 23:00')
+      : n ? (alarm && /^\d{1,2}:\d{2}/.test(alarm) ? `Vekking kl. ${hhmm(alarm)}` : alarmId ? 'Ingen vekking satt' : 'Nattmodus er på')
+      : tidPa ? `Nattmodus starter kl. ${hhmm(tidPa)}` : 'Trykk for å starte nattmodus';
+    const custom = ha.config.innstillinger || {};
+    const rowList = (key, demo) => (custom[key] || []).length ? custom[key].map((r, i) => [`${key}${i}`, r.ikon || 'toggle_on', r.navn || ha.name(r.entity, r.entity), r.tekst || '', r.entity])
+      : demo.map(([k, icon, title, sub]) => [k, icon, title, sub, ha.first(...ROWENT[k])]);
     return {
-      toggleNight: () => this.setState({ night: !n }),
+      toggleNight: () => nightId ? ha.toggle(nightId) : this.setState({ night: !n }),
       hero: { position: 'relative', height: 180, borderRadius: 30, overflow: 'hidden', display: 'block', width: '100%', background: n ? 'linear-gradient(180deg, #1f2150, #3b3478 75%, #4a3c80)' : 'linear-gradient(180deg, #5a7fc0, #9fb6dc 70%, #e6c7a0)', transition: 'background .8s' },
       stars: n ? STARS.map(([x, y], i) => ({ position: 'absolute', left: `${x}%`, top: `${y}%`, width: i % 3 ? 2 : 3, height: i % 3 ? 2 : 3, borderRadius: 2, background: '#fff', opacity: 0.4 + (i % 4) * 0.15 })) : [],
       orb: { position: 'absolute', right: 110, top: 18, width: 56, height: 56, borderRadius: 28, display: 'grid', placeItems: 'center', background: n ? 'radial-gradient(circle, rgba(255,240,200,0.35), transparent 70%)' : 'radial-gradient(circle, rgba(255,220,120,0.6), transparent 70%)' },
       orbIcon: { fontSize: 36, color: n ? '#f7ecc8' : '#ffd66b', fontVariationSettings: "'FILL' 1" }, orbGlyph: n ? 'dark_mode' : 'light_mode',
       win: { position: 'absolute', right: 108, bottom: 34, width: 14, height: 14, borderRadius: 2, background: n ? '#f3c96a' : '#2b2a55', boxShadow: n ? '0 0 12px rgba(243,201,106,0.7)' : 'none' },
-      heroTitle: n ? 'God natt' : 'God morgen', heroSub: n ? 'Vekking kl. 07:00' : 'Nattmodus starter kl. 23:00',
+      heroTitle, heroSub,
       tabs: [['auto', 'Automasjoner'], ['push', 'Push varsler']].map(([k, label]) => ({ label, go: () => this.setState({ tab: k }), style: { height: 38, padding: '0 18px', borderRadius: 19, fontSize: 14, fontWeight: 500, whiteSpace: 'nowrap', background: s.tab === k ? PINK : 'transparent', color: s.tab === k ? '#2a1720' : '#afafaf' } })),
-      rows: (s.tab === 'auto' ? AUTO : PUSH).map(([k, icon, title, sub]) => { const on = !!s.on[k]; return { icon, title, sub,
-        go: () => this.setState(x => ({ on: { ...x.on, [k]: !x.on[k] } })),
+      rows: rowList(s.tab === 'auto' ? 'automasjoner' : 'push', s.tab === 'auto' ? AUTO : PUSH).map(([k, icon, title, sub, ent]) => { const on = ent ? ha.on(ent, false) : !!s.on[k]; return { icon, title, sub,
+        go: () => ent ? ha.toggle(ent) : this.saveOn({ ...s.on, [k]: !s.on[k] }),
         track: { position: 'relative', width: 34, height: 20, borderRadius: 10, flex: 'none', background: on ? '#fafafa' : '#545454', transition: 'background .2s' },
         knob: { position: 'absolute', top: 4, left: on ? 18 : 4, width: 12, height: 12, borderRadius: 6, background: on ? '#232323' : '#c7c7c7', transition: 'left .2s' } }; }),
     };
