@@ -8,7 +8,7 @@ import * as esbuild from 'esbuild';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SCREEN_DIR = join(ROOT, 'src/screens');
-const GEN_DIR = join(ROOT, 'src/generated');
+const GEN_DIR = process.env.KI_GEN ? join(ROOT, process.env.KI_GEN) : join(ROOT, 'src/generated');
 const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
 
 // Designs imported by an older name inside the project → the version we ship.
@@ -52,8 +52,9 @@ const opts = {
   legalComments: 'none',
   loader: { '.webp': 'dataurl' },
   define: { 'process.env.NODE_ENV': '"production"' },
-  outfile: join(ROOT, 'dist/ki-claude.js'),
+  outfile: process.env.KI_OUT || join(ROOT, 'dist/ki-claude.js'),
   logLevel: 'info',
+  plugins: process.env.KI_GEN ? [{ name: 'gen-dir', setup(b) { b.onResolve({ filter: /generated\/(screens|version)\.js$/ }, a => ({ path: join(GEN_DIR, a.path.split('/').pop()) })); } }] : [],
 };
 
 const n = generate();

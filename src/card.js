@@ -58,7 +58,6 @@ class KiClaudeCard extends HTMLElement {
     if (!this._mounted) this._mount();
   }
   get hass() { return this._ha.hass; }
-  connectedCallback() { if (!this._mounted && this._config) this._mount(); }
   getCardSize() { return 12; }
   getGridOptions() { return { columns: 'full', rows: 'auto' }; }
 
