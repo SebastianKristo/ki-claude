@@ -100,7 +100,9 @@ function siteIds(site) {
   const conf = key ? cfgs[key] : null;
   if (conf) {
     const list = Array.isArray(conf) ? conf : [...(conf.locks || conf.laaser || conf.låser || []), ...(conf.garages || conf.porter || []), ...(conf.entities || [])];
-    return list.map(x => typeof x === 'string' ? x : x.entity || x.entity_id).filter(Boolean);
+    const ids = list.map(x => typeof x === 'string' ? x : x.entity || x.entity_id).filter(Boolean);
+    ids.explicit = true;
+    return ids;
   }
   const ents = ha.hass?.entities || {};
   const ok = id => { const r = ents[id]; return !(r && (r.hidden || r.hidden_by || r.disabled_by)); };
@@ -112,8 +114,8 @@ const devOf = id => ha.hass?.entities?.[id]?.device_id;
 const devBattery = id => { const ents = ha.hass?.entities || {}, dev = devOf(id); if (!dev) return null;
   const b = Object.keys(ents).find(x => x.startsWith('sensor.') && ents[x].device_id === dev && ha.attr(x, 'device_class') === 'battery'); return b ? ha.num(b, null) : null; };
 function loadLive(site) {
-  const ids = siteIds(site).filter(id => ha.state(id));
-  if (!ids.length) return null;
+  const all = siteIds(site), ids = all.filter(id => ha.state(id));
+  if (!ids.length && !(all.explicit && ha.live && Object.keys(ha.hass.states).length)) return null;
   const kiS = ha.all('ki_notifications', 'sensor'), kiSw = ha.all('ki_notifications', 'switch');
   const face = ha.first('ansikt', 'sensor.ansiktsgjenkjenning_dorlas_sist_last_opp_av') || kiS.find(id => id.endsWith('_sist_last_opp_av')) || null;
   const locks = ids.filter(id => id.startsWith('lock.')).map(ent => {
