@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#232323;color:#fafafa;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#fafafa}a:hover{color:rgb(102 209 158)}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;user-select:none}
+[data-hscroll]::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;max-width:420px;min-height:100vh;margin:0 auto;background:#232323;padding:20px 18px 40px;display:flex;flex-direction:column;gap:22px">
+  <header style="display:flex;align-items:center;justify-content:space-between">
+    <div style="font-size:13px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#7f7f7f">Sir Sweeps</div>
+    <button style="width:36px;height:36px;border-radius:18px;background:#3a3a3a;display:grid;place-items:center"><span class="ms" style="font-size:20px">close</span></button>
+  </header>
+
+  <section style="display:flex;flex-direction:column;align-items:center;gap:18px">
+    <div style="position:relative;width:240px;height:240px">
+      <sc-for list="{{ ring }}" as="r" hint-placeholder-count="24"><div style="{{ r }}"></div></sc-for>
+      <div style="position:absolute;inset:40px;border-radius:50%;background:#2f2f2f;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.05);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
+        <span class="ms" style="{{ coreIcon }}">{{ coreIconName }}</span>
+        <div style="font-size:34px;font-weight:500;letter-spacing:-0.03em;line-height:1;font-variant-numeric:tabular-nums">{{ battery }}<span style="font-size:14px;color:#7f7f7f;font-weight:400"> %</span></div>
+        <div style="font-size:12px;color:#7f7f7f">{{ coreSub }}</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center">
+      <div style="font-size:24px;font-weight:500;letter-spacing:-0.015em">{{ headline }}</div>
+      <div style="font-size:14px;color:#7f7f7f">{{ subline }}</div>
+    </div>
+  </section>
+
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:4px;border-radius:20px;background:#2f2f2f">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4"><button onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button></sc-for>
+  </div>
+
+  <sc-if value="{{ isClean }}" hint-placeholder-val="{{ true }}">
+    <section style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;justify-content:space-between;padding:0 4px">
+        <div style="font-size:12px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#7f7f7f">Rom</div>
+        <div style="font-size:12px;color:#696969">{{ selMeta }}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <sc-for list="{{ rooms }}" as="r" hint-placeholder-count="5">
+          <button onClick="{{ r.tap }}" style="{{ r.style }}">
+            <span class="ms" style="{{ r.iconStyle }}">{{ r.icon }}</span>
+            <div style="display:flex;flex-direction:column;gap:2px;align-items:flex-start">
+              <span style="font-size:15px;font-weight:500">{{ r.name }}</span>
+              <span style="font-size:12px;color:#7f7f7f">{{ r.sub }}</span>
+            </div>
+            <span class="ms" style="{{ r.check }}">check_circle</span>
+          </button>
+        </sc-for>
+      </div>
+    </section>
+    <section style="display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:12px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#7f7f7f;padding:0 4px">Soner</div>
+      <div data-hscroll="1" style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -18px;padding:0 18px">
+        <sc-for list="{{ zones }}" as="z" hint-placeholder-count="3">
+          <button onClick="{{ z.tap }}" style="{{ z.style }}"><span class="ms" style="font-size:17px">table_restaurant</span>{{ z.name }}</button>
+        </sc-for>
+      </div>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ isControl }}" hint-placeholder-val="{{ false }}">
+    <section style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+      <sc-for list="{{ controls }}" as="c" hint-placeholder-count="4">
+        <button onClick="{{ c.go }}" style="height:76px;border-radius:20px;background:#2f2f2f;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.04);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px" style-active="transform:scale(0.95)">
+          <span class="ms" style="font-size:24px;font-variation-settings:'FILL' 1">{{ c.icon }}</span>
+          <span style="font-size:12px;font-weight:500;white-space:nowrap">{{ c.label }}</span>
+        </button>
+      </sc-for>
+    </section>
+    <section style="display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:12px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#7f7f7f;padding:0 4px">Sugestyrke</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:4px;border-radius:18px;background:#2f2f2f">
+        <sc-for list="{{ suction }}" as="p" hint-placeholder-count="4"><button onClick="{{ p.go }}" style="{{ p.style }}">{{ p.label }}</button></sc-for>
+      </div>
+    </section>
+    <section style="display:flex;flex-direction:column">
+      <sc-for list="{{ toggles }}" as="t" hint-placeholder-count="2">
+        <button onClick="{{ t.go }}" style="{{ t.row }}">
+          <span class="ms" style="font-size:22px;color:#979797;width:28px">{{ t.icon }}</span>
+          <div style="flex:1;display:flex;flex-direction:column;gap:2px;text-align:left">
+            <span style="font-size:14px;font-weight:500">{{ t.title }}</span>
+            <span style="font-size:12px;color:#7f7f7f">{{ t.sub }}</span>
+          </div>
+          <span style="{{ t.track }}"><span style="{{ t.knob }}"></span></span>
+        </button>
+      </sc-for>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ isInfo }}" hint-placeholder-val="{{ false }}">
+    <section style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+      <sc-for list="{{ stats }}" as="t" hint-placeholder-count="3">
+        <div style="display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-radius:18px;background:#2f2f2f">
+          <div style="font-size:11px;color:#7f7f7f;white-space:nowrap">{{ t.label }}</div>
+          <div style="font-size:17px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap">{{ t.v }}</div>
+        </div>
+      </sc-for>
+    </section>
+    <section style="display:flex;flex-direction:column;gap:2px">
+      <div style="font-size:12px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#7f7f7f;padding:0 4px 8px">Slitedeler</div>
+      <sc-for list="{{ parts }}" as="p" hint-placeholder-count="4">
+        <div style="{{ p.row }}">
+          <div style="display:flex;justify-content:space-between;gap:10px;font-size:14px">
+            <span style="font-weight:500">{{ p.name }}</span>
+            <span style="{{ p.valStyle }}">{{ p.val }}</span>
+          </div>
+          <div style="height:5px;border-radius:3px;background:#2f2f2f;overflow:hidden"><div style="{{ p.bar }}"></div></div>
+          <sc-if value="{{ p.low }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ p.reset }}" style="align-self:flex-start;height:30px;padding:0 12px;border-radius:15px;background:rgb(242 181 115);color:#161618;font-size:12px;font-weight:600">Merk som byttet</button>
+          </sc-if>
+        </div>
+      </sc-for>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ isMap }}" hint-placeholder-val="{{ false }}">
+    <section style="position:relative;height:300px;border-radius:24px;background:#2f2f2f;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.04)">
+      <sc-for list="{{ mapRooms }}" as="m" hint-placeholder-count="6">
+        <button onClick="{{ m.tap }}" style="{{ m.style }}"><span style="font-size:11px;font-weight:500">{{ m.name }}</span></button>
+      </sc-for>
+      <span style="position:absolute;left:8%;top:84%;width:18px;height:12px;border-radius:4px;background:#48474a"></span>
+      <span style="{{ robot }}"></span>
+    </section>
+    <div style="font-size:12px;color:#696969;text-align:center">Trykk på et rom for å velge det</div>
+  </sc-if>
+
+  <button onClick="{{ main.go }}" style="{{ main.style }}"><span class="ms" style="font-size:24px;font-variation-settings:'FILL' 1">{{ main.icon }}</span>{{ main.label }}</button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:1200}}">
+const C = { green: 'rgb(102 209 158)', amber: 'rgb(242 181 115)', blue: 'rgb(115 185 242)' };
+const a = (c, o) => c.replace(')', ` / ${o})`);
+const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
+const ROOMS = [['sov','Soverom','bed',14,[4,4,44,34]],['mamma','Mamma','bed',11,[52,4,44,26]],['kontor','Kontor','desk',9,[52,34,44,26]],['pappa','Pappa','single_bed',12,[4,42,44,34]],['trapp','Trapp','stairs',4,[52,64,44,14]],['gang','Gang','door_front',7,[4,80,92,16]]];
+const ZONES = ['Spisebord lite','Spisebord mye','Stue uten spisebord','Under sofa'];
+class Component extends DCLogic {
+  state = { tab: 'clean', status: 'docked', battery: 100, sel: [], zone: null, prog: 0, suction: 'std', mop: false, quiet: true,
+    parts: [['Hovedbørste', 72, 300], ['Sidebørste', 41, 200], ['Filter', 12, 150], ['Sensorer', 88, 30]] };
+  componentDidMount() { this.t = setInterval(() => this.tick(), 800); }
+  componentWillUnmount() { clearInterval(this.t); }
+  tick() {
+    const s = this.state;
+    if (s.status === 'cleaning') { const p = s.prog + 3; this.setState(p >= 100 ? { prog: 100, status: 'returning' } : { prog: p, battery: Math.max(5, s.battery - 0.6) }); }
+    else if (s.status === 'returning') { this.setState({ status: 'docked', prog: 0 }); }
+    else if (s.status === 'docked' && s.battery < 100) this.setState({ battery: Math.min(100, s.battery + 1) });
+  }
+  renderVals() {
+    const s = this.state, b = Math.round(s.battery), st = s.status;
+    const n = 24, filled = Math.round(b / 100 * n);
+    const col = st === 'cleaning' ? C.green : st === 'paused' ? C.amber : st === 'returning' ? C.blue : C.green;
+    const target = s.zone ? [s.zone] : s.sel.length ? s.sel.map(id => ROOMS.find(r => r[0] === id)[1]) : ['hele huset'];
+    const labels = { docked: b < 100 ? 'Lader i dokken' : 'I dokken', cleaning: 'Støvsuger', paused: 'Pause', returning: 'På vei hjem' };
+    const headline = st === 'cleaning' ? `Støvsuger ${target.join(', ').toLowerCase()}` : st === 'paused' ? 'Satt på pause' : st === 'returning' ? 'Ferdig, kjører hjem' : 'Klar til å støvsuge';
+    const tab = (k, l) => ({ label: l, go: () => this.setState({ tab: k }), style: { height: 38, borderRadius: 16, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: s.tab === k ? PINK : 'transparent', color: s.tab === k ? '#2a1720' : '#979797' } });
+    const start = () => this.setState({ status: 'cleaning', prog: st === 'paused' ? s.prog : 0 });
+    const toggleSel = id => this.setState({ zone: null, sel: s.sel.includes(id) ? s.sel.filter(x => x !== id) : [...s.sel, id] });
+    const sw = (on) => ({ track: { position: 'relative', width: 46, height: 28, borderRadius: 14, flex: 'none', background: on ? 'rgb(102 209 158)' : '#3a3a3a', transition: 'background .2s' }, knob: { position: 'absolute', top: 3, left: on ? 21 : 3, width: 22, height: 22, borderRadius: 11, background: '#fafafa', transition: 'left .2s' } });
+    const rp = ROOMS.find(r => r[0] === (s.sel[0] || 'sov'))[4];
+    const t = s.prog / 100;
+    return {
+      ring: Array.from({ length: n }, (_, i) => ({ position: 'absolute', left: 'calc(50% - 4px)', top: 'calc(50% - 14px)', width: 8, height: 28, borderRadius: 4, transform: `rotate(${i * 15}deg) translateY(-102px)`, background: i < filled ? col : '#3a3a3a', boxShadow: i < filled && st === 'cleaning' ? `0 0 12px ${a(col, 0.6)}` : 'none', transition: 'background .4s' })),
+      coreIcon: { fontSize: 28, color: col, fontVariationSettings: "'FILL' 1" }, coreIconName: st === 'docked' ? 'battery_charging_full' : 'robot_2',
+      battery: b, coreSub: labels[st], headline,
+      subline: st === 'cleaning' ? `${Math.round(s.prog)} % ferdig · ca. ${Math.max(1, Math.round((100 - s.prog) / 6))} min igjen` : 'Sist støvsuget i går 14:20 · 42 m²',
+      tabs: [tab('clean', 'Renhold'), tab('control', 'Kontroll'), tab('info', 'Info'), tab('map', 'Kart')],
+      isClean: s.tab === 'clean', isControl: s.tab === 'control', isInfo: s.tab === 'info', isMap: s.tab === 'map',
+      selMeta: s.sel.length ? `${s.sel.length} valgt` : 'Ingen valgt · hele huset',
+      rooms: ROOMS.slice(0, 5).map(([id, name, icon, m2]) => { const on = s.sel.includes(id); return { name, icon, sub: `${m2} m²`, tap: () => toggleSel(id),
+        style: { position: 'relative', height: 104, borderRadius: 22, padding: 16, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-start', background: on ? a(C.green, 0.14) : '#2f2f2f', boxShadow: on ? `inset 0 0 0 1px ${a(C.green, 0.45)}` : 'inset 0 0 0 1px rgba(255,255,255,0.04)', transition: 'background .2s' },
+        iconStyle: { fontSize: 24, color: on ? C.green : '#979797', fontVariationSettings: `'FILL' ${on ? 1 : 0}` },
+        check: { position: 'absolute', right: 14, top: 14, fontSize: 20, color: C.green, opacity: on ? 1 : 0, fontVariationSettings: "'FILL' 1", transition: 'opacity .2s' } }; }),
+      zones: ZONES.map(z => { const on = s.zone === z; return { name: z, tap: () => this.setState({ zone: on ? null : z, sel: [] }),
+        style: { flex: 'none', height: 40, padding: '0 14px 0 10px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: on ? a(C.green, 0.14) : '#2f2f2f', color: on ? '#fafafa' : '#afafaf', boxShadow: on ? `inset 0 0 0 1px ${a(C.green, 0.45)}` : 'inset 0 0 0 1px rgba(255,255,255,0.04)' } }; }),
+      controls: [
+        { icon: st === 'cleaning' ? 'pause' : 'play_arrow', label: st === 'cleaning' ? 'Pause' : 'Start', go: () => st === 'cleaning' ? this.setState({ status: 'paused' }) : start() },
+        { icon: 'home', label: 'Dokk', go: () => this.setState({ status: 'returning' }) },
+        { icon: 'location_searching', label: 'Finn', go: () => {} },
+        { icon: 'delete', label: 'Tøm', go: () => {} },
+      ],
+      suction: [['quiet','Stille'],['std','Standard'],['turbo','Turbo'],['max','Maks']].map(([k, l]) => ({ label: l, go: () => this.setState({ suction: k }), style: { height: 38, borderRadius: 14, fontSize: 13, fontWeight: 500, background: s.suction === k ? '#fafafa' : 'transparent', color: s.suction === k ? '#232323' : '#979797' } })),
+      toggles: [['water_drop','Mopp','Mopper etter støvsuging','mop'],['do_not_disturb_on','Stille timer','22:00–08:00','quiet']].map(([icon, title, sub, k], i) => ({ icon, title, sub, go: () => this.setState({ [k]: !s[k] }), ...sw(s[k]),
+        row: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 4px', width: '100%', borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none' } })),
+      stats: [['Totalt', '312 t'], ['Areal', '8 420 m²'], ['Turer', '214']].map(([label, v]) => ({ label, v })),
+      parts: s.parts.map(([name, pct, life], i) => { const low = pct < 20; return { name, low, val: `${pct} % · ${Math.round(pct / 100 * life)} t`,
+        reset: () => this.setState(st2 => ({ parts: st2.parts.map((p, j) => j === i ? [p[0], 100, p[2]] : p) })),
+        row: { display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 4px', borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none' },
+        valStyle: { fontSize: 12, color: low ? C.amber : '#7f7f7f', fontVariantNumeric: 'tabular-nums' },
+        bar: { width: `${pct}%`, height: '100%', borderRadius: 3, background: low ? C.amber : C.green } }; }),
+      mapRooms: ROOMS.map(([id, name, , , [x, y, w, h]]) => { const on = s.sel.includes(id); return { name, tap: () => toggleSel(id),
+        style: { position: 'absolute', left: `${x}%`, top: `${y}%`, width: `${w}%`, height: `${h}%`, borderRadius: 10, display: 'grid', placeItems: 'center', background: on ? a(C.green, 0.3) : '#3a3a3a', boxShadow: on ? `inset 0 0 0 1.5px ${C.green}` : 'none', color: on ? '#fafafa' : '#979797', transition: 'background .2s' } }; }),
+      robot: { position: 'absolute', left: `calc(${st === 'cleaning' || st === 'paused' ? rp[0] + rp[2] * (0.15 + 0.7 * ((t * 5) % 1)) : 9}% - 9px)`, top: `calc(${st === 'cleaning' || st === 'paused' ? rp[1] + rp[3] * (0.2 + 0.6 * t) : 82}% - 9px)`, width: 18, height: 18, borderRadius: 9, background: '#fafafa', boxShadow: `0 0 0 4px ${a(col, 0.35)}`, transition: 'left .8s linear, top .8s linear' },
+      main: st === 'cleaning'
+        ? { icon: 'pause', label: 'Pause', go: () => this.setState({ status: 'paused' }), style: { height: 64, borderRadius: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 16, fontWeight: 600, background: a(C.amber, 0.16), color: '#fafafa', boxShadow: `inset 0 0 0 1px ${a(C.amber, 0.45)}` } }
+        : { icon: 'play_arrow', label: st === 'paused' ? 'Fortsett' : s.zone ? `Støvsug ${s.zone.toLowerCase()}` : s.sel.length ? `Støvsug ${s.sel.length} rom` : 'Støvsug alt', go: start, style: { height: 64, borderRadius: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 16, fontWeight: 600, background: C.green, color: '#10231a' } },
+    };
+  }
+}
+</script>
+</body>
+</html>

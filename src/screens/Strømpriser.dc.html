@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#141416;color:#fafafa;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#fafafa}a:hover{color:rgb(242 181 115)}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;user-select:none}
+</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;margin:0 auto">
+  <section style="display:flex;flex-direction:column;gap:12px">
+    <sc-if value="{{ notEdOnly }}" hint-placeholder-val="{{ true }}"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 0 0 4px">
+      <div style="flex:1;font-size:18px;font-weight:500;color:#fafafa">Strømpriser</div>
+      <sc-if value="{{ showTabs }}" hint-placeholder-val="{{ true }}"><div onPointerDown="{{ gt.down }}" onPointerMove="{{ gt.move }}" onPointerUp="{{ gt.up }}" onPointerCancel="{{ gt.up }}" style="padding:4px;border-radius:24px;background:#2f2f2f;touch-action:none;user-select:none;cursor:pointer">
+        <div style="position:relative;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))">
+          <span style="{{ gt.ind }}"></span>
+          <sc-for list="{{ days }}" as="m" hint-placeholder-count="2"><span style="{{ m.style }}">{{ m.label }}</span></sc-for>
+        </div>
+      </div></sc-if>
+    </div></sc-if>
+    <sc-if value="{{ edOpen }}" hint-placeholder-val="{{ false }}">
+      <section style="display:flex;flex-direction:column;gap:14px;padding:16px;border-radius:28px;background:#2f2f2f">
+        <span style="font-size:12px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#7f7f7f;padding:0 4px">Entiteter</span>
+        <sc-for list="{{ edFields }}" as="x" hint-placeholder-count="3"><label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:#979797;padding-left:4px">{{ x.label }}</span><input value="{{ x.value }}" onChange="{{ x.set }}" placeholder="{{ x.ph }}" spellcheck="false" style="box-sizing:border-box;width:100%;height:44px;border-radius:14px;border:0;outline:none;background:#232323;color:#fafafa;padding:0 14px;font:inherit;font-size:14px"></label></sc-for>
+        <span style="font-size:12px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#7f7f7f;padding:0 4px;padding-top:4px">Oppsett</span>
+        <div style="display:flex;flex-direction:column;border-radius:20px;background:#3a3a3a;padding:2px 14px">
+          <sc-for list="{{ edToggles }}" as="t" hint-placeholder-count="3"><button onClick="{{ t.go }}" style="display:flex;align-items:center;gap:12px;min-height:56px;width:100%;text-align:left;border-top:{{ t.bt }}"><span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:500">{{ t.label }}</span><sc-if value="{{ t.hasSub }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#979797">{{ t.sub }}</span></sc-if></span><span style="{{ t.track }}"><span style="{{ t.knob }}"></span></span></button></sc-for>
+        </div>
+        <sc-for list="{{ edSegs }}" as="g" hint-placeholder-count="1"><div style="display:flex;align-items:center;gap:12px"><span style="flex:1;font-size:14px;font-weight:500;padding-left:4px">{{ g.title }}</span><div style="display:flex;gap:2px;padding:3px;border-radius:17px;background:#3a3a3a;min-width:170px"><sc-for list="{{ g.opts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.go }}" style="{{ o.style }}">{{ o.label }}</button></sc-for></div></div></sc-for>
+        <sc-if value="{{ showDone }}" hint-placeholder-val="{{ true }}"><button onClick="{{ edClose }}" style="height:48px;border-radius:24px;background:linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%);color:#5a3a48;font-size:15px;font-weight:600">Ferdig</button></sc-if>
+      </section>
+    </sc-if>
+    <sc-if value="{{ notEdOnly }}" hint-placeholder-val="{{ true }}"><div style="display:flex;flex-direction:column;gap:12px;padding:18px 16px;border-radius:28px;background:#2f2f2f">
+    <sc-if value="{{ showHead }}" hint-placeholder-val="{{ true }}"><div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;padding:0 4px">
+      <div style="display:flex;flex-direction:column;gap:3px">
+        <div style="font-size:12px;color:#7f7f7f">{{ head.label }}</div>
+        <div style="font-size:28px;font-weight:300;letter-spacing:-0.025em;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap">{{ head.v }}<span style="font-size:13px;color:#7f7f7f"> {{ unitLbl }}</span></div>
+      </div>
+      <sc-if value="{{ showNp }}" hint-placeholder-val="{{ true }}"><div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end">
+        <div style="font-size:12px;color:#7f7f7f">Norgespris</div>
+        <div style="font-size:28px;font-weight:300;letter-spacing:-0.025em;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap;color:rgb(242 133 201)">{{ head.n }}<span style="font-size:13px;color:#7f7f7f"> {{ unitLbl }}</span></div>
+      </div></sc-if>
+    </div></sc-if>
+    <div style="display:flex;flex-direction:column;gap:6px;padding:4px 0 0">
+      <div style="display:flex;align-items:center;gap:14px;font-size:11px;color:#7f7f7f;padding-left:26px;flex-wrap:wrap"><span style="display:flex;align-items:center;gap:6px;white-space:nowrap"><span style="width:14px;height:2.5px;border-radius:2px;background:rgb(102 209 158)"></span>Nord Pool spot</span><sc-if value="{{ showNp }}" hint-placeholder-val="{{ true }}"><span style="display:flex;align-items:center;gap:6px;white-space:nowrap"><span style="width:14px;height:2.5px;border-radius:2px;background:rgb(242 133 201)"></span>Norgespris</span></sc-if><span style="margin-left:auto;color:#696969">{{ unitLbl }}</span></div>
+      <div style="display:flex;gap:6px">
+        <div style="display:flex;flex-direction:column;justify-content:space-between;font-size:9px;color:#696969;font-variant-numeric:tabular-nums;height:150px;width:20px;text-align:right">
+          <sc-for list="{{ yl }}" as="y" hint-placeholder-count="5"><span style="line-height:0">{{ y }}</span></sc-for>
+        </div>
+        <div onPointerMove="{{ move }}" onPointerDown="{{ move }}" onPointerLeave="{{ leave }}" style="position:relative;flex:1;height:150px;touch-action:pan-y;cursor:crosshair">
+          <svg viewBox="0 0 480 150" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible">
+            <defs>
+              <linearGradient id="spStroke" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="150">
+                <stop offset="0" stop-color="rgb(242 181 115)"></stop>
+                <stop offset="{{ thrA }}" stop-color="rgb(242 181 115)"></stop>
+                <stop offset="{{ thrB }}" stop-color="rgb(102 209 158)"></stop>
+                <stop offset="1" stop-color="rgb(102 209 158)"></stop>
+              </linearGradient>
+              <linearGradient id="spFill" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="150">
+                <stop offset="0" stop-color="rgb(242 181 115 / 0.28)"></stop>
+                <stop offset="{{ thrA }}" stop-color="rgb(242 181 115 / 0.12)"></stop>
+                <stop offset="{{ thrB }}" stop-color="rgb(102 209 158 / 0.14)"></stop>
+                <stop offset="1" stop-color="rgb(102 209 158 / 0)"></stop>
+              </linearGradient>
+            </defs>
+            <sc-for list="{{ grid }}" as="g" hint-placeholder-count="5"><line x1="0" x2="480" y1="{{ g }}" y2="{{ g }}" stroke="rgba(255,255,255,0.07)" stroke-width="1" vector-effect="non-scaling-stroke"></line></sc-for>
+            <path d="{{ area }}" fill="url(#spFill)"></path>
+            <path d="{{ nLine }}" fill="none" stroke="rgb(242 133 201)" stroke-width="2" stroke-dasharray="5 4" vector-effect="non-scaling-stroke"></path>
+            <path d="{{ line }}" fill="none" stroke="url(#spStroke)" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>
+          </svg>
+          <span style="{{ selBand }}"></span>
+          <span style="{{ halo }}"></span>
+          <span style="{{ dot }}"></span>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:#696969;font-variant-numeric:tabular-nums;padding-left:26px"><span>00</span><span>04</span><span>08</span><span>12</span><span>16</span><span>20</span><span>24</span></div>
+    </div>
+    </div></sc-if>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:340}}">
+const NOW_H = 21;
+const SPOT = [62,58,55,54,56,68,118,142,138,125,110,98,92,88,90,104,128,156,188,204,176,140,112,86].map(v => v / 100);
+const TMR = [70,66,63,61,64,74,102,121,115,104,96,90,86,84,88,97,112,131,149,158,139,118,98,80].map(v => v / 100);
+const price = sp => sp * 1.25 + 0.45 - Math.max(0, (sp - 0.75) * 0.9) * 1.25;
+const nf = (n, d = 2) => n.toLocaleString('nb-NO', { minimumFractionDigits: d, maximumFractionDigits: d });
+const hh = h => String(h).padStart(2, '0');
+const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
+const tr = on => ({ track: { position: 'relative', width: 44, height: 26, borderRadius: 13, flex: 'none', background: on ? 'rgb(242 133 201)' : '#232323', transition: 'background .2s' }, knob: { position: 'absolute', top: 3, left: on ? 21 : 3, width: 20, height: 20, borderRadius: 10, background: '#fafafa', transition: 'left .2s' } });
+const segBtn = on => ({ flex: 1, height: 36, borderRadius: 14, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: on ? 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)' : 'transparent', color: on ? '#5a3a48' : '#afafaf' });
+const DEF = { spot: 'sensor.nordpool_kwh_no1_nok_3_10_025', tmr: 'raw_tomorrow', np: 'input_number.norgespris', showTabs: true, showHead: true, showNp: true, unit: 'kr' };
+class Component extends DCLogic {
+  state = { day: 'today', hour: null, ed: false };
+  cfg() { if (this._c === undefined) { try { this._c = JSON.parse(localStorage.getItem('strompriser-cfg') || 'null'); } catch (e) { this._c = null; } } return { ...DEF, ...(this.state.cfg || this._c || {}) }; }
+  setCfg(p) { const n = { ...this.cfg(), ...p }; try { localStorage.setItem('strompriser-cfg', JSON.stringify(n)); } catch (e) {} this._c = n; this.setState({ cfg: n }); }
+  toggles(defs, C) { return defs.map(([k, label, sub], i) => ({ label, sub, hasSub: !!sub, bt: i ? '1px solid rgba(255,255,255,0.06)' : '0', go: () => this.setCfg({ [k]: !C[k] }), ...tr(C[k]) })); }
+  segs(defs, C) { return defs.map(([title, k, opts]) => ({ title, opts: opts.map(([v, label]) => ({ label, go: () => this.setCfg({ [k]: v }), style: segBtn(C[k] === v) })) })); }
+  fields(defs, C) { return defs.map(([label, k, ph]) => ({ label, ph, value: C[k] ?? '', set: e => this.setCfg({ [k]: e.target.value }) })); }
+  renderVals() {
+    const s = this.state, C = this.cfg(), isToday = !C.showTabs || s.day === 'today', U = v => C.unit === 'kr' ? nf(v / 100) : String(Math.round(v));
+    const arr = (isToday ? SPOT : TMR).map(p => p * 100), NP = 50;
+    const top = Math.ceil(Math.max(...SPOT, ...TMR).toFixed(2) * 1.25 / 1 + 1) * 100, T = Math.ceil(Math.max(...SPOT, ...TMR) * 100 / 50) * 50 + 50;
+    const Y = v => 150 - v / T * 150, X = i => i * 20;
+    const ln = arr.reduce((d, v, i) => d + (i ? `L${X(i)},${Y(v).toFixed(1)}` : `M0,${Y(v).toFixed(1)}`) + `L${X(i + 1)},${Y(v).toFixed(1)}`, '');
+    const thrV = 1e9, selI = s.hour ?? (isToday ? NOW_H : null), selV = selI != null ? arr[selI] : null;
+    const future = isToday ? arr.slice(NOW_H) : arr, minV = Math.min(...future), minH = arr.indexOf(minV, isToday ? NOW_H : 0);
+    const mk = (w, extra) => selI == null ? { display: 'none' } : { position: 'absolute', left: `${(selI + 0.5) / 24 * 100}%`, top: `${Y(selV) / 150 * 100}%`, borderRadius: w / 2, width: w, height: w, margin: -w / 2, pointerEvents: 'none', transition: 'left .15s, top .15s', ...extra };
+    const hot = selV > thrV;
+    return {
+      edOpen: !!this.props.editOnly || s.ed, notEdOnly: !this.props.editOnly, showDone: !this.props.editOnly, edToggle: () => this.setState({ ed: !s.ed }), edClose: () => this.setState({ ed: false }),
+      edBtn: { width: 38, height: 38, borderRadius: 19, flex: 'none', display: 'grid', placeItems: 'center', background: s.ed ? '#fafafa' : '#2f2f2f', color: s.ed ? '#232323' : '#c7c7c7' },
+      edFields: this.fields([['Spotpris-sensor', 'spot', 'sensor.nordpool_…'], ['Attributt for i morgen', 'tmr', 'raw_tomorrow'], ['Norgespris-entitet', 'np', 'input_number.norgespris']], C),
+      edToggles: this.toggles([['showTabs', 'I dag / I morgen-bryter', ''], ['showHead', 'Priser øverst', 'Spot nå og Norgespris'], ['showNp', 'Norgespris-linje', 'Stiplet linje i grafen']], C),
+      edSegs: this.segs([['Enhet', 'unit', [['kr', 'kr/kWh'], ['ore', 'øre/kWh']]]], C),
+      showTabs: C.showTabs, showHead: C.showHead, showNp: C.showNp, unitLbl: C.unit === 'kr' ? 'kr/kWh' : 'øre/kWh',
+      ...(() => { const K = ['today', 'tmr'], idx = K.indexOf(s.day), d = s.gd, pos = d != null ? Math.max(0.25, Math.min(0.75, d)) : (idx + 0.5) / 2, near = d != null ? (d < 0.5 ? 0 : 1) : idx;
+        const xOf = e => { const g = e.currentTarget.firstElementChild, r = g.getBoundingClientRect(); return (e.clientX - r.left) / r.width; };
+        return { gt: { down: e => { e.currentTarget.setPointerCapture?.(e.pointerId); this.setState({ gd: xOf(e) }); }, move: e => { if (this.state.gd == null) return; this.setState({ gd: xOf(e) }); }, up: () => { const g = this.state.gd; if (g == null) return; this.setState({ gd: null, day: K[g < 0.5 ? 0 : 1], hour: null }); },
+          ind: { position: 'absolute', top: 0, bottom: 0, left: `${(pos - 0.25) * 100}%`, width: '50%', borderRadius: 999, pointerEvents: 'none',
+            background: d != null ? 'linear-gradient(180deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1))' : 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)',
+            boxShadow: d != null ? 'inset 0 1px 0 rgba(255,255,255,0.6), inset 0 -1px 1px rgba(255,255,255,0.15), inset 0 0 0 0.5px rgba(255,255,255,0.35), 0 8px 20px rgba(0,0,0,0.35)' : 'none',
+            backdropFilter: d != null ? 'blur(6px) saturate(200%)' : 'none', WebkitBackdropFilter: d != null ? 'blur(6px) saturate(200%)' : 'none', transform: d != null ? 'scale(1.12, 1.1)' : 'scale(1)',
+            transition: d != null ? 'transform .25s cubic-bezier(.34,1.8,.64,1), background .2s' : 'left .5s cubic-bezier(.34,1.4,.64,1), transform .45s cubic-bezier(.34,1.8,.64,1), background .35s' } },
+          days: [['today', 'I dag'], ['tmr', 'I morgen']].map(([k, label], i) => ({ label, style: { position: 'relative', zIndex: 1, height: 30, padding: '0 20px', display: 'grid', placeItems: 'center', fontSize: 14, whiteSpace: 'nowrap', color: d == null && i === idx ? '#5a3a48' : i === near ? '#fff' : '#afafaf', transition: 'color .25s' } })) }; })(),
+      nLine: C.showNp ? `M0,${Y(NP).toFixed(1)}L480,${Y(NP).toFixed(1)}` : '',
+      head: { n: U(NP), ...(s.hour != null ? { label: `Spot ${isToday ? 'i dag' : 'i morgen'} kl. ${hh(s.hour)}`, v: U(arr[s.hour]) } : isToday ? { label: 'Spot nå', v: U(arr[NOW_H]) } : { label: 'Spot snitt i morgen', v: U(arr.reduce((a, b) => a + b, 0) / 24) }) },
+      yl: Array.from({ length: 5 }, (_, i) => { const v = T - i * T / 4; return C.unit === 'kr' ? (v / 100).toLocaleString('nb-NO', { maximumFractionDigits: 1 }) : Math.round(v); }), grid: Array.from({ length: 5 }, (_, i) => i * 37.5),
+      line: ln, area: `${ln}L480,150L0,150Z`,
+      thrA: Math.max(0, Math.min(1, (Y(thrV) - 8) / 150)), thrB: Math.max(0, Math.min(1, (Y(thrV) + 8) / 150)),
+      pastW: isToday ? X(NOW_H) : 0,
+      move: e => { const r = e.currentTarget.getBoundingClientRect(); const i = Math.max(0, Math.min(23, Math.floor((e.clientX - r.left) / r.width * 24))); if (i !== s.hour) this.setState({ hour: i }); },
+      leave: () => this.setState({ hour: null }),
+      selBand: selI == null ? { display: 'none' } : { position: 'absolute', top: 0, bottom: 0, left: `${selI / 24 * 100}%`, width: `${100 / 24}%`, background: 'rgba(255,255,255,0.12)', borderRadius: 2, pointerEvents: 'none', transition: 'left .15s' },
+      halo: mk(34, { background: hot ? 'rgb(242 181 115 / 0.3)' : 'rgb(102 209 158 / 0.3)' }),
+      dot: mk(14, { background: hot ? 'rgb(242 181 115)' : 'rgb(102 209 158)', boxShadow: '0 0 0 3px #2f2f2f' }),
+    };
+  }
+}
+</script>
+</body>
+</html>

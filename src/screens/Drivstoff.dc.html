@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#232323;color:#fafafa;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#fafafa}a:hover{color:rgb(242 133 201)}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;user-select:none}
+</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;max-width:420px;min-height:100vh;margin:0 auto;background:#232323;padding:20px 18px 40px;display:flex;flex-direction:column;gap:16px">
+  <header style="display:flex;align-items:center;gap:12px">
+    <span style="width:40px;height:40px;border-radius:20px;background:#e1e1e1;color:#232323;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">local_gas_station</span></span>
+    <div style="flex:1;font-size:26px;font-weight:500;letter-spacing:-0.02em">Bensinstasjon</div>
+  </header>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <sc-for list="{{ best }}" as="b" hint-placeholder-count="2">
+      <div style="display:flex;flex-direction:column;gap:4px;padding:16px;border-radius:24px;background:#2f2f2f;min-width:0">
+        <span style="font-size:12px;color:#7f7f7f">Billigst {{ b.type }}</span>
+        <span style="font-size:34px;font-weight:500;letter-spacing:-0.03em;line-height:1.05;font-variant-numeric:tabular-nums">{{ b.price }}<span style="font-size:13px;color:#7f7f7f;font-weight:400"> kr/l</span></span>
+        <span style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.name }}</span>
+        <span style="font-size:12px;color:#7f7f7f;white-space:nowrap">{{ b.meta }}</span>
+      </div>
+    </sc-for>
+  </div>
+  <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none">
+    <sc-for list="{{ sorts }}" as="o" hint-placeholder-count="5"><button onClick="{{ o.go }}" style="{{ o.style }}">{{ o.label }}</button></sc-for>
+  </div>
+  <section style="display:flex;flex-direction:column;border-radius:24px;background:#2f2f2f;padding:6px 14px">
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 62px 62px;gap:8px;padding:10px 0 6px;font-size:11px;color:#7f7f7f"><span>Stasjon</span><span style="text-align:right">Diesel</span><span style="text-align:right">Bensin 95</span></div>
+    <sc-for list="{{ rows }}" as="r" hint-placeholder-count="5">
+      <div style="{{ r.row }}">
+        <span style="display:flex;align-items:center;gap:10px;min-width:0">
+          <span style="{{ r.logo }}">{{ r.init }}</span>
+          <span style="display:flex;flex-direction:column;gap:1px;min-width:0"><span style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span><span style="font-size:11px;color:#7f7f7f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.meta }}</span></span>
+        </span>
+        <span style="{{ r.dStyle }}">{{ r.d }}</span>
+        <span style="{{ r.bStyle }}">{{ r.b }}</span>
+      </div>
+    </sc-for>
+  </section>
+  <span style="font-size:12px;color:#696969;padding:0 6px">Viser de 5 første · priser fra sensor.drivstoffpriser_oslo og _stromstad</span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:800}}">
+const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
+const GREEN = 'rgb(102 209 158)';
+const OSLO = [['Circle K', 'Majorstuen', 'Kirkeveien 64', 0.8, '22:14', 21.89, 21.29, 'rgb(242 128 115)'], ['Uno-X', 'Smestad', 'Smestadveien 2', 2.1, '21:50', 21.19, 20.49, 'rgb(242 128 115)'], ['Esso', 'Frogner', 'Frognerveien 40', 1.6, '20:32', 21.59, 20.99, 'rgb(115 185 242)'], ['Shell', 'Bislett', 'Pilestredet 60', 1.4, '22:01', 21.99, 21.39, 'rgb(242 210 111)'], ['YX', 'Ullevål', 'Sognsveien 10', 2.8, '19:48', 20.95, 20.29, 'rgb(102 209 158)'], ['St1', 'Økern', 'Økernveien 145', 5.2, '18:20', 20.79, 20.19, 'rgb(242 181 115)']];
+const STROM = [['Preem', 'Strömstad', 'Oslovägen 2', 1.2, '20:40', 19.35, 18.60, 'rgb(102 209 158)'], ['Circle K', 'Strömstad', 'Uddevallavägen 1', 1.9, '21:05', 19.55, 18.85, 'rgb(242 128 115)'], ['OKQ8', 'Skee', 'Skee 112', 4.4, '17:10', 19.15, 18.39, 'rgb(115 185 242)'], ['Ingo', 'Strömstad', 'Norra Hamngatan', 0.6, '22:20', 19.05, 18.29, 'rgb(242 210 111)']];
+const nf = n => n.toLocaleString('nb-NO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+class Component extends DCLogic {
+  state = { sort: 'bensin' };
+  renderVals() {
+    const s = this.state, k = s.sort;
+    let src = k === 'oslo' ? OSLO : k === 'strom' ? STROM : [...OSLO, ...STROM];
+    src = [...src].sort((a, b) => k === 'diesel' ? a[6] - b[6] : k === 'bensin' ? a[5] - b[5] : k === 'upd' ? b[4].localeCompare(a[4]) : a[3] - b[3]);
+    const all = [...OSLO, ...STROM], minB = Math.min(...src.map(x => x[5])), minD = Math.min(...src.map(x => x[6]));
+    const cb = all.reduce((m, x) => x[5] < m[5] ? x : m), cd = all.reduce((m, x) => x[6] < m[6] ? x : m);
+    const pStyle = on => ({ textAlign: 'right', fontSize: 14, fontWeight: on ? 600 : 500, fontVariantNumeric: 'tabular-nums', color: on ? GREEN : '#fafafa' });
+    return {
+      best: [['bensin', cb, 5], ['diesel', cd, 6]].map(([t, x, i]) => ({ type: t, price: nf(x[i]), name: `${x[0]} ${x[1]}`, meta: `${nf(x[3])} km · ${x[4]}` })),
+      sorts: [['bensin', 'Bensin'], ['diesel', 'Diesel'], ['oslo', 'Nærmest Oslo'], ['strom', 'Nærmest Strømstad'], ['upd', 'Sist oppdatert']].map(([id, label]) => ({ label, go: () => this.setState({ sort: id }), style: { height: 36, padding: '0 14px', borderRadius: 18, flex: 'none', fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: k === id ? PINK : '#2f2f2f', color: k === id ? '#2a1720' : '#afafaf' } })),
+      rows: src.slice(0, 5).map((x, i) => ({ name: `${x[0]} ${x[1]}`, init: x[0][0], meta: `${x[2]} · ${nf(x[3])} km · ${x[4]}`, d: nf(x[6]), b: nf(x[5]), dStyle: pStyle(x[6] === minD), bStyle: pStyle(x[5] === minB),
+        logo: { width: 34, height: 34, borderRadius: 17, flex: 'none', display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 600, background: x[7], color: '#232323' },
+        row: { display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 62px 62px', gap: 8, alignItems: 'center', padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.05)' } })),
+    };
+  }
+}
+</script>
+</body>
+</html>

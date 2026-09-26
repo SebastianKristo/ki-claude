@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#232323;color:#fafafa;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#fafafa}a:hover{color:rgb(242 133 201)}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;user-select:none}
+</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;max-width:440px;min-height:100vh;margin:0 auto;background:#232323;padding:20px 10px 40px;display:flex;flex-direction:column;gap:10px">
+  <header style="display:flex;align-items:center;gap:12px;padding:0 8px 6px">
+    <span style="width:40px;height:40px;border-radius:20px;background:#e9e7e2;color:#232323;display:grid;place-items:center"><span class="ms" style="font-size:22px">grass</span></span>
+    <span style="flex:1;font-size:28px;font-weight:500">Gressklipper</span>
+  </header>
+  <section style="position:relative;height:190px;border-radius:30px;overflow:hidden;background:linear-gradient(180deg, #1e2a22, #25392a 60%, #2f4a33)">
+    <div style="position:absolute;left:0;right:0;bottom:0;height:70px;background:repeating-linear-gradient(90deg, #2f5a37 0 22px, #36683f 22px 44px);opacity:0.8"></div>
+    <span style="{{ mower }}"><span class="ms" style="font-size:30px;font-variation-settings:'FILL' 1">agriculture</span></span>
+    <div style="position:absolute;left:18px;top:18px;display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:13px;color:#cfdccf">Automower 430X</span>
+      <span style="{{ chip }}"><span style="{{ chipDot }}"></span>{{ status }}</span>
+    </div>
+    <div style="position:absolute;right:18px;top:18px;display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+      <span style="font-size:34px;font-weight:300;line-height:1">{{ battery }}<span style="font-size:14px">%</span></span>
+      <span style="font-size:12px;color:#cfdccf">{{ zone }}</span>
+    </div>
+  </section>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+    <sc-for list="{{ ctrls }}" as="c" hint-placeholder-count="4"><button onClick="{{ c.go }}" style="{{ c.style }}"><span class="ms" style="font-size:24px;font-variation-settings:'FILL' 1">{{ c.icon }}</span>{{ c.label }}</button></sc-for>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <sc-for list="{{ stats }}" as="p" hint-placeholder-count="4">
+      <div style="display:flex;align-items:center;gap:12px;height:64px;padding:0 12px 0 6px;border-radius:32px;background:#2f2f2f;min-width:0">
+        <span style="width:52px;height:52px;border-radius:26px;background:#3a3a3a;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:24px">{{ p.icon }}</span></span>
+        <span style="display:flex;flex-direction:column;gap:1px;min-width:0"><span style="font-size:15px;font-weight:500;white-space:nowrap">{{ p.v }}</span><span style="font-size:12px;color:#979797;white-space:nowrap">{{ p.l }}</span></span>
+      </div>
+    </sc-for>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:28px;background:#2f2f2f">
+    <div style="display:flex;justify-content:space-between"><span style="font-size:14px;font-weight:500">Soner</span><span style="font-size:12px;color:#979797">Trykk for å klippe</span></div>
+    <sc-for list="{{ zones }}" as="z" hint-placeholder-count="3"><button onClick="{{ z.go }}" style="{{ z.style }}"><span class="ms" style="font-size:20px">yard</span><span style="flex:1;text-align:left">{{ z.name }}</span><span style="font-size:12px;color:#979797">{{ z.last }}</span></button></sc-for>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:28px;background:#2f2f2f">
+    <span style="font-size:14px;font-weight:500">Timeplan</span>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px"><sc-for list="{{ days }}" as="d" hint-placeholder-count="7"><button onClick="{{ d.go }}" style="{{ d.style }}"><span style="font-size:11px">{{ d.l }}</span><span style="font-size:12px;font-weight:600">{{ d.t }}</span></button></sc-for></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:440,&quot;height&quot;:900}}">
+const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)', GREEN = 'rgb(102 209 158)';
+const ZONES = [['plen', 'Plen Sør', 'i går'], ['hage', 'Hage bak', '2 d siden'], ['forhage', 'Forhage', 'i dag']];
+class Component extends DCLogic {
+  state = { st: 'mow', zone: 'plen', days: [1, 0, 1, 0, 1, 1, 0] };
+  renderVals() {
+    const s = this.state, mowing = s.st === 'mow', z = ZONES.find(x => x[0] === s.zone);
+    const LBL = { mow: 'Klipper', pause: 'Pauset', park: 'Parkert', home: 'Lader' };
+    const ctrl = (k, icon, label) => ({ icon, label, go: () => this.setState({ st: k }), style: { height: 86, borderRadius: 26, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 13, fontWeight: 500, background: s.st === k ? PINK : '#2f2f2f', color: s.st === k ? '#2a1720' : '#fafafa' } });
+    return {
+      status: LBL[s.st], battery: s.st === 'home' ? 88 : 64, zone: z[1],
+      chip: { height: 26, padding: '0 10px', borderRadius: 13, display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, background: 'rgba(0,0,0,0.3)' },
+      chipDot: { width: 7, height: 7, borderRadius: 4, background: mowing ? GREEN : '#afafaf' },
+      mower: { position: 'absolute', left: mowing ? '58%' : '12%', bottom: 44, width: 54, height: 54, borderRadius: 27, display: 'grid', placeItems: 'center', background: '#fafafa', color: '#2a3a2c', boxShadow: '0 6px 16px rgba(0,0,0,0.4)', transition: 'left 1.2s cubic-bezier(.34,1.2,.64,1)' },
+      ctrls: [ctrl('mow', 'play_arrow', 'Start'), ctrl('pause', 'pause', 'Pause'), ctrl('park', 'local_parking', 'Parker'), ctrl('home', 'home', 'Hjem')],
+      stats: [['schedule', '2 t 14 min', 'Klippetid i dag'], ['content_cut', '84 %', 'Knivslitasje'], ['square_foot', '1 150 m²', 'Areal'], ['signal_cellular_alt', 'God', 'Signal']].map(([icon, v, l]) => ({ icon, v, l })),
+      zones: ZONES.map(([k, name, last]) => ({ name, last, go: () => this.setState({ zone: k, st: 'mow' }), style: { height: 50, padding: '0 16px', borderRadius: 25, display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, fontWeight: 500, background: s.zone === k ? 'rgba(128,200,140,0.18)' : '#3a3a3a', boxShadow: s.zone === k ? `inset 0 0 0 1.5px ${GREEN}` : 'none' } })),
+      days: ['Ma', 'Ti', 'On', 'To', 'Fr', 'Lø', 'Sø'].map((l, i) => { const on = !!s.days[i]; return { l, t: on ? '10–14' : 'Av', go: () => this.setState({ days: s.days.map((x, j) => j === i ? (x ? 0 : 1) : x) }), style: { height: 58, borderRadius: 18, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, background: on ? 'rgba(128,200,140,0.22)' : '#3a3a3a', color: on ? '#e8f5ea' : '#979797' } }; }),
+    };
+  }
+}
+</script>
+</body>
+</html>

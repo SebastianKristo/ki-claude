@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#232323;color:#fafafa;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#fafafa}a:hover{color:rgb(115 185 242)}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;user-select:none}
+[data-hscroll]::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;max-width:420px;min-height:100vh;margin:0 auto;background:#232323;padding:20px 18px 40px;display:flex;flex-direction:column;gap:20px">
+  <header style="display:flex;align-items:center;justify-content:space-between">
+    <div style="font-size:13px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#7f7f7f">Kalender</div>
+    <button style="width:36px;height:36px;border-radius:18px;background:#3a3a3a;display:grid;place-items:center"><span class="ms" style="font-size:20px">close</span></button>
+  </header>
+
+  <div style="display:flex;justify-content:center;align-items:center;gap:6px">
+    <div style="display:flex;gap:2px;padding:4px;border-radius:24px;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.18)">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3"><button onPointerDown="{{ t.odown }}" onPointerMove="{{ t.omove }}" onPointerUp="{{ t.oup }}" onPointerCancel="{{ t.oup }}" onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button></sc-for>
+    </div>
+    <button onClick="{{ goGift }}" title="Bursdager og post" style="{{ giftBtn }}"><span class="ms" style="font-size:22px">redeem</span></button>
+  </div>
+  <sc-if value="{{ isGift }}" hint-placeholder-val="{{ false }}">
+    <div style="margin:0 -18px"><dc-import name="Bursdager og post" hint-size="100%,900px"></dc-import></div>
+  </sc-if>
+
+  <sc-if value="{{ isCalTab }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 4px">
+      <span style="font-size:15px;font-weight:500">{{ calHead }}</span>
+      <div style="display:flex;gap:2px;padding:3px;border-radius:16px;background:#2f2f2f">
+        <sc-for list="{{ calViews }}" as="v" hint-placeholder-count="2"><button onClick="{{ v.go }}" title="{{ v.label }}" style="{{ v.style }}"><span class="ms" style="font-size:18px">{{ v.icon }}</span>{{ v.label }}</button></sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- KALENDER -->
+  <sc-if value="{{ isCal }}" hint-placeholder-val="{{ true }}">
+    <section style="display:flex;flex-direction:column">
+      <sc-for list="{{ agenda }}" as="d" hint-placeholder-count="4">
+        <div style="{{ d.row }}">
+          <div style="{{ d.left }}">
+            <span style="font-size:15px;color:#afafaf">{{ d.wd }}</span>
+            <span style="{{ d.dateStyle }}">{{ d.date }}</span>
+          </div>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:12px">
+            <sc-for list="{{ d.items }}" as="e" hint-placeholder-count="1">
+              <div style="display:flex;flex-direction:column;gap:3px;min-width:0;max-width:100%">
+                <span style="font-size:19px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">{{ e.meta }}</span>
+                <span style="font-size:14px;color:#c7c7c7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ e.title }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </section>
+  </sc-if>
+
+  <!-- MÅNED -->
+  <sc-if value="{{ isMonth }}" hint-placeholder-val="{{ false }}">
+    <section style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <button onClick="{{ prevMonth }}" style="width:36px;height:36px;border-radius:18px;background:#2f2f2f;display:grid;place-items:center"><span class="ms" style="font-size:22px">chevron_left</span></button>
+        <button onClick="{{ goToday }}" style="font-size:15px;font-weight:500;display:flex;align-items:center;gap:6px">{{ monthLabel }}<span style="font-size:11px;color:#7f7f7f">i dag</span></button>
+        <button onClick="{{ nextMonth }}" style="width:36px;height:36px;border-radius:18px;background:#2f2f2f;display:grid;place-items:center"><span class="ms" style="font-size:22px">chevron_right</span></button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">
+        <sc-for list="{{ weekdaysM }}" as="w" hint-placeholder-count="7"><div style="text-align:center;font-size:11px;color:#696969;padding:2px 0">{{ w }}</div></sc-for>
+        <sc-for list="{{ mcells }}" as="c" hint-placeholder-count="42">
+          <button onClick="{{ c.pick }}" style="{{ c.style }}">
+            <span style="{{ c.num }}">{{ c.n }}</span>
+            <span style="{{ c.badge }}">{{ c.count }}</span>
+          </button>
+        </sc-for>
+      </div>
+    </section>
+    <section style="display:flex;flex-direction:column;gap:2px;padding:14px 16px;border-radius:24px;background:#2f2f2f">
+      <div style="display:flex;align-items:baseline;gap:8px;padding-bottom:6px">
+        <span style="font-size:15px;font-weight:500">{{ selTitle }}</span>
+        <span style="font-size:12px;color:#7f7f7f">{{ selMeta }}</span>
+      </div>
+      <sc-for list="{{ selItems }}" as="e" hint-placeholder-count="2">
+        <div style="{{ e.row }}">
+          <span style="{{ e.bar }}"></span>
+          <span style="width:92px;flex:none;font-size:12px;color:#afafaf;font-variant-numeric:tabular-nums;padding-top:1px">{{ e.time }}</span>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:14px;font-weight:500">{{ e.title }}</span>
+            <span style="font-size:12px;color:#7f7f7f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ e.where }}</span>
+          </div>
+        </div>
+      </sc-for>
+      <sc-if value="{{ selEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:14px 0;font-size:13px;color:#696969">Ingen hendelser</div></sc-if>
+    </section>
+  </sc-if>
+
+  <!-- HYTTA -->
+  <sc-if value="{{ isCabin }}" hint-placeholder-val="{{ false }}">
+    <div data-hscroll="1" onScroll="{{ hut.onScroll }}" style="display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -18px;padding:0 18px">
+      <sc-for list="{{ hut.heroes }}" as="h" hint-placeholder-count="4">
+        <div style="{{ h.card }}">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:19px;font-weight:600;white-space:nowrap">{{ h.title }}</span>
+            <sc-for list="{{ h.who }}" as="w" hint-placeholder-count="1"><span style="{{ w.style }}">{{ w.i }}</span></sc-for>
+            <span style="flex:1"></span>
+            <button onClick="{{ h.cal }}" style="width:34px;height:34px;border-radius:17px;background:rgba(255,255,255,0.12);display:grid;place-items:center"><span class="ms" style="font-size:18px">event_available</span></button>
+          </div>
+          <span style="font-size:13px;color:rgba(242,241,238,0.75)">{{ h.here }}</span>
+          <div style="display:flex;gap:26px;padding-top:6px">
+            <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:24px;font-weight:300;letter-spacing:-0.02em;line-height:1">{{ h.nights }}</span><span style="font-size:11px;color:rgba(242,241,238,0.7)">netter i år</span></div>
+            <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:24px;font-weight:300;letter-spacing:-0.02em;line-height:1">{{ h.visits }}</span><span style="font-size:11px;color:rgba(242,241,238,0.7)">besøk i år</span></div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;position:relative;z-index:1">
+            <sc-for list="{{ h.chips }}" as="c" hint-placeholder-count="0"><span style="height:28px;padding:0 10px 0 8px;border-radius:14px;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;background:rgba(255,255,255,0.12);white-space:nowrap"><span style="{{ c.dot }}"></span>{{ c.label }}</span></sc-for>
+          </div>
+          <span class="ms" style="position:absolute;right:14px;bottom:-6px;font-size:96px;color:rgba(255,255,255,0.22);font-variation-settings:'FILL' 1">cottage</span>
+          <span style="position:absolute;right:52px;bottom:18px;display:flex;gap:10px"><span style="width:12px;height:10px;border-radius:2px;background:rgb(242 181 115 / 0.8)"></span><span style="width:12px;height:10px;border-radius:2px;background:rgb(242 181 115 / 0.8)"></span></span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;justify-content:center;gap:6px;margin-top:-8px">
+      <sc-for list="{{ hut.dots }}" as="d" hint-placeholder-count="4"><button onClick="{{ d.go }}" style="{{ d.style }}"></button></sc-for>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px">
+      <div style="display:flex;gap:2px;padding:4px;border-radius:22px;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.12)">
+        <sc-for list="{{ hut.subs }}" as="t" hint-placeholder-count="3"><button onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button></sc-for>
+      </div>
+      <button onClick="{{ hut.toggleSearch }}" style="{{ hut.searchBtn }}"><span class="ms" style="font-size:20px">search</span></button>
+    </div>
+    <sc-if value="{{ hut.searching }}" hint-placeholder-val="{{ false }}">
+      <input value="{{ hut.q }}" onChange="{{ hut.setQ }}" placeholder="Søk etter person eller sted" style="height:46px;border-radius:23px;border:0;outline:none;padding:0 18px;background:#2f2f2f;color:#fafafa;font:inherit;font-size:14px"></input>
+    </sc-if>
+
+    <sc-if value="{{ hut.isCal }}" hint-placeholder-val="{{ true }}">
+      <section style="display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:26px;background:#2f2f2f">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <button onClick="{{ prevMonth }}" style="width:34px;height:34px;border-radius:17px;background:#232323;display:grid;place-items:center"><span class="ms" style="font-size:22px">chevron_left</span></button>
+          <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:15px;font-weight:600">{{ monthLabel }}</span><span style="font-size:11px;color:#7f7f7f">{{ hut.week }}</span></div>
+          <button onClick="{{ nextMonth }}" style="width:34px;height:34px;border-radius:17px;background:#232323;display:grid;place-items:center"><span class="ms" style="font-size:22px">chevron_right</span></button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px">
+          <sc-for list="{{ weekdays }}" as="w" hint-placeholder-count="7"><div style="text-align:center;font-size:11px;color:#7f7f7f;padding:2px 0">{{ w }}</div></sc-for>
+          <sc-for list="{{ hut.cells }}" as="c" hint-placeholder-count="42"><div style="{{ c.style }}"><span style="{{ c.num }}">{{ c.n }}</span></div></sc-for>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-top:4px">
+          <div style="display:flex;gap:12px"><sc-for list="{{ hut.legend }}" as="l" hint-placeholder-count="3"><span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#afafaf"><span style="{{ l.dot }}"></span>{{ l.name }}</span></sc-for></div>
+          <span style="font-size:11px;color:#7f7f7f">stiplet = planlagt · lest 22:00</span>
+        </div>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{ hut.isStays }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;justify-content:center">
+        <div style="display:flex;gap:2px;padding:4px;border-radius:20px;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.12)">
+          <sc-for list="{{ hut.placeFilters }}" as="p" hint-placeholder-count="4"><button onClick="{{ p.go }}" style="{{ p.style }}"><span style="{{ p.dot }}"></span>{{ p.label }}</button></sc-for>
+        </div>
+      </div>
+      <section style="display:flex;flex-direction:column;border-radius:26px;background:#2f2f2f;overflow:hidden">
+        <sc-for list="{{ hut.stays }}" as="r" hint-placeholder-count="8">
+          <div style="{{ r.row }}">
+            <span style="{{ r.avatar }}">{{ r.i }}</span>
+            <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+              <span style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:500">{{ r.name }}<span style="{{ r.tag }}">{{ r.place }}</span></span>
+              <span style="font-size:12px;color:#7f7f7f">{{ r.dates }}</span>
+            </span>
+            <span style="font-size:13px;font-weight:600;white-space:nowrap">{{ r.nights }}</span>
+          </div>
+        </sc-for>
+        <sc-if value="{{ hut.noStays }}" hint-placeholder-val="{{ false }}"><div style="padding:24px;text-align:center;font-size:13px;color:#696969">Ingen opphold</div></sc-if>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{ hut.isStats }}" hint-placeholder-val="{{ false }}">
+      <section style="display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:26px;background:#2f2f2f">
+        <span style="font-size:12px;color:#7f7f7f">Netter per måned i år</span>
+        <sc-for list="{{ hut.months }}" as="m" hint-placeholder-count="12">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:30px;font-size:12px;color:#afafaf">{{ m.k }}</span>
+            <div style="flex:1;height:10px;border-radius:5px;background:#2f2f2f;overflow:hidden;display:flex"><sc-for list="{{ m.segs }}" as="g" hint-placeholder-count="1"><span style="{{ g }}"></span></sc-for></div>
+            <span style="width:30px;text-align:right;font-size:12px;color:#afafaf;font-variant-numeric:tabular-nums">{{ m.v }}</span>
+          </div>
+        </sc-for>
+      </section>
+      <sc-for list="{{ hut.placeCards }}" as="p" hint-placeholder-count="3">
+        <section style="display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:26px;background:#2f2f2f">
+          <span style="{{ p.avatar }}">{{ p.i }}</span>
+          <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:500">{{ p.name }}</span><span style="font-size:12px;color:#979797">{{ p.sub }}</span></span>
+          <span style="display:flex;flex-direction:column;align-items:flex-end"><span style="font-size:24px;font-weight:300;letter-spacing:-0.02em">{{ p.nights }}</span><span style="font-size:11px;color:#7f7f7f">netter</span></span>
+        </section>
+      </sc-for>
+    </sc-if>
+  </sc-if>
+
+  <!-- FRAMOVER -->
+  <sc-if value="{{ isUp }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;gap:6px">
+      <sc-for list="{{ upFilters }}" as="f" hint-placeholder-count="4"><button onClick="{{ f.go }}" style="{{ f.style }}">{{ f.label }}</button></sc-for>
+    </div>
+    <sc-if value="{{ hasFeatured }}" hint-placeholder-val="{{ true }}">
+      <section style="{{ featured.card }}">
+        <div style="{{ featured.poster }}"><span style="font-size:22px;font-weight:600;letter-spacing:-0.02em;text-align:center;line-height:1">{{ featured.initials }}</span></div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span style="height:22px;padding:0 8px;border-radius:7px;background:rgba(0,0,0,0.35);display:flex;align-items:center;font-size:11px;font-weight:600;white-space:nowrap">{{ featured.when }}</span>
+            <span style="height:22px;padding:0 8px;border-radius:7px;background:rgba(0,0,0,0.35);display:flex;align-items:center;font-size:11px;font-weight:600;white-space:nowrap">{{ featured.tag }}</span>
+          </div>
+          <span style="font-size:20px;font-weight:600;letter-spacing:-0.01em">{{ featured.title }}</span>
+          <span style="font-size:12px;color:#d9d6d0">{{ featured.sub }}</span>
+        </div>
+      </section>
+    </sc-if>
+    <section style="display:flex;flex-direction:column">
+      <sc-for list="{{ upcoming }}" as="u" hint-placeholder-count="6">
+        <div style="{{ u.row }}">
+          <div style="{{ u.poster }}"><span style="font-size:12px;font-weight:600">{{ u.initials }}</span></div>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+            <span style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px">{{ u.title }}<span class="ms" style="{{ u.okStyle }}">check_circle</span></span>
+            <span style="font-size:12px;color:#7f7f7f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ u.sub }}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none">
+            <span style="font-size:13px;font-weight:500">{{ u.day }}</span>
+            <span style="font-size:11px;color:#7f7f7f;font-variant-numeric:tabular-nums">{{ u.time }}</span>
+          </div>
+        </div>
+      </sc-for>
+    </section>
+  </sc-if>
+
+  <!-- BURSDAGER -->
+  <sc-if value="{{ isBday }}" hint-placeholder-val="{{ false }}">
+    <section style="display:flex;align-items:center;gap:16px;padding:18px;border-radius:24px;background:linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%);color:#2a1720">
+      <div style="width:60px;height:60px;border-radius:30px;background:rgba(42,23,32,0.12);display:grid;place-items:center;flex:none"><span class="ms" style="font-size:30px;font-variation-settings:'FILL' 1">cake</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+        <span style="font-size:12px;font-weight:500">{{ nextBday.when }}</span>
+        <span style="font-size:22px;font-weight:600;letter-spacing:-0.01em">{{ nextBday.name }}</span>
+        <span style="font-size:13px">{{ nextBday.sub }}</span>
+      </div>
+    </section>
+    <section style="display:flex;flex-direction:column">
+      <sc-for list="{{ bdays }}" as="b" hint-placeholder-count="6">
+        <div style="{{ b.row }}">
+          <span style="{{ b.avatar }}">{{ b.initial }}</span>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:14px;font-weight:500">{{ b.name }}</span>
+            <span style="font-size:12px;color:#7f7f7f">{{ b.sub }}</span>
+          </div>
+          <span style="{{ b.daysStyle }}">{{ b.days }}</span>
+        </div>
+      </sc-for>
+    </section>
+  </sc-if>
+
+  <!-- POSTEN -->
+  <sc-if value="{{ isPost }}" hint-placeholder-val="{{ false }}">
+    <section style="display:flex;flex-direction:column;gap:6px;padding:0 4px">
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#afafaf"><span class="ms" style="font-size:18px;color:rgb(242 128 115);font-variation-settings:'FILL' 1">mail</span>Posten · 1670 Strømstad</div>
+      <div style="font-size:24px;font-weight:500;letter-spacing:-0.015em">{{ postHead }}</div>
+      <div style="font-size:14px;color:#7f7f7f">Posten leverer annenhver hverdag</div>
+    </section>
+    <section style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">
+      <sc-for list="{{ postDays }}" as="d" hint-placeholder-count="14">
+        <div style="{{ d.cell }}">
+          <span style="font-size:10px;color:#7f7f7f">{{ d.wd }}</span>
+          <span style="font-size:15px;font-weight:500;font-variant-numeric:tabular-nums">{{ d.n }}</span>
+          <span class="ms" style="{{ d.icon }}">mail</span>
+        </div>
+      </sc-for>
+    </section>
+    <section style="display:flex;flex-direction:column;gap:2px">
+      <div style="font-size:12px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#7f7f7f;padding:0 4px 8px">Pakker på vei</div>
+      <sc-for list="{{ parcels }}" as="p" hint-placeholder-count="3">
+        <div style="{{ p.row }}">
+          <span style="{{ p.iconWrap }}"><span class="ms" style="font-size:18px;font-variation-settings:'FILL' 1">{{ p.icon }}</span></span>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;justify-content:space-between;gap:10px">
+              <span style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.name }}</span>
+              <span style="font-size:12px;color:#7f7f7f;white-space:nowrap">{{ p.eta }}</span>
+            </div>
+            <div style="display:flex;gap:3px">
+              <sc-for list="{{ p.steps }}" as="st" hint-placeholder-count="4"><span style="{{ st }}"></span></sc-for>
+            </div>
+            <span style="font-size:12px;color:#7f7f7f">{{ p.status }}</span>
+          </div>
+        </div>
+      </sc-for>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:1100}}">
+const C = { green: 'rgb(102 209 158)', yellow: 'rgb(242 210 111)', purple: 'rgb(173 153 230)', blue: 'rgb(115 185 242)', red: 'rgb(242 128 115)', pink: 'rgb(242 133 201)', amber: 'rgb(242 181 115)' };
+const a = (c, o) => c.replace(')', ` / ${o})`);
+const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
+const TODAY = new Date(2026, 8, 25);
+const WHO = { Rune: C.blue, Cybele: C.pink, Sebastian: C.amber, Familie: C.green };
+const EVENTS = [
+  ['2026-09-25', 'Hele dagen', 'Oslo', 'Rune'], ['2026-09-25', 'Hele dagen', 'Oslo', 'Sebastian'], ['2026-09-25', 'Hele dagen', 'Strømstad', 'Cybele'],
+  ['2026-09-26', '10:00–11:00', 'Tannlege', 'Cybele'], ['2026-09-26', '18:30', 'Middag hos Anne og Per', 'Familie'],
+  ['2026-09-28', 'Hele dagen', 'Søppeltømming · restavfall og plast', 'Familie'],
+  ['2026-09-29', '09:00–12:00', 'TRE1300 Skriftlig eksamen under tilsyn', 'Sebastian'],
+  ['2026-10-02', '17:00', 'Håndballtrening', 'Sebastian'],
+];
+const PLACES = { o: C.green, s: C.yellow, t: C.purple };
+const SEP = { 1:'s',2:'s',3:'s',4:'s',5:'s',6:'s',7:'s',8:'s',9:'s',10:'s',11:'s',12:'os',13:'os',14:'os',15:'o',16:'o',17:'os',18:'os',19:'s',20:'os',21:'o',22:'o',23:'o',24:'os',25:'os' };
+const UP = [
+  ['American Hostage','Magic Ticket Sweepstakes · S01E03 · MGM+','serie','Man','03:00','rgb(242 181 115)',false],
+  ['Lanterns',"The Jordan Boy's Legacy · S01E07 · HBO",'serie','Man','03:00','rgb(102 209 158)',false],
+  ['Spider-Man: Brand New Day','Film · Marvel Studios','film','Tir','02:00','rgb(242 128 115)',false],
+  ['Coyote vs. Acme','Kino · på Plex','plex','Tir','02:00','rgb(242 181 115)',true],
+  ['Line of Fire','A Bigger Picture · S01E02 · NBC','serie','Tir','04:00','rgb(115 185 242)',false],
+  ['Best Medicine',"Breakin' in Is Hard to Do · S02E02 · FOX",'serie','Ons','02:00','rgb(115 185 242)',false],
+  ['Digger','Film · Warner Bros. Pictures','film','Ons','02:00','rgb(242 181 115)',false],
+  ['The Last of Us','S03E01 · på Plex','plex','Fre','03:00','rgb(184 230 116)',true],
+];
+const BDAYS = [['Mormor','1941-10-03'],['Cybele','1972-11-14'],['Onkel Lars','1968-12-02'],['Rune','1969-01-21'],['Sebastian','2006-03-08'],['Tante Kari','1975-05-30'],['Farfar','1938-07-19']];
+const HP = { o: { name: 'Oslo', col: 'rgb(102 209 158)', nights: 64, visits: 38, last: '25. sep' }, s: { name: 'Strømstad', col: 'rgb(242 210 111)', nights: 163, visits: 58, last: '24. sep' }, t: { name: 'Toten', col: 'rgb(242 181 115)', nights: 21, visits: 8, last: '20. sep' } };
+const PERS = { c: { name: 'Cybele', col: 'rgb(102 209 158)' }, r: { name: 'Rune', col: 'rgb(115 185 242)' }, s: { name: 'Sebastian', col: 'rgb(242 210 111)' } };
+const HUT_PAGES = [['alle', 'Alle steder', 'linear-gradient(160deg, #22324a, #18222f)', 248, 104, 'c'], ['o', 'Oslo', 'linear-gradient(160deg, #1f3a44, #15252b)', 64, 38, 'r'], ['s', 'Strømstad', 'linear-gradient(160deg, #2c5a45, #193428)', 163, 58, 'c'], ['t', 'Toten', 'linear-gradient(160deg, #4a3a28, #2a2118)', 21, 8, null]];
+const WHO_SEP = { s: { 1: 'rs', 2: 'rs', 3: 'rs', 4: 'crs', 5: 'rsc', 6: 'crs', 7: 'c', 8: 'c', 9: 'c', 10: 'c', 11: 'c', 12: 'r', 13: 'r', 14: 'r', 24: 'c', 25: 'c' }, o: { 12: 'r', 13: 'r', 14: 'rs', 15: 'rs', 16: 'r', 17: 'rs', 18: 'r', 20: 'rc', 21: 'rs', 22: 'r', 23: 'rc', 24: 'rcs', 25: 'rcs' } };
+const STAYS = [['r', 'o', '25. sep', 1], ['s', 'o', '25. sep', 1], ['c', 'o', '25. sep', 1], ['c', 'o', '24. sep', 1], ['s', 'o', '24. sep', 1], ['r', 'o', '24. sep – 25. sep', 2], ['c', 's', '24. sep – 25. sep', 2], ['r', 'o', '23. sep – 24. sep', 2], ['c', 'o', '23. sep – 24. sep', 2], ['r', 'o', '22. sep – 23. sep', 2], ['c', 't', '18. sep – 20. sep', 3], ['r', 's', '12. sep – 14. sep', 3], ['c', 's', '7. sep – 11. sep', 5], ['s', 's', '1. sep – 6. sep', 6]];
+const MONTHS = [['jan', 0, 0, 0], ['feb', 0, 0, 0], ['mar', 0, 0, 0], ['apr', 0, 0, 0], ['mai', 0, 0, 0], ['jun', 0, 0, 0], ['jul', 0, 62, 0], ['aug', 0, 49, 0], ['sep', 64, 52, 21], ['okt', 0, 0, 0], ['nov', 0, 0, 0], ['des', 0, 0, 0]];
+const ini = t => t.split(/[\s:.-]+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+const pad = n => String(n).padStart(2, '0');
+const COURSES = [['MEK1300 Forelesning','08:30–10:15','Zoom · student.oslomet.no/zoom'],['ELI1300 Forelesning','12:30–14:15','Pilestredet park 35 U2005'],['DAT1100 Lab','10:30–12:15','P52 rom 407'],['TRE1300 Øving','14:30–16:00','Teams']];
+const dayEvents = d => {
+  const iso = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const fam = EVENTS.filter(e => e[0] === iso).map(([, time, title, who]) => ({ time, title, where: who, col: WHO[who] }));
+  const wd = d.getDay(); if (wd === 0 || wd === 6) return fam;
+  const n = 1 + ((d.getDate() * 7 + d.getMonth()) % 3);
+  const lec = Array.from({ length: n }, (_, k) => { const c = COURSES[(d.getDate() + k) % COURSES.length]; return { time: c[1], title: c[0], where: c[2], col: C.green }; }).sort((x, y) => x.time.localeCompare(y.time));
+  return [...lec, ...fam];
+};
+const TABORD = (comp, key, list) => {
+  const LK = 'tab-order:' + key; let ord = null; try { ord = JSON.parse(localStorage.getItem(LK) || 'null'); } catch (e) {}
+  const st = comp.state.__tdrag; let L = list.map((t, i) => ({ t, k: String(t.label ?? i) }));
+  if (ord) L.sort((a, b) => { const ia = ord.indexOf(a.k), ib = ord.indexOf(b.k); return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib); });
+  const keys = L.map(x => x.k), mine = st && st.key === key;
+  const begin = (el, k, x0) => { const sib = [...el.parentElement.children].filter(c => c.tagName === el.tagName), rects = sib.map(c => c.getBoundingClientRect()), i = sib.indexOf(el);
+    window.__tabReorder = true; if (navigator.vibrate) navigator.vibrate(10); comp.setState({ __tdrag: { key, k, dx: 0 } });
+    const mv = e => { e.preventDefault(); e.stopPropagation(); comp.setState({ __tdrag: { key, k, dx: e.clientX - x0 } }); };
+    const fin = e => { window.removeEventListener('pointermove', mv, true); window.removeEventListener('pointerup', fin, true); window.removeEventListener('pointercancel', fin, true);
+      e.stopPropagation(); setTimeout(() => { window.__tabReorder = false; }, 60);
+      if (e.type === 'pointerup') { const r0 = rects[Math.max(0, i)] || rects[0], cx = r0.left + r0.width / 2 + (e.clientX - x0); let j = rects.findIndex(r => cx >= r.left && cx <= r.right); if (j < 0) j = cx < rects[0].left ? 0 : rects.length - 1;
+        const a2 = keys.filter(x => x !== k); a2.splice(j, 0, k); try { localStorage.setItem(LK, JSON.stringify(a2)); } catch (x) {} }
+      comp._tEat = true; setTimeout(() => { comp._tEat = false; }, 350); comp.setState({ __tdrag: null }); };
+    window.addEventListener('pointermove', mv, { capture: true, passive: false }); window.addEventListener('pointerup', fin, true); window.addEventListener('pointercancel', fin, true); };
+  return L.map(({ t, k }) => { const d = mine && st.k === k;
+    return { ...t,
+      odown: e => { const el = e.currentTarget, x0 = e.clientX, y0 = e.clientY; clearTimeout(comp._tHold); comp._tXY = [x0, y0]; comp._tHold = setTimeout(() => begin(el, k, x0), 380); },
+      omove: e => { const p = comp._tXY; if (p && Math.hypot(e.clientX - p[0], e.clientY - p[1]) > 8) clearTimeout(comp._tHold); },
+      oup: () => clearTimeout(comp._tHold),
+      ...(t.go ? { go: e => { if (comp._tEat) return; t.go(e); } } : {}),
+      style: d ? { ...t.style, position: 'relative', zIndex: 5, transform: `translateX(${st.dx}px) scale(1.06)`, boxShadow: '0 8px 20px rgba(0,0,0,0.45), inset 0 0 0 1.5px rgb(242 133 201)', transition: 'none', touchAction: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }
+        : mine ? { ...t.style, opacity: 0.65, transition: 'opacity .2s' } : { ...t.style, WebkitTouchCallout: 'none', userSelect: 'none' } }; });
+};
+class Component extends DCLogic {
+  state = { tab: 'cal', view: 'list', month: [2026, 8], filter: 'alle', sel: '2026-8-25', hut: 0, hsub: 'cal', hplace: 'alle', search: false, q: '' };
+  hutVals() {
+    const s = this.state, [y, m] = s.month, pk = HUT_PAGES[s.hut][0];
+    const f1 = new Date(y, m, 1), off = (f1.getDay() + 6) % 7;
+    const cells = Array.from({ length: 42 }, (_, i) => new Date(y, m, 1 - off + i));
+    const codesOf = d => {
+      if (d.getMonth() !== m) return [];
+      if (y === 2026 && m === 9 && d.getDate() >= 2 && d.getDate() <= 4) return pk === 'alle' ? ['s'] : pk === 's' ? ['c', 'r'] : [];
+      if (d > TODAY) return [];
+      const place = y === 2026 && m === 8 ? (SEP[d.getDate()] || '') : (() => { const r = Math.abs(Math.sin(d.getDate() * 3.1 + m)); return r > 0.85 ? 't' : r > 0.35 ? 's' : r > 0.2 ? 'o' : ''; })();
+      if (pk === 'alle') return place.split('').filter(Boolean);
+      if (!place.includes(pk)) return [];
+      return (y === 2026 && m === 8 && WHO_SEP[pk] && WHO_SEP[pk][d.getDate()]) ? WHO_SEP[pk][d.getDate()].split('') : ['c'];
+    };
+    const colOf = c => pk === 'alle' ? HP[c].col : PERS[c].col;
+    const wk = (() => { const d = new Date(TODAY); d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7); const w1 = new Date(d.getFullYear(), 0, 4); return 1 + Math.round(((d - w1) / 864e5 - 3 + (w1.getDay() + 6) % 7) / 7); })();
+    const sub = (k, l) => ({ label: l, go: () => this.setState({ hsub: k }), style: { height: 38, padding: '0 16px', borderRadius: 19, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: s.hsub === k ? PINK : 'transparent', color: s.hsub === k ? '#2a1720' : '#afafaf' } });
+    const pf = s.hplace, q = s.q.trim().toLowerCase();
+    const stays = STAYS.filter(([who, p]) => (pf === 'alle' || p === pf) && (!q || PERS[who].name.toLowerCase().includes(q) || HP[p].name.toLowerCase().includes(q)));
+    return {
+      onScroll: e => { const el = e.currentTarget, i = Math.round(el.scrollLeft / (el.firstElementChild ? el.firstElementChild.offsetWidth + 10 : 1)); if (i !== s.hut && i >= 0 && i < HUT_PAGES.length) this.setState({ hut: i }); },
+      heroes: HUT_PAGES.map(([k, title, bg, nights, visits, who]) => ({ title, nights, visits, here: who ? `${PERS[who].name} er her` : 'Ingen her nå',
+        who: who ? [{ i: PERS[who].name[0], style: { width: 28, height: 28, borderRadius: 14, display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700, background: k === 'alle' ? HP.s.col : PERS[who].col, color: '#232323', boxShadow: '0 0 0 2px rgba(255,255,255,0.25)' } }] : [],
+        cal: () => this.setState({ hsub: 'cal' }),
+        chips: k === 'alle' ? ['o', 's', 't'].map(p => ({ label: `${HP[p].name} ${HP[p].nights}`, dot: { width: 8, height: 8, borderRadius: 4, background: HP[p].col } })) : [],
+        card: { position: 'relative', overflow: 'hidden', flex: 'none', width: '100%', scrollSnapAlign: 'center', boxSizing: 'border-box', minHeight: 190, padding: 18, borderRadius: 28, display: 'flex', flexDirection: 'column', gap: 6, background: bg, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)' } })),
+      dots: HUT_PAGES.map((_, i) => ({ go: e => { const el = e.currentTarget.parentElement.previousElementSibling; el && el.scrollTo({ left: i * (el.firstElementChild.offsetWidth + 10), behavior: 'smooth' }); this.setState({ hut: i }); },
+        style: { width: i === s.hut ? 18 : 7, height: 7, borderRadius: 4, background: i === s.hut ? '#fafafa' : '#48474a', transition: 'width .3s, background .3s' } })),
+      subs: [sub('cal', 'Kalender'), sub('stays', 'Opphold'), sub('stats', 'Statistikk')],
+      isCal: s.hsub === 'cal', isStays: s.hsub === 'stays', isStats: s.hsub === 'stats',
+      searching: s.search, q: s.q, setQ: e => this.setState({ q: e.target.value, hsub: 'stays' }),
+      toggleSearch: () => this.setState({ search: !s.search, q: '', hsub: s.search ? s.hsub : 'stays' }),
+      searchBtn: { width: 46, height: 46, borderRadius: 23, display: 'grid', placeItems: 'center', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.12)', background: s.search ? PINK : 'transparent', color: s.search ? '#2a1720' : '#fafafa' },
+      week: `Uke ${wk}`,
+      cells: cells.map(d => { const inM = d.getMonth() === m, cs = codesOf(d), planned = d > TODAY && cs.length, isT = d.toDateString() === TODAY.toDateString();
+        const bg = !cs.length ? (inM ? '#232323' : 'transparent') : planned ? 'transparent' : cs.length === 1 ? colOf(cs[0]) : `linear-gradient(90deg, ${cs.map((c, i) => `${colOf(c)} ${i / cs.length * 100}% ${(i + 1) / cs.length * 100}%`).join(', ')})`;
+        return { n: d.getDate(), style: { aspectRatio: '1', borderRadius: 12, display: 'grid', placeItems: 'center', background: bg, border: planned ? `2px dashed ${colOf(cs[0])}` : '2px solid transparent', boxSizing: 'border-box', boxShadow: isT ? 'inset 0 0 0 2px #fafafa' : 'none', opacity: inM ? (d < new Date(y, m, 1) ? 0.5 : 1) : 0.3 },
+          num: { fontSize: 13, fontWeight: 600, color: cs.length && !planned ? '#232323' : inM ? '#c7c7c7' : '#696969', fontVariantNumeric: 'tabular-nums' } }; }),
+      legend: (pk === 'alle' ? ['o', 's', 't'].map(k => [HP[k].name, HP[k].col]) : ['c', 'r', 's'].map(k => [PERS[k].name, PERS[k].col])).map(([name, col]) => ({ name, dot: { width: 10, height: 10, borderRadius: 3, background: col } })),
+      placeFilters: [['alle', 'Alle'], ['o', 'Oslo'], ['s', 'Strømstad'], ['t', 'Toten']].map(([k, label]) => ({ label, go: () => this.setState({ hplace: k }),
+        style: { height: 36, padding: '0 12px', borderRadius: 18, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: pf === k ? PINK : 'transparent', color: pf === k ? '#2a1720' : '#afafaf' },
+        dot: { display: k === 'alle' ? 'none' : 'block', width: 7, height: 7, borderRadius: 4, background: k === 'alle' ? 'transparent' : HP[k].col } })),
+      noStays: !stays.length,
+      stays: stays.map(([who, p, dates, n], i) => ({ i: PERS[who].name[0], name: PERS[who].name, place: HP[p].name, dates, nights: n === 1 ? '1 natt' : `${n} netter`,
+        row: { display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderTop: i ? '1px solid rgba(255,255,255,0.06)' : 'none' },
+        avatar: { width: 28, height: 28, borderRadius: 14, flex: 'none', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700, background: PERS[who].col, color: '#232323' },
+        tag: { fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 6, background: '#3a3a3a', color: HP[p].col } })),
+      months: MONTHS.map(([k, o, st, t]) => { const v = o + st + t; return { k, v: v || '', segs: [[o, HP.o.col], [st, HP.s.col], [t, HP.t.col]].filter(x => x[0]).map(([n, col]) => ({ width: `${n / 137 * 100}%`, height: '100%', background: col })) }; }),
+      placeCards: ['o', 's', 't'].map(k => ({ i: HP[k].name[0], name: HP[k].name, sub: `${HP[k].visits} besøk i år · sist ${HP[k].last}`, nights: HP[k].nights,
+        avatar: { width: 28, height: 28, borderRadius: 14, flex: 'none', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700, background: HP[k].col, color: '#232323' } })),
+    };
+  }
+  monthVals() {
+    const s = this.state, [y, m] = s.month;
+    const f1 = new Date(y, m, 1), off = (f1.getDay() + 6) % 7;
+    const cells = Array.from({ length: 42 }, (_, i) => new Date(y, m, 1 - off + i));
+    const key = d => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    const [sy, sm, sd] = s.sel.split('-').map(Number), sel = new Date(sy, sm, sd);
+    const items = dayEvents(sel);
+    const isToday = sel.toDateString() === TODAY.toDateString();
+    return {
+      weekdaysM: ['M', 'T', 'O', 'T', 'F', 'L', 'S'],
+      goToday: () => this.setState({ month: [2026, 8], sel: '2026-8-25' }),
+      mcells: cells.map(d => { const inM = d.getMonth() === m, ev = inM ? dayEvents(d) : [], k = key(d), act = k === s.sel, today = d.toDateString() === TODAY.toDateString();
+        const hasFam = ev.some(e => e.col !== C.green);
+        return { n: d.getDate(), count: ev.length || '', pick: () => inM && this.setState({ sel: k }),
+          style: { position: 'relative', aspectRatio: '1', borderRadius: '50%', display: 'grid', placeItems: 'center', background: act ? PINK : inM ? '#2f2f2f' : 'transparent', boxShadow: today && !act ? 'inset 0 0 0 1.5px #fafafa' : 'none', opacity: inM ? 1 : 0.3, transition: 'background .2s' },
+          num: { fontSize: 14, fontWeight: act || today ? 600 : 500, color: act ? '#2a1720' : '#fafafa', fontVariantNumeric: 'tabular-nums' },
+          badge: { position: 'absolute', left: -2, top: -2, minWidth: 18, height: 18, borderRadius: 9, display: ev.length ? 'grid' : 'none', placeItems: 'center', fontSize: 10, fontWeight: 700, background: hasFam ? C.pink : C.green, color: '#232323', boxShadow: '0 0 0 2px #232323' } }; }),
+      selTitle: sel.toLocaleDateString('nb-NO', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, c => c.toUpperCase()),
+      selMeta: isToday ? 'i dag' : `${items.length} hendelser`,
+      selEmpty: !items.length,
+      selItems: items.map((e, i) => ({ ...e, row: { display: 'flex', gap: 10, padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.05)' }, bar: { width: 3, borderRadius: 2, alignSelf: 'stretch', flex: 'none', background: e.col } })),
+    };
+  }
+  __tabWrap(v) { if (v && Array.isArray(v.tabs)) v.tabs = TABORD(this, 'kalender', v.tabs); return v; }
+  renderVals() { return this.__tabWrap(this.__rv()); }
+  __rv() {
+    const s = this.state;
+    const tab = (k, l, icon) => ({ label: l, icon, go: () => this.setState({ tab: k }), style: { flex: 'none', height: 38, padding: '0 12px', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: s.tab === k ? PINK : 'transparent', color: s.tab === k ? '#2a1720' : '#979797' } });
+    const dayNames = d => d.toLocaleDateString('nb-NO', { weekday: 'long' });
+    const byDay = [...new Set(EVENTS.map(e => e[0]))];
+    // cabin month
+    const [y, m] = s.month;
+    const f1 = new Date(y, m, 1), off = (f1.getDay() + 6) % 7;
+    const cells = Array.from({ length: 42 }, (_, i) => new Date(y, m, 1 - off + i));
+    const placeOf = d => { if (d > TODAY) return ''; if (y === 2026 && m === 8 && d.getMonth() === 8) return SEP[d.getDate()] || ''; if (d.getMonth() !== m) return ''; const r = Math.abs(Math.sin(d.getDate() * 3.1 + m)); return r > 0.8 ? 't' : r > 0.35 ? 's' : r > 0.15 ? 'o' : ''; };
+    // bdays
+    const nextOf = iso => { const [by, bm, bd] = iso.split('-').map(Number); let n = new Date(2026, bm - 1, bd); if (n < TODAY) n = new Date(2027, bm - 1, bd); return { date: n, age: n.getFullYear() - by }; };
+    const bl = BDAYS.map(([name, iso]) => ({ name, ...nextOf(iso) })).map(b => ({ ...b, days: Math.round((b.date - TODAY) / 864e5) })).sort((p, q) => p.days - q.days);
+    const nb = bl[0];
+    // posten: deliveries every other weekday starting Mon 28 sep
+    const postDays = Array.from({ length: 14 }, (_, i) => new Date(2026, 8, 28 + i));
+    let flip = true; const deliv = postDays.map(d => { const wd = d.getDay(); if (wd === 0 || wd === 6) return false; const r = flip; flip = !flip; return r; });
+    const firstDeliv = postDays[deliv.indexOf(true)];
+    const ups = UP.filter(u => s.filter === 'alle' || u[2] === s.filter);
+    const F = ups[0];
+    return {
+      tabs: [['cal', 'Kalender'], ['cabin', 'Hytta'], ['up', 'Framover']].map(([k, label]) => ({ label, go: () => this.setState({ tab: k }), style: { height: 38, padding: '0 18px', borderRadius: 19, fontSize: 14, fontWeight: 500, whiteSpace: 'nowrap', background: s.tab === k ? PINK : 'transparent', color: s.tab === k ? '#2a1720' : '#afafaf' } })),
+      isGift: s.tab === 'gift', goGift: () => this.setState({ tab: 'gift' }),
+      giftBtn: { width: 46, height: 46, borderRadius: 23, display: 'grid', placeItems: 'center', background: s.tab === 'gift' ? PINK : 'transparent', color: s.tab === 'gift' ? '#2a1720' : '#fafafa', boxShadow: s.tab === 'gift' ? 'none' : 'inset 0 0 0 1px rgba(255,255,255,0.18)' },
+      ...this.monthVals(), hut: this.hutVals(),
+      isCalTab: s.tab === 'cal', isMonth: s.tab === 'cal' && s.view === 'month', calHead: s.view === 'month' ? 'Måned' : 'Kommende',
+      calViews: [['list', 'Liste', 'view_agenda'], ['month', 'Måned', 'calendar_month']].map(([k, label, icon]) => ({ label, icon, go: () => this.setState({ view: k }), style: { height: 34, padding: '0 12px', borderRadius: 13, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 500, background: s.view === k ? PINK : 'transparent', color: s.view === k ? '#2a1720' : '#979797', transition: 'background .2s' } })),
+      isCal: s.tab === 'cal' && s.view === 'list', isCabin: s.tab === 'cabin', isUp: s.tab === 'up', isBday: s.tab === 'bday', isPost: s.tab === 'post',
+      agenda: byDay.map((iso, i) => { const d = new Date(iso + 'T12:00'); const today = iso === '2026-09-25'; return {
+        wd: today ? 'I dag' : dayNames(d), date: d.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' }).replace('.', ''),
+        dateStyle: { fontSize: i ? 28 : 40, fontWeight: 300, letterSpacing: '-0.03em', lineHeight: 1.1, whiteSpace: 'nowrap' },
+        left: { width: i ? 110 : 150, flex: 'none', display: 'flex', flexDirection: 'column', gap: 2 },
+        row: { display: 'flex', alignItems: 'center', gap: 12, padding: i ? '18px 22px' : '22px 22px', borderRadius: 30, background: '#2f2f2f', marginBottom: 10 },
+        items: EVENTS.filter(e => e[0] === iso).map(([, time, title, who]) => ({ title, meta: `${time} · ${who}`, dot: { width: 8, height: 8, borderRadius: 4, marginTop: 6, flex: 'none', background: WHO[who] } })) }; }),
+      places: [['Oslo 64', 'o'], ['Strømstad 163', 's'], ['Toten 21', 't']].map(([label, k]) => ({ label, dot: { width: 8, height: 8, borderRadius: 4, background: PLACES[k] } })),
+      monthLabel: `${f1.toLocaleDateString('nb-NO', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase())}`,
+      prevMonth: () => this.setState({ month: m === 0 ? [y - 1, 11] : [y, m - 1] }), nextMonth: () => this.setState({ month: m === 11 ? [y + 1, 0] : [y, m + 1] }),
+      weekdays: ['ma', 'ti', 'on', 'to', 'fr', 'lø', 'sø'],
+      cells: cells.map(d => { const inM = d.getMonth() === m, p = inM ? placeOf(d) : '', isT = d.toDateString() === TODAY.toDateString();
+        const bg = !p ? (inM ? '#3a3a3a' : 'transparent') : p.length === 2 ? `linear-gradient(90deg, ${PLACES[p[0]]} 50%, ${PLACES[p[1]]} 50%)` : PLACES[p];
+        return { n: d.getDate(), style: { height: 44, borderRadius: 12, display: 'grid', placeItems: 'center', background: bg, boxShadow: isT ? 'inset 0 0 0 2px #fafafa' : 'none', opacity: inM ? 1 : 0.25 },
+          num: { fontSize: 13, fontWeight: 600, color: p ? '#232323' : '#afafaf', fontVariantNumeric: 'tabular-nums' } }; }),
+      upFilters: [['alle', 'Alle'], ['serie', 'Serier'], ['film', 'Filmer'], ['plex', 'Plex']].map(([k, l]) => ({ label: l, go: () => this.setState({ filter: k }), style: { height: 34, padding: '0 14px', borderRadius: 17, fontSize: 13, fontWeight: 500, background: s.filter === k ? '#fafafa' : '#2f2f2f', color: s.filter === k ? '#232323' : '#afafaf' } })),
+      hasFeatured: !!F,
+      featured: F ? { title: F[0], sub: F[1], when: `${F[3]} kl. ${F[4]}`, tag: F[2] === 'serie' ? 'Sonarr' : F[2] === 'film' ? 'Radarr' : 'Plex', initials: ini(F[0]),
+        card: { display: 'flex', gap: 14, alignItems: 'center', padding: 14, borderRadius: 24, background: `linear-gradient(120deg, ${F[5]}, #2f2f2f 85%)` },
+        poster: { width: 84, height: 120, borderRadius: 12, flex: 'none', display: 'grid', placeItems: 'center', padding: 8, boxSizing: 'border-box', background: `linear-gradient(160deg, ${F[5]}, #111)`, boxShadow: '0 8px 20px rgba(0,0,0,0.4)' } } : {},
+      upcoming: ups.slice(1).map(([title, sub, kind, day, time, col, ok], i) => ({ title, sub, day, time, initials: ini(title),
+        row: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 4px', borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none' },
+        poster: { width: 40, height: 56, borderRadius: 8, flex: 'none', display: 'grid', placeItems: 'center', background: `linear-gradient(160deg, ${col}, #111)` },
+        okStyle: { fontSize: 15, color: C.green, fontVariationSettings: "'FILL' 1", display: ok ? 'inline' : 'none' } })),
+      nextBday: { name: nb.name, when: nb.days === 0 ? 'I dag' : nb.days === 1 ? 'I morgen' : `Om ${nb.days} dager`, sub: `Fyller ${nb.age} · ${nb.date.toLocaleDateString('nb-NO', { weekday: 'long', day: 'numeric', month: 'long' })}` },
+      bdays: bl.slice(1).map((b, i) => ({ name: b.name, initial: b.name[0], sub: `Fyller ${b.age} · ${b.date.toLocaleDateString('nb-NO', { day: 'numeric', month: 'long' })}`, days: `${b.days} d`,
+        row: { display: 'flex', alignItems: 'center', gap: 12, padding: '11px 4px', borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none' },
+        avatar: { width: 36, height: 36, borderRadius: 18, flex: 'none', display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 600, background: '#3a3a3a', color: '#afafaf' },
+        daysStyle: { fontSize: 12, fontWeight: 500, padding: '4px 9px', borderRadius: 10, background: b.days < 30 ? a(C.pink, 0.18) : '#2f2f2f', color: b.days < 30 ? '#fafafa' : '#7f7f7f', fontVariantNumeric: 'tabular-nums' } })),
+      postHead: `Neste levering ${firstDeliv.toLocaleDateString('nb-NO', { weekday: 'long', day: 'numeric', month: 'short' })}`,
+      postDays: postDays.map((d, i) => { const on = deliv[i], we = d.getDay() === 0 || d.getDay() === 6; return { n: d.getDate(), wd: d.toLocaleDateString('nb-NO', { weekday: 'short' }).replace('.', ''),
+        cell: { height: 70, borderRadius: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, background: on ? a(C.red, 0.14) : '#2f2f2f', boxShadow: on ? `inset 0 0 0 1px ${a(C.red, 0.4)}` : 'none', opacity: we ? 0.4 : 1 },
+        icon: { fontSize: 14, color: C.red, fontVariationSettings: "'FILL' 1", opacity: on ? 1 : 0 } }; }),
+      parcels: [['Zalando','package_2','Til hentested · Coop Extra',3,'I dag'],['Komplett · USB-hub','local_shipping','Under transport',2,'Man'],['Apotek 1','inventory_2','Sendingen er registrert',1,'Tir–ons']].map(([name, icon, status, step, eta], i) => ({ name, icon, status, eta,
+        row: { display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 4px', borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none' },
+        iconWrap: { width: 36, height: 36, borderRadius: 18, flex: 'none', display: 'grid', placeItems: 'center', background: a(C.red, 0.16), color: C.red },
+        steps: [1, 2, 3, 4].map(k => ({ flex: 1, height: 4, borderRadius: 2, background: k <= step ? C.red : '#3a3a3a' })) })),
+    };
+  }
+}
+</script>
+</body>
+</html>

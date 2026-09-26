@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#232323;color:#fafafa;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#fafafa}a:hover{color:rgb(242 133 201)}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;user-select:none}
+</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;max-width:420px;min-height:100vh;margin:0 auto;background:#232323;padding:20px 18px 40px;display:flex;flex-direction:column;gap:16px">
+  <header style="display:flex;align-items:center;gap:12px">
+    <span style="width:40px;height:40px;border-radius:20px;background:#e1e1e1;color:#232323;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">ecg_heart</span></span>
+    <div style="flex:1;font-size:26px;font-weight:500;letter-spacing:-0.02em">Helse</div>
+  </header>
+  <section style="display:flex;align-items:center;gap:18px;padding:18px;border-radius:26px;background:#2f2f2f">
+    <span style="position:relative;width:112px;height:112px;flex:none">
+      <span style="{{ ring.outer }}"></span>
+      <span style="{{ ring.inner }}"></span>
+      <span style="position:absolute;inset:0;display:grid;place-items:center"><span class="ms" style="font-size:28px;color:rgb(242 133 201);font-variation-settings:'FILL' 1">directions_walk</span></span>
+    </span>
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px">
+      <sc-for list="{{ rings }}" as="r" hint-placeholder-count="3">
+        <div style="display:flex;flex-direction:column;gap:1px"><span style="{{ r.lab }}">{{ r.label }}</span><span style="font-size:20px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap">{{ r.val }}<span style="font-size:12px;color:#7f7f7f;font-weight:400"> {{ r.goal }}</span></span></div>
+      </sc-for>
+    </div>
+  </section>
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;padding:4px;border-radius:22px;background:#2f2f2f">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4"><button onPointerDown="{{ t.odown }}" onPointerMove="{{ t.omove }}" onPointerUp="{{ t.oup }}" onPointerCancel="{{ t.oup }}" onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button></sc-for>
+  </div>
+  <sc-if value="{{ isSleep }}" hint-placeholder-val="{{ false }}">
+    <section style="display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:24px;background:#2f2f2f">
+      <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:13px;color:#7f7f7f">Søvn i natt</span><span style="font-size:28px;font-weight:500;font-variant-numeric:tabular-nums">7 t 12 min</span></div>
+      <div style="display:flex;height:14px;border-radius:7px;overflow:hidden;gap:2px"><sc-for list="{{ phases }}" as="p" hint-placeholder-count="4"><span style="{{ p.bar }}"></span></sc-for></div>
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px"><sc-for list="{{ phases }}" as="p" hint-placeholder-count="4"><span style="display:flex;flex-direction:column;gap:2px"><span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#979797"><span style="{{ p.dot }}"></span>{{ p.label }}</span><span style="font-size:14px;font-weight:500;font-variant-numeric:tabular-nums">{{ p.val }}</span></span></sc-for></div>
+    </section>
+  </sc-if>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <sc-for list="{{ tiles }}" as="g" hint-placeholder-count="6">
+      <div style="display:flex;flex-direction:column;gap:6px;padding:14px 16px;border-radius:22px;background:#2f2f2f;min-width:0">
+        <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#979797;white-space:nowrap"><span class="ms" style="{{ g.iconStyle }}">{{ g.icon }}</span>{{ g.label }}</span>
+        <span style="font-size:24px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap">{{ g.val }}<span style="font-size:12px;color:#7f7f7f;font-weight:400"> {{ g.unit }}</span></span>
+      </div>
+    </sc-for>
+  </div>
+  <span style="font-size:12px;color:#696969;padding:0 6px">Fra Sebastian iPhone 17 Pro · Apple Helse</span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:900}}">
+const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
+const R = 'rgb(242 128 115)', G = 'rgb(102 209 158)', B = 'rgb(115 185 242)', P = 'rgb(173 153 230)', A = 'rgb(242 181 115)';
+const DATA = {
+  akt: [['directions_walk', 'Skritt', '8 412', '', R], ['local_fire_department', 'Aktiv energi', '486', 'kcal', R], ['fitness_center', 'Trening', '34', 'min', G], ['straighten', 'Distanse', '6,2', 'km', B], ['stairs', 'Etasjer opp', '11', '', A], ['stairs_2', 'Etasjer ned', '9', '', A], ['speed', 'Snittfart', '5,4', 'km/t', B], ['bolt', 'Hvileenergi', '1 742', 'kcal', A]],
+  hjerte: [['favorite', 'Puls', '68', 'bpm', R], ['bedtime', 'Hvilepuls', '54', 'bpm', R], ['directions_walk', 'Gangpuls', '96', 'bpm', R], ['monitor_heart', 'HRV', '48', 'ms', P], ['sprint', 'VO2 maks', '44,1', 'ml/kg', G], ['spo2', 'Oksygen', '98', '%', B], ['air', 'Pustefrekvens', '14', '/min', B], ['bloodtype', 'Blodtrykk', '118/76', 'mmHg', R]],
+  sovn: [['hotel', 'I sengen', '7 t 48', 'min', P], ['bedtime', 'Søvn', '7 t 12', 'min', P], ['monitor_heart', 'HRV natt', '52', 'ms', P], ['favorite', 'Hvilepuls', '54', 'bpm', R]],
+  kropp: [['monitor_weight', 'Vekt', '78,4', 'kg', B], ['height', 'Høyde', '184', 'cm', B], ['accessibility_new', 'Mager masse', '64,1', 'kg', G], ['percent', 'Fettprosent', '18,2', '%', A], ['thermometer', 'Kroppstemp', '36,7', '°C', R], ['device_thermostat', 'Basaltemp', '36,4', '°C', R], ['glucose', 'Blodsukker', '5,2', 'mmol/L', P], ['water_drop', 'Vann', '1,6', 'l', B]],
+};
+const ring = (inset, pct, col, w) => { const m = `radial-gradient(farthest-side, transparent calc(100% - ${w}px), #000 calc(100% - ${w}px))`; return { position: 'absolute', inset, borderRadius: '50%', background: `conic-gradient(${col} ${pct * 360}deg, rgba(255,255,255,0.08) 0)`, WebkitMask: m, mask: m }; };
+const TABORD = (comp, key, list) => {
+  const LK = 'tab-order:' + key; let ord = null; try { ord = JSON.parse(localStorage.getItem(LK) || 'null'); } catch (e) {}
+  const st = comp.state.__tdrag; let L = list.map((t, i) => ({ t, k: String(t.label ?? i) }));
+  if (ord) L.sort((a, b) => { const ia = ord.indexOf(a.k), ib = ord.indexOf(b.k); return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib); });
+  const keys = L.map(x => x.k), mine = st && st.key === key;
+  const begin = (el, k, x0) => { const sib = [...el.parentElement.children].filter(c => c.tagName === el.tagName), rects = sib.map(c => c.getBoundingClientRect()), i = sib.indexOf(el);
+    window.__tabReorder = true; if (navigator.vibrate) navigator.vibrate(10); comp.setState({ __tdrag: { key, k, dx: 0 } });
+    const mv = e => { e.preventDefault(); e.stopPropagation(); comp.setState({ __tdrag: { key, k, dx: e.clientX - x0 } }); };
+    const fin = e => { window.removeEventListener('pointermove', mv, true); window.removeEventListener('pointerup', fin, true); window.removeEventListener('pointercancel', fin, true);
+      e.stopPropagation(); setTimeout(() => { window.__tabReorder = false; }, 60);
+      if (e.type === 'pointerup') { const r0 = rects[Math.max(0, i)] || rects[0], cx = r0.left + r0.width / 2 + (e.clientX - x0); let j = rects.findIndex(r => cx >= r.left && cx <= r.right); if (j < 0) j = cx < rects[0].left ? 0 : rects.length - 1;
+        const a2 = keys.filter(x => x !== k); a2.splice(j, 0, k); try { localStorage.setItem(LK, JSON.stringify(a2)); } catch (x) {} }
+      comp._tEat = true; setTimeout(() => { comp._tEat = false; }, 350); comp.setState({ __tdrag: null }); };
+    window.addEventListener('pointermove', mv, { capture: true, passive: false }); window.addEventListener('pointerup', fin, true); window.addEventListener('pointercancel', fin, true); };
+  return L.map(({ t, k }) => { const d = mine && st.k === k;
+    return { ...t,
+      odown: e => { const el = e.currentTarget, x0 = e.clientX, y0 = e.clientY; clearTimeout(comp._tHold); comp._tXY = [x0, y0]; comp._tHold = setTimeout(() => begin(el, k, x0), 380); },
+      omove: e => { const p = comp._tXY; if (p && Math.hypot(e.clientX - p[0], e.clientY - p[1]) > 8) clearTimeout(comp._tHold); },
+      oup: () => clearTimeout(comp._tHold),
+      ...(t.go ? { go: e => { if (comp._tEat) return; t.go(e); } } : {}),
+      style: d ? { ...t.style, position: 'relative', zIndex: 5, transform: `translateX(${st.dx}px) scale(1.06)`, boxShadow: '0 8px 20px rgba(0,0,0,0.45), inset 0 0 0 1.5px rgb(242 133 201)', transition: 'none', touchAction: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }
+        : mine ? { ...t.style, opacity: 0.65, transition: 'opacity .2s' } : { ...t.style, WebkitTouchCallout: 'none', userSelect: 'none' } }; });
+};
+class Component extends DCLogic {
+  state = { tab: 'akt' };
+  __tabWrap(v) { if (v && Array.isArray(v.tabs)) v.tabs = TABORD(this, 'helse', v.tabs); return v; }
+  renderVals() { return this.__tabWrap(this.__rv()); }
+  __rv() {
+    const s = this.state;
+    return {
+      ring: { outer: ring(0, 0.84, R, 12), inner: ring(17, 0.57, G, 12) },
+      rings: [['Skritt', '8 412', '/ 10 000', R], ['Trening', '34', '/ 60 min', G], ['Aktiv energi', '486', '/ 600 kcal', A]].map(([label, val, goal, c]) => ({ label, val, goal, lab: { fontSize: 12, color: c } })),
+      tabs: [['akt', 'Aktivitet'], ['hjerte', 'Hjerte'], ['sovn', 'Søvn'], ['kropp', 'Kropp']].map(([id, label]) => ({ label, go: () => this.setState({ tab: id }), style: { height: 44, borderRadius: 18, fontSize: 13, fontWeight: 500, background: s.tab === id ? PINK : 'transparent', color: s.tab === id ? '#2a1720' : '#979797' } })),
+      isSleep: s.tab === 'sovn',
+      phases: [['Dyp', '1 t 18', 18, 'rgb(173 153 230)'], ['Kjerne', '3 t 54', 54, 'rgb(173 153 230)'], ['REM', '1 t 40', 23, 'rgb(115 185 242)'], ['Våken', '20 min', 5, A]].map(([label, val, w, c]) => ({ label, val, bar: { flex: w, background: c }, dot: { width: 8, height: 8, borderRadius: 4, background: c } })),
+      tiles: DATA[s.tab].map(([icon, label, val, unit, c]) => ({ icon, label, val, unit, iconStyle: { fontSize: 16, color: c, fontVariationSettings: "'FILL' 1" } })),
+    };
+  }
+}
+</script>
+</body>
+</html>

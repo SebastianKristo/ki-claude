@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#232323;color:#fafafa;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#fafafa}a:hover{color:rgb(242 133 201)}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;user-select:none}
+</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;max-width:420px;min-height:100vh;margin:0 auto;background:#232323;padding:20px 18px 40px;display:flex;flex-direction:column;gap:12px">
+  <header style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:6px">
+    <div style="font-size:30px;font-weight:600;letter-spacing:-0.03em">Strømregning</div>
+    <button style="width:44px;height:44px;border-radius:22px;background:#3a3a3a;display:grid;place-items:center"><span class="ms" style="font-size:22px">close</span></button>
+  </header>
+
+  <div style="display:flex;gap:8px;align-items:center;justify-content:center;margin-bottom:4px">
+    <div style="display:flex;gap:2px;padding:4px;border-radius:22px;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.14)">
+      <sc-for list="{{ periods }}" as="p" hint-placeholder-count="4"><button onClick="{{ p.go }}" style="{{ p.style }}">{{ p.label }}</button></sc-for>
+    </div>
+    <button onClick="{{ togglePrev }}" title="Forrige periode" style="{{ calBtn }}"><span class="ms" style="font-size:20px">calendar_month</span></button>
+  </div>
+
+  <section style="padding:16px;border-radius:28px;background:#2f2f2f;display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#afafaf;white-space:nowrap"><span class="ms" style="font-size:18px">receipt_long</span>{{ billTitle }}</div>
+      <span style="height:24px;padding:0 10px;border-radius:12px;background:#2f2f2f;font-size:11px;color:#7f7f7f;display:flex;align-items:center">{{ badge }}</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <div style="display:flex;align-items:baseline;gap:6px"><span style="font-size:44px;font-weight:300;letter-spacing:-0.04em;line-height:1;font-variant-numeric:tabular-nums">{{ total }}</span><span style="font-size:15px;color:#7f7f7f">kr</span></div>
+      <span style="font-size:12px;color:#7f7f7f">{{ totalSub }}</span>
+    </div>
+    <div style="display:flex;gap:3px;height:12px">
+      <sc-for list="{{ parts }}" as="p" hint-placeholder-count="3"><span style="{{ p.bar }}"></span></sc-for>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <sc-for list="{{ parts }}" as="p" hint-placeholder-count="3">
+        <div style="display:flex;align-items:center;gap:10px;padding:7px 0">
+          <span style="{{ p.dot }}"></span>
+          <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:14px">{{ p.label }}</span><span style="font-size:11px;color:#696969">{{ p.sub }}</span></span>
+          <span style="font-size:14px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap">{{ p.kr }} kr</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);font-size:12px;color:#7f7f7f"><span>Forbruk</span><span style="color:#fafafa;font-variant-numeric:tabular-nums">{{ kwh }} kWh · snitt {{ perKwh }} kr/kWh</span></div>
+  </section>
+
+  <section style="padding:16px;border-radius:28px;background:#2f2f2f;display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#afafaf"><span class="ms" style="font-size:18px">speed</span>Effekttrinn</div>
+      <span style="font-size:12px;color:#7f7f7f">5–10 kW · 415 kr/mnd</span>
+    </div>
+    <div style="display:flex;align-items:baseline;gap:6px"><span style="font-size:36px;font-weight:300;letter-spacing:-0.04em;line-height:1;font-variant-numeric:tabular-nums">7,0</span><span style="font-size:13px;color:#7f7f7f">kW snitt av 3 topper</span></div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="position:relative;height:12px;border-radius:6px;background:#2f2f2f;overflow:hidden">
+        <span style="position:absolute;left:0;top:0;bottom:0;width:70%;border-radius:6px;background:linear-gradient(90deg, rgb(102 209 158), rgb(242 181 115))"></span>
+        <span style="position:absolute;left:50%;top:0;bottom:0;width:2px;background:#232323"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#696969"><span>0 kW</span><span>5 kW</span><span style="color:#afafaf">3,0 kW margin</span><span>10 kW</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px">
+      <sc-for list="{{ peaks }}" as="p" hint-placeholder-count="3">
+        <div style="padding:10px 12px;border-radius:18px;background:#2f2f2f;display:flex;flex-direction:column;gap:3px">
+          <span style="font-size:13px;white-space:nowrap"><span style="{{ p.numStyle }}">#{{ p.n }}</span> {{ p.kw }} kW</span>
+          <span style="font-size:11px;color:#7f7f7f;white-space:nowrap">{{ p.when }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);font-size:12px">
+      <span style="color:#7f7f7f">Neste trinn 10–15 kW</span>
+      <span style="color:rgb(242 128 115);font-variant-numeric:tabular-nums">+330 kr/mnd</span>
+    </div>
+  </section>
+
+  <section style="padding:16px;border-radius:28px;background:#2f2f2f;display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#afafaf"><span class="ms" style="font-size:18px">bar_chart</span>Effektledd per måned</div>
+      <span style="font-size:12px;color:#7f7f7f;font-variant-numeric:tabular-nums">i år {{ yearCap }} kr</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+      <div style="display:flex;align-items:baseline;gap:6px"><span style="font-size:36px;font-weight:300;letter-spacing:-0.04em;line-height:1;font-variant-numeric:tabular-nums">{{ capKr }}</span><span style="font-size:13px;color:#7f7f7f">kr</span></div>
+      <span style="font-size:12px;color:#7f7f7f;white-space:nowrap">{{ capSub }}</span>
+    </div>
+    <div style="display:flex;gap:6px;align-items:flex-end;height:110px">
+      <sc-for list="{{ months }}" as="m" hint-placeholder-count="12">
+        <button onClick="{{ m.go }}" style="flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end"><span style="{{ m.bar }}"></span></button>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:6px">
+      <sc-for list="{{ months }}" as="m" hint-placeholder-count="12"><span style="{{ m.lbl }}">{{ m.l }}</span></sc-for>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:1150}}">
+const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
+const C = { blue: 'rgb(115 185 242)', orange: 'rgb(242 181 115)', purple: 'rgb(173 153 230)', amber: 'rgb(242 181 115)', red: 'rgb(242 128 115)', green: 'rgb(102 209 158)' };
+const nf = (n, d = 0) => n.toLocaleString('nb-NO', { minimumFractionDigits: d, maximumFractionDigits: d });
+const P = {
+  day:   { t: ['i dag', 'i går'], kwh: [38, 44], s: [19, 22], n: [27, 31], a: [4, 5], est: true, sub: ['Anslått for hele døgnet', 'Hele døgnet'] },
+  week:  { t: ['uke 39', 'uke 38'], kwh: [262, 281], s: [131, 140], n: [186, 199], a: [28, 30], est: true, sub: ['Anslått for hele uken', 'Hele uken'] },
+  month: { t: ['september', 'august'], kwh: [1180, 960], s: [590, 480], n: [840, 634], a: [130, 106], est: true, sub: ['Hele måneden, anslått · hittil 1 352 kr', 'Faktura mottatt 3. september'] },
+  year:  { t: ['2026', '2025'], kwh: [14200, 15900], s: [7100, 12400], n: [9400, 10200], a: [1560, 1750], est: true, sub: ['Hele året, anslått · hittil 11 870 kr', 'Hele året · før Norgespris'] },
+};
+const CAP = [560, 560, 415, 415, 290, 290, 290, 290, 415, null, null, null];
+const ML = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+const MN = ['Januar', 'Februar', 'Mars', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Desember'];
+const TRINN = { 290: '2–5 kW', 415: '5–10 kW', 560: '10–15 kW' };
+class Component extends DCLogic {
+  state = { period: 'month', prev: false, month: 8 };
+  renderVals() {
+    const s = this.state, d = P[s.period], i = s.prev ? 1 : 0;
+    const vals = [d.s[i], d.n[i], d.a[i]], total = vals.reduce((x, y) => x + y, 0);
+    const est = !s.prev;
+    const seg = (k, label) => ({ label, go: () => this.setState({ period: k, prev: false }), style: { height: 38, padding: '0 16px', borderRadius: 19, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: s.period === k ? PINK : 'transparent', color: s.period === k ? '#2a1720' : '#afafaf', transition: 'background .2s' } });
+    const done = CAP.filter(v => v != null);
+    const cm = CAP[s.month];
+    return {
+      periods: [seg('day', 'Dag'), seg('week', 'Uke'), seg('month', 'Måned'), seg('year', 'År')],
+      togglePrev: () => this.setState({ prev: !s.prev }),
+      calBtn: { width: 46, height: 46, borderRadius: 23, display: 'grid', placeItems: 'center', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.14)', background: s.prev ? '#2f2f2f' : 'transparent', color: s.prev ? 'rgb(242 133 201)' : '#afafaf' },
+      billTitle: `Strømregning · ${d.t[i]}`, badge: est ? 'estimat' : 'faktisk',
+      total: nf(total), totalSub: d.sub[i],
+      parts: [['Strøm', 'Norgespris 50 øre/kWh', C.blue], ['Nettleie', 'Energiledd og effektledd', C.orange], ['Avgifter', 'Elavgift og Enova-avgift', C.purple]].map(([label, sub, col], k) => ({ label, sub, kr: nf(vals[k]),
+        bar: { flex: vals[k], borderRadius: 6, background: col, transition: 'flex .4s' },
+        dot: { width: 10, height: 10, borderRadius: 5, background: col, flex: 'none' } })),
+      kwh: nf(d.kwh[i]), perKwh: nf(total / d.kwh[i], 2),
+      peaks: [[7.8, '12. sep 18–19', C.red], [6.9, '3. sep 17–18', C.amber], [6.4, '21. sep 19–20', C.blue]].map(([kw, when, col], k) => ({ n: k + 1, kw: nf(kw, 1), when, numStyle: { color: col, fontWeight: 600 } })),
+      yearCap: nf(done.reduce((x, y) => x + y, 0)),
+      capKr: cm == null ? '–' : nf(cm), capSub: cm == null ? `${MN[s.month]} · ingen data` : `${MN[s.month]}${s.month === 8 ? ' (nå)' : ''} · ${TRINN[cm]}`,
+      months: ML.map((l, k) => { const v = CAP[k], act = k === s.month; return { l, go: () => this.setState({ month: k }),
+        bar: { height: v == null ? 4 : `${v / 600 * 100}%`, borderRadius: 8, background: v == null ? '#2f2f2f' : act ? (k === 8 ? C.amber : '#fafafa') : k === 8 ? 'rgb(242 181 115 / 0.45)' : '#3a3a3a', transition: 'background .2s' },
+        lbl: { flex: 1, textAlign: 'center', fontSize: 11, color: act ? '#fafafa' : '#696969' } }; }),
+    };
+  }
+}
+</script>
+</body>
+</html>

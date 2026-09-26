@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#232323;color:#fafafa;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#fafafa}a:hover{color:rgb(242 133 201)}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;user-select:none}
+</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;max-width:420px;min-height:100vh;margin:0 auto;background:#232323;padding:20px 14px 40px;display:flex;flex-direction:column;gap:8px">
+  <header style="display:flex;align-items:center;gap:12px;padding:0 4px 8px">
+    <span style="width:40px;height:40px;border-radius:20px;background:#e1e1e1;color:#232323;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">lock</span></span>
+    <div style="flex:1;font-size:26px;font-weight:500;letter-spacing:-0.02em">Dører og porter</div>
+  </header>
+
+  <sc-if value="{{ hasAny }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:6px 8px 14px">
+      <span style="display:flex;flex-direction:column;gap:4px;min-width:0">
+        <span style="font-size:13px;color:#979797">{{ site }}</span>
+        <span style="font-size:34px;font-weight:300;letter-spacing:-0.03em;line-height:1.05">{{ summary.title }}</span>
+        <span style="font-size:13px;color:#afafaf;text-wrap:pretty">{{ summary.sub }}</span>
+      </span>
+      <sc-if value="{{ summary.canSecure }}" hint-placeholder-val="{{ false }}"><button onClick="{{ secureAll }}" style="height:44px;padding:0 18px;border-radius:22px;flex:none;background:linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%);color:#5a3a48;font-size:14px;font-weight:600" style-active="transform:scale(0.96)">Sikre alt</button></sc-if>
+    </div>
+  </sc-if>
+
+  <sc-for list="{{ items }}" as="it" hint-placeholder-count="3">
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div onClick="{{ it.expand }}" style="{{ it.pill }}">
+        <span style="{{ it.fill }}"></span>
+        <button onClick="{{ it.iconTap }}" style="{{ it.iconWrap }}" style-active="transform:scale(0.92)"><span class="ms" style="{{ it.iconStyle }}">{{ it.icon }}</span></button>
+        <span style="position:relative;flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;text-align:left">
+          <span style="font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.name }}</span>
+          <span style="{{ it.subStyle }}">{{ it.sub }}</span>
+        </span>
+        <sc-if value="{{ it.isGarage }}" hint-placeholder-val="{{ false }}">
+          <span style="position:relative;display:flex;gap:4px;flex:none">
+            <sc-for list="{{ it.ctrls }}" as="c" hint-placeholder-count="2"><button onClick="{{ c.go }}" title="{{ c.label }}" style="{{ c.style }}" style-active="transform:scale(0.9)"><span class="ms" style="font-size:20px">{{ c.icon }}</span></button></sc-for>
+          </span>
+        </sc-if>
+        <sc-if value="{{ it.isLock }}" hint-placeholder-val="{{ true }}"><span class="ms" style="{{ it.chev }}">expand_more</span></sc-if>
+      </div>
+      <sc-if value="{{ it.open }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;padding:4px 16px;border-radius:24px;background:#2f2f2f">
+          <sc-for list="{{ it.rows }}" as="r" hint-placeholder-count="3">
+            <button onClick="{{ r.go }}" style="{{ r.row }}">
+              <span class="ms" style="{{ r.iconStyle }}">{{ r.icon }}</span>
+              <span style="flex:1;min-width:0;font-size:14px;text-align:left">{{ r.label }}</span>
+              <sc-if value="{{ r.isToggle }}" hint-placeholder-val="{{ false }}"><span style="{{ r.track }}"><span style="{{ r.knob }}"></span></span></sc-if>
+              <sc-if value="{{ r.isVal }}" hint-placeholder-val="{{ true }}"><span style="{{ r.valStyle }}">{{ r.val }}</span></sc-if>
+            </button>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+  </sc-for>
+
+  <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:48px 20px;text-align:center">
+      <span class="ms" style="font-size:36px;color:#696969">door_front</span>
+      <span style="font-size:16px;font-weight:500">Ingen dører eller porter</span>
+      <span style="font-size:13px;color:#979797">{{ site }} har ingen dørlåser eller garasjeporter.</span>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:900},&quot;site&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Oslo&quot;,&quot;Strømstad&quot;,&quot;Toten&quot;],&quot;default&quot;:&quot;Strømstad&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const GREEN = 'rgb(102 209 158)', AMBER = 'rgb(242 181 115)', RED = 'rgb(242 128 115)';
+const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
+const SITES = {
+  Oslo: { locks: [['Inngangsdør', 'door_front', true, 78, 'lock.inngangsdor']], garages: [] },
+  'Strømstad': { locks: [['Inngangsdør', 'door_front', true, 78, 'lock.inngangsdor'], ['Bakdør', 'door_back', false, 41, 'lock.bakdor'], ['Verandadør', 'deck', true, 12, 'lock.verandador'], ['Bod', 'warehouse', true, 90, 'lock.bod']], garages: [['Garasje', 0, 'cover.garasje'], ['Garasje 2', 100, 'cover.garasje_2']] },
+  Toten: { locks: [], garages: [['Låveport', 0, 'cover.laveport']] },
+};
+const TRAVEL = 6000;
+class Component extends DCLogic {
+  state = this.init();
+  init() { const S = SITES[this.props?.site] || SITES['Strømstad'];
+    return { open: null, locks: S.locks.map(([name, icon, locked, bat, ent]) => ({ name, icon, locked, bat, ent, auto: true, at: '21:12' })), garages: S.garages.map(([name, pos, ent]) => ({ name, pos, ent, moving: false, at: '18:05' })) }; }
+  componentDidUpdate(pp) { if (pp.site !== this.props.site) this.setState(this.init()); }
+  componentWillUnmount() { Object.values(this._gt || {}).forEach(clearTimeout); }
+  now() { return new Date().toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' }); }
+  setLock(i, v) { this.setState(s => ({ locks: s.locks.map((l, j) => j === i ? { ...l, locked: v, at: this.now() } : l) })); }
+  moveGarage(i, target) {
+    this._gt = this._gt || {}; clearTimeout(this._gt[i]); const g = this.state.garages[i];
+    if (target === null) { if (!g.moving) return; this.setState(s => ({ garages: s.garages.map((x, j) => { if (j !== i) return x; const cur = Math.round(x.from + (x.target - x.from) * Math.min(1, (Date.now() - x.t0) / (x.dur || 1))); return { ...x, moving: false, pos: cur, at: this.now() }; }) })); return; }
+    if (target === g.pos && !g.moving) return;
+    const dur = Math.abs(target - g.pos) / 100 * TRAVEL;
+    this.setState(s => ({ garages: s.garages.map((x, j) => j === i ? { ...x, moving: true, dir: target > x.pos ? 'up' : 'down', from: x.pos, target, t0: Date.now(), dur } : x) }));
+    requestAnimationFrame(() => requestAnimationFrame(() => this.setState(s => ({ garages: s.garages.map((x, j) => j === i ? { ...x, pos: target } : x) }))));
+    this._gt[i] = setTimeout(() => this.setState(s => ({ garages: s.garages.map((x, j) => j === i ? { ...x, moving: false, at: this.now() } : x) })), dur + 60);
+  }
+  renderVals() {
+    const s = this.state, site = this.props.site || 'Strømstad';
+    const unl = s.locks.filter(l => !l.locked), op = s.garages.filter(g => g.pos > 0 || g.moving), bad = [...unl.map(l => l.name), ...op.map(g => g.name)];
+    const tr = on => ({ track: { position: 'relative', width: 44, height: 26, borderRadius: 13, flex: 'none', background: on ? 'rgb(242 133 201)' : '#545454', transition: 'background .2s' }, knob: { position: 'absolute', top: 3, left: on ? 21 : 3, width: 20, height: 20, borderRadius: 10, background: '#fafafa', transition: 'left .2s' } });
+    const row = (icon, label, o = {}) => ({ icon, label, go: o.go || (() => {}), isToggle: o.on != null, isVal: o.on == null, val: o.val, ...(o.on != null ? tr(o.on) : {}),
+      iconStyle: { fontSize: 20, width: 24, flex: 'none', color: o.col || '#979797', fontVariationSettings: "'FILL' 1" }, valStyle: { fontSize: 13, color: o.col || '#afafaf', whiteSpace: 'nowrap' },
+      row: { display: 'flex', alignItems: 'center', gap: 12, minHeight: 50, width: '100%', borderTop: '1px solid rgba(255,255,255,0.05)' } });
+    const pill = (solid, col) => ({ position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', gap: 12, height: 72, padding: '0 12px 0 6px', borderRadius: 36, cursor: 'pointer', background: solid ? col : '#2f2f2f', color: solid ? '#1f2a24' : '#fafafa', transition: 'background .3s' });
+    const wrap = (solid) => ({ position: 'relative', width: 60, height: 60, borderRadius: 30, flex: 'none', display: 'grid', placeItems: 'center', background: solid ? 'rgba(0,0,0,0.1)' : '#3a3a3a', transition: 'background .3s, transform .15s' });
+    const locks = s.locks.map((l, i) => { const L = l.locked, key = 'l' + i, open = s.open === key, low = l.bat < 20;
+      return { isLock: true, isGarage: false, name: l.name, icon: L ? 'lock' : 'lock_open', sub: L ? `Låst · ${l.at}` : `Ulåst · ${l.at}`, open,
+        expand: () => this.setState({ open: open ? null : key }), iconTap: e => { e.stopPropagation(); this.setLock(i, !L); },
+        pill: pill(!L, GREEN), fill: { display: 'none' }, iconWrap: wrap(!L),
+        iconStyle: { fontSize: 26, color: L ? '#fafafa' : '#1f2a24', fontVariationSettings: "'FILL' 1", display: 'inline-block', transform: L ? 'none' : 'rotate(-10deg)', transition: 'transform .45s cubic-bezier(.34,1.8,.64,1)' },
+        subStyle: { fontSize: 12, color: L ? '#979797' : 'rgba(31,42,36,0.75)', whiteSpace: 'nowrap' },
+        chev: { position: 'relative', fontSize: 22, flex: 'none', color: L ? '#979797' : 'rgba(31,42,36,0.7)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s' },
+        rows: [row(L ? 'lock_open' : 'lock', L ? 'Lås opp' : 'Lås', { go: () => this.setLock(i, !L), val: '', col: L ? AMBER : GREEN }), row('lock_clock', 'Autolås etter 2 min', { on: l.auto, go: () => this.setState(st => ({ locks: st.locks.map((x, j) => j === i ? { ...x, auto: !x.auto } : x) })) }),
+          row(l.bat > 60 ? 'battery_5_bar' : l.bat > 25 ? 'battery_3_bar' : 'battery_1_bar', 'Batteri', { val: `${l.bat} %`, col: low ? RED : undefined }), row('history', `${L ? 'Låst' : 'Låst opp'} av Sebastian`, { val: l.at }), row('sell', l.ent, { val: '' })] }; });
+    const garages = s.garages.map((g, i) => { const mv = g.moving, isOpen = g.pos > 0, key = 'g' + i, open = s.open === key;
+      const st = mv ? (g.dir === 'up' ? 'Åpner …' : 'Lukker …') : g.pos >= 100 ? `Åpen · ${g.at}` : g.pos > 0 ? `Delvis åpen · ${g.pos} %` : `Lukket · ${g.at}`;
+      const c = (icon, label, go, on) => ({ icon, label, go: e => { e.stopPropagation(); go(); }, style: { width: 44, height: 44, borderRadius: 22, display: 'grid', placeItems: 'center', background: on ? '#fafafa' : '#3a3a3a', color: on ? '#232323' : '#fafafa', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' } });
+      return { isLock: false, isGarage: true, name: g.name, icon: isOpen || mv ? 'garage_door' : 'garage', sub: st, open,
+        expand: () => this.setState({ open: open ? null : key }), iconTap: e => { e.stopPropagation(); mv ? this.moveGarage(i, null) : this.moveGarage(i, isOpen ? 0 : 100); },
+        pill: pill(false, AMBER), iconWrap: { ...wrap(false), background: isOpen || mv ? AMBER : '#3a3a3a' },
+        fill: { position: 'absolute', left: 0, top: 0, bottom: 0, width: `${g.pos}%`, background: 'linear-gradient(90deg, rgb(242 181 115 / 0.22), rgb(242 181 115 / 0.38))', transition: mv ? `width ${g.dur}ms linear` : 'width .3s', pointerEvents: 'none' },
+        iconStyle: { fontSize: 26, color: isOpen || mv ? '#2a2210' : '#fafafa', fontVariationSettings: "'FILL' 1" },
+        subStyle: { fontSize: 12, fontWeight: isOpen || mv ? 600 : 400, color: isOpen || mv ? AMBER : '#979797', whiteSpace: 'nowrap' }, chev: {},
+        ctrls: mv ? [c('stop', 'Stopp', () => this.moveGarage(i, null), true)] : [c('arrow_upward', 'Åpne', () => this.moveGarage(i, 100), g.pos >= 100), c('arrow_downward', 'Lukk', () => this.moveGarage(i, 0), g.pos === 0)],
+        rows: [row('sell', g.ent, { val: '' })] }; });
+    return {
+      site, hasAny: s.locks.length + s.garages.length > 0, isEmpty: !s.locks.length && !s.garages.length,
+      summary: { title: bad.length ? `${bad.length} ${bad.length === 1 ? 'er åpen' : 'er åpne'}` : 'Alt er sikret', sub: bad.length ? bad.join(', ') : `${s.locks.length ? s.locks.length + ' låst' : ''}${s.locks.length && s.garages.length ? ' · ' : ''}${s.garages.length ? s.garages.length + ' lukket' : ''}`, canSecure: bad.length > 0 },
+      secureAll: () => { this.setState(st => ({ locks: st.locks.map(l => l.locked ? l : { ...l, locked: true, at: this.now() }) })); s.garages.forEach((g, i) => { if (g.pos > 0 || g.moving) this.moveGarage(i, 0); }); },
+      items: [...locks, ...garages],
+    };
+  }
+}
+</script>
+</body>
+</html>

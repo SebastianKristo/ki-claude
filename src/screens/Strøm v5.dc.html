@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#232323;color:#fafafa;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#fafafa}a:hover{color:rgb(242 133 201)}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+[data-hs]::-webkit-scrollbar{display:none}
+@keyframes flow{to{stroke-dashoffset:-16}}
+@keyframes glow{0%,100%{opacity:.75}50%{opacity:1}}
+@keyframes ping{from{transform:scale(.5);opacity:.9}to{transform:scale(1.8);opacity:0}}
+@keyframes rise{0%{transform:translateY(0);opacity:0}15%{opacity:1}100%{transform:translateY(-120px);opacity:0}}
+@keyframes boltglow{0%,100%{opacity:.8;transform:scale(1)}50%{opacity:1;transform:scale(1.06)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;user-select:none}
+</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;max-width:420px;min-height:100vh;margin:0 auto;background:#232323;padding:20px 18px 40px;display:flex;flex-direction:column;gap:12px">
+  <header style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:6px">
+    <div style="font-size:30px;font-weight:600;letter-spacing:-0.03em">Strøm</div>
+    <button style="width:44px;height:44px;border-radius:22px;background:#3a3a3a;display:grid;place-items:center"><span class="ms" style="font-size:22px">close</span></button>
+  </header>
+
+  <section style="{{ heroCard }}">
+    <sc-for list="{{ sparks }}" as="p" hint-placeholder-count="0"><span style="{{ p }}"></span></sc-for>
+    <span class="ms" style="{{ heroBolt }}">bolt</span>
+    <span style="position:absolute;right:16px;top:16px;width:48px;height:48px;border-radius:24px;background:rgba(255,255,255,0.1);display:grid;place-items:center"><span class="ms" style="font-size:24px;color:#fafafa">electric_meter</span></span>
+    <div style="position:absolute;right:14px;bottom:12px;width:132px;display:flex;flex-direction:column;gap:3px">
+      <div style="display:flex;justify-content:space-between;font-size:8px;color:#7f7f7f;white-space:nowrap"><span>spot i dag</span><span>{{ spotRange }}</span></div>
+      <div style="position:relative;display:flex;gap:1px;align-items:flex-end;height:18px">
+        <sc-for list="{{ spark }}" as="b" hint-placeholder-count="24"><span style="{{ b }}"></span></sc-for>
+      </div>
+    </div>
+    <div style="position:absolute;left:18px;top:18px;bottom:18px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none">
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start">
+        <span style="font-size:13px;color:#7f7f7f">Strøm</span>
+        <span style="{{ lvlChip }}"><span style="{{ lvlDot }}"></span>Spotpris {{ lvlLabel }}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:baseline;gap:4px;white-space:nowrap"><span style="font-size:40px;font-weight:300;letter-spacing:-0.04em;line-height:1;font-variant-numeric:tabular-nums">{{ watt }}</span><span style="font-size:14px;color:#7f7f7f">W</span></div>
+        <span style="font-size:12px;color:#7f7f7f;white-space:nowrap">i dag {{ todayKr }} kr · {{ todayKwh }} kWh</span>
+      </div>
+    </div>
+  </section>
+
+  <div style="display:flex;gap:2px;padding:4px;border-radius:22px;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.14);align-self:center;margin:4px 0">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3"><button onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button></sc-for>
+  </div>
+
+  <sc-if value="{{ isPris }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+        <div data-hs="1" onScroll="{{ onCardScroll }}" style="width:100%;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none">
+          <sc-for list="{{ cardPages }}" as="pg" hint-placeholder-count="1">
+            <div style="flex:none;width:100%;scroll-snap-align:start;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px">
+              <sc-for list="{{ pg.cards }}" as="c" hint-placeholder-count="2">
+                <div style="height:150px;box-sizing:border-box;padding:14px 16px 16px;border-radius:28px;background:#2f2f2f;display:flex;flex-direction:column;justify-content:space-between">
+                  <span style="width:44px;height:44px;border-radius:22px;background:#2f2f2f;display:grid;place-items:center;color:#afafaf"><span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">{{ c.icon }}</span></span>
+                  <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#7f7f7f">{{ c.label }}</span><div style="display:flex;align-items:baseline;gap:4px;white-space:nowrap"><span style="font-size:32px;font-weight:300;letter-spacing:-0.03em;line-height:1.05;font-variant-numeric:tabular-nums">{{ c.value }}</span><span style="font-size:12px;color:#7f7f7f">{{ c.unit }}</span></div></div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;gap:7px;height:8px;align-items:center"><sc-for list="{{ cardDots }}" as="d" hint-placeholder-count="2"><span style="{{ d }}"></span></sc-for></div>
+      </div>
+
+      <div style="display:flex;gap:2px;padding:4px;border-radius:22px;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.14);align-self:center;margin:2px 0">
+        <sc-for list="{{ subTabs }}" as="t" hint-placeholder-count="3"><button onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button></sc-for>
+      </div>
+
+      <sc-if value="{{ showChart }}" hint-placeholder-val="{{ true }}">
+        <div style="position:relative;height:290px;box-sizing:border-box;border-radius:28px;background:#2f2f2f">
+          <div style="position:absolute;left:16px;right:16px;top:14px;display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12px;color:#7f7f7f;white-space:nowrap"><span>{{ chartTitle }}</span><span style="color:#fafafa;font-variant-numeric:tabular-nums">{{ chartHint }}</span></div>
+          <div style="position:absolute;left:52px;right:14px;top:44px;bottom:36px">
+            <sc-for list="{{ yTicks }}" as="y" hint-placeholder-count="4">
+              <div style="{{ y.line }}"><span style="position:absolute;right:calc(100% + 8px);top:-7px;font-size:10px;color:#7f7f7f;font-variant-numeric:tabular-nums">{{ y.label }}</span></div>
+            </sc-for>
+            <svg viewBox="0 0 300 100" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible">
+              <polyline points="{{ areaPts }}" fill="rgb(115 185 242 / 0.1)" stroke="none"></polyline>
+              <polyline points="{{ linePts }}" fill="none" stroke="rgb(115 185 242)" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>
+            </svg>
+            <sc-if value="{{ showNow }}" hint-placeholder-val="{{ true }}">
+              <div style="{{ nowLine }}"><span style="position:absolute;left:-12px;top:-4px;height:24px;width:24px;border-radius:6px;background:rgb(242 181 115);color:#2a1d08;font-size:9px;font-weight:600;display:grid;place-items:center;writing-mode:vertical-rl;transform:rotate(180deg)">Nå</span><span style="{{ nowDot }}"></span></div>
+            </sc-if>
+            <div onPointerDown="{{ scrub }}" onPointerMove="{{ scrubMove }}" onPointerLeave="{{ scrubEnd }}" style="position:absolute;inset:0;touch-action:none;cursor:crosshair"></div>
+            <div style="position:absolute;left:0;right:0;top:calc(100% + 10px);display:flex;justify-content:space-between;font-size:10px;color:#7f7f7f"><span>00</span><span>04</span><span>08</span><span>12</span><span>16</span><span>20</span><span>24</span></div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showEx }}" hint-placeholder-val="{{ false }}">
+        <div style="border-radius:28px;background:#2f2f2f;padding:6px 16px">
+          <sc-for list="{{ examples }}" as="e" hint-placeholder-count="5">
+            <div style="{{ e.row }}">
+              <span style="width:40px;height:40px;border-radius:20px;background:#2f2f2f;display:grid;place-items:center;flex:none;color:#afafaf"><span class="ms" style="font-size:20px">{{ e.icon }}</span></span>
+              <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:500">{{ e.name }}</span><span style="font-size:11px;color:#7f7f7f">{{ e.sub }}</span></span>
+              <span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;white-space:nowrap"><span style="font-size:14px;font-weight:500;font-variant-numeric:tabular-nums">{{ e.now }} kr</span><span style="font-size:11px;color:rgb(102 209 158);font-variant-numeric:tabular-nums">{{ e.best }}</span></span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px">
+        <sc-for list="{{ incl }}" as="p" hint-placeholder-count="3">
+          <button onClick="{{ p.go }}" style="{{ p.style }}" style-active="transform:scale(0.97)">
+            <span style="{{ p.iconWrap }}"><span class="ms" style="font-size:22px">{{ p.icon }}</span></span>
+            <span style="display:flex;flex-direction:column;gap:1px;text-align:left;min-width:0"><span style="font-size:14px;font-weight:600;white-space:nowrap">{{ p.label }}</span><span style="font-size:11px;opacity:0.75;white-space:nowrap">{{ p.sub }}</span></span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isForbruk }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px">
+        <sc-for list="{{ useCards }}" as="c" hint-placeholder-count="2">
+          <div style="height:150px;box-sizing:border-box;padding:14px 16px 16px;border-radius:28px;background:#2f2f2f;display:flex;flex-direction:column;justify-content:space-between">
+            <span style="width:44px;height:44px;border-radius:22px;background:#2f2f2f;display:grid;place-items:center;color:#afafaf"><span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">{{ c.icon }}</span></span>
+            <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#7f7f7f">{{ c.label }}</span><div style="display:flex;align-items:baseline;gap:4px;white-space:nowrap"><span style="font-size:32px;font-weight:300;letter-spacing:-0.03em;line-height:1.05;font-variant-numeric:tabular-nums">{{ c.value }}</span><span style="font-size:12px;color:#7f7f7f">{{ c.unit }}</span></div></div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="border-radius:28px;background:#2f2f2f;padding:6px 16px">
+        <sc-for list="{{ sums }}" as="r" hint-placeholder-count="3">
+          <div style="{{ r.row }}"><span style="font-size:14px;color:#afafaf">{{ r.label }}</span><span style="font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap">{{ r.kwh }} kWh <span style="color:#7f7f7f">· {{ r.kr }} kr</span></span></div>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 2px 0">
+        <span class="ms" style="font-size:22px;color:#afafaf">calendar_today</span>
+        <span style="flex:1;font-size:18px;font-weight:500">{{ dayLabel }}</span>
+        <button onClick="{{ goToday }}" style="{{ nowChip }}">Nå</button>
+        <button onClick="{{ dayPrev }}" style="width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:#2f2f2f"><span class="ms" style="font-size:22px">chevron_left</span></button>
+        <button onClick="{{ dayNext }}" style="{{ nextBtn }}"><span class="ms" style="font-size:22px">chevron_right</span></button>
+      </div>
+
+      <div style="position:relative;height:250px;box-sizing:border-box;border-radius:28px;background:#2f2f2f">
+        <div style="position:absolute;left:16px;right:16px;top:14px;display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12px;color:#7f7f7f;white-space:nowrap"><span>kWh per time</span><span style="color:#fafafa;font-variant-numeric:tabular-nums">{{ hourHint }}</span></div>
+        <div style="position:absolute;left:44px;right:14px;top:44px;bottom:36px">
+          <sc-for list="{{ kTicks }}" as="y" hint-placeholder-count="4">
+            <div style="{{ y.line }}"><span style="position:absolute;right:calc(100% + 8px);top:-7px;font-size:10px;color:#7f7f7f;font-variant-numeric:tabular-nums">{{ y.label }}</span></div>
+          </sc-for>
+          <div style="position:absolute;inset:0;display:flex;gap:2px;align-items:flex-end">
+            <sc-for list="{{ hours }}" as="h" hint-placeholder-count="24">
+              <button onClick="{{ h.go }}" style="flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end"><span style="{{ h.bar }}"></span></button>
+            </sc-for>
+          </div>
+          <div style="position:absolute;left:0;right:0;top:calc(100% + 10px);display:flex;justify-content:space-between;font-size:10px;color:#7f7f7f"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+        </div>
+      </div>
+
+      <div style="border-radius:28px;background:#2f2f2f;padding:14px 16px 8px;display:flex;flex-direction:column">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 72px 72px;gap:8px;font-size:12px;color:#7f7f7f;padding-bottom:6px"><span>Kilde</span><span style="text-align:right">Energi</span><span style="text-align:right">Kostnad</span></div>
+        <sc-for list="{{ sources }}" as="r" hint-placeholder-count="5">
+          <div style="{{ r.row }}">
+            <span style="display:flex;align-items:center;gap:10px;min-width:0"><span style="{{ r.dot }}"></span><span style="{{ r.nameStyle }}">{{ r.name }}</span></span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap">{{ r.kwh }} kWh</span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap">{{ r.kr }} kr</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isKurs }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="border-radius:28px;background:#2f2f2f;padding:16px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px;color:#afafaf;white-space:nowrap">Hovedsikring 3 × 40 A</span><span style="font-size:12px;color:#7f7f7f;white-space:nowrap;font-variant-numeric:tabular-nums">{{ mainPct }} % belastet</span></div>
+        <sc-for list="{{ phases }}" as="p" hint-placeholder-count="3">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="width:22px;font-size:12px;color:#7f7f7f">{{ p.name }}</span>
+            <div style="flex:1;height:10px;border-radius:5px;background:#2f2f2f;overflow:hidden"><span style="{{ p.bar }}"></span></div>
+            <span style="width:48px;text-align:right;font-size:13px;font-variant-numeric:tabular-nums">{{ p.a }} A</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <sc-for list="{{ circuits }}" as="c" hint-placeholder-count="6">
+          <div style="display:flex;align-items:center;gap:14px;padding:10px 16px 10px 10px;border-radius:28px;background:#2f2f2f">
+            <span style="{{ c.iconWrap }}"><span class="ms" style="font-size:22px">{{ c.icon }}</span></span>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;justify-content:space-between;gap:8px"><span style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.name }}</span><span style="font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap">{{ c.w }} W</span></div>
+              <div style="height:6px;border-radius:3px;background:#2f2f2f;overflow:hidden"><span style="{{ c.bar }}"></span></div>
+              <span style="font-size:11px;color:#7f7f7f">{{ c.sub }}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:1100}}">
+const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
+const C = { green: 'rgb(102 209 158)', amber: 'rgb(242 181 115)', red: 'rgb(242 128 115)', blue: 'rgb(115 185 242)', teal: 'rgb(115 185 242)', purple: 'rgb(173 153 230)', orange: 'rgb(242 181 115)' };
+const a = (c, o) => c.replace(')', ` / ${o})`);
+const nf = (n, d = 0) => n.toLocaleString('nb-NO', { minimumFractionDigits: d, maximumFractionDigits: d });
+const TODAY = [98,95,92,90,93,105,132,160,172,165,150,140,128,115,108,112,135,170,205,232,225,200,170,140];
+const TOM = [85,80,78,77,80,95,120,150,158,148,132,120,110,100,96,102,125,160,190,210,198,176,150,120];
+const q15 = arr => Array.from({ length: 96 }, (_, i) => { const h = Math.floor(i / 4), f = (i % 4) / 4, n = arr[Math.min(23, h + 1)]; return arr[h] + (n - arr[h]) * f + Math.sin(i * 1.7) * 6 + Math.sin(i * 0.61) * 4; });
+const Q_TODAY = q15(TODAY), Q_TOM = q15(TOM);
+const USE = [0.62,0.64,0.82,0.78,0.52,0.64,1.98,2.06,2.06,1.42,1.1,0.94,0.88,0.8,0.86,1.1,1.6,2.2,2.4,2.1,1.7,1.3,0.9,0.7];
+const MONTHS = ['jan.','feb.','mars','apr.','mai','juni','juli','aug.','sep.','okt.','nov.','des.'];
+const CIRC = [['heat_pump', 'Varmepumpe', 16, 780, 'L1'], ['water_heater', 'Varmtvannsbereder', 16, 0, 'L2'], ['ev_station', 'Elbillader', 32, 0, 'L1–L3'], ['kitchen', 'Kjøkken', 16, 410, 'L3'], ['local_laundry_service', 'Vaskerom', 16, 520, 'L2'], ['living', 'Stue og gang', 10, 180, 'L1'], ['bed', 'Soverom', 10, 60, 'L3'], ['garage', 'Garasje og ute', 10, 124, 'L2']];
+const EX = [['shower', 'Dusj 10 min', '≈ 4 kWh varmtvann', 4, 1], ['local_laundry_service', 'Vaskemaskin 40°', '≈ 0,9 kWh', 0.9, 2], ['dishwasher', 'Oppvaskmaskin', '≈ 1,1 kWh', 1.1, 2], ['ev_station', 'Lade bilen 20–80 %', '≈ 45 kWh', 45, 5], ['oven_gen', 'Stekeovn 1 time', '≈ 1,5 kWh', 1.5, 1]];
+class Component extends DCLogic {
+  state = { tab: 'pris', sub: 'today', page: 0, watt: 2074, inc: { net: true, co: true, vat: true }, scrub: null, dayOff: 0, hourSel: null };
+  componentDidMount() {
+    this.hist = Array.from({ length: 48 }, (_, i) => 2074 + Math.sin(i * 0.5) * 260 + Math.sin(i * 1.3) * 120);
+    this.t = setInterval(() => this.setState(s => { const w = Math.max(900, Math.min(4200, Math.round(s.watt + (Math.random() - 0.48) * 220 + (Math.random() < 0.06 ? 900 : 0) - (s.watt > 2800 ? 160 : 0)))); this.hist = [...this.hist.slice(1), w]; return { watt: w }; }), 900);
+  }
+  componentWillUnmount() { clearInterval(this.t); }
+  price(spot, h) { const i = this.state.inc; return (spot + (i.net ? (h >= 6 && h < 22 ? 36.4 : 28.4) : 0) + (i.co ? 4.9 : 0)) * (i.vat ? 1.25 : 1); }
+  pos(e) { const r = e.currentTarget.getBoundingClientRect(); return Math.max(0, Math.min(95, Math.round((e.clientX - r.left) / r.width * 95))); }
+  renderVals() {
+    const s = this.state, d = new Date(), nowH = d.getHours() + d.getMinutes() / 60, nowQ = Math.min(95, Math.floor(nowH * 4)), nowHi = Math.floor(nowH);
+    const seg = (cur, k, label, set) => ({ label, go: set, style: { height: 38, padding: '0 16px', borderRadius: 19, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: cur === k ? PINK : 'transparent', color: cur === k ? '#2a1720' : '#afafaf', transition: 'background .2s' } });
+    const sorted = [...TODAY].sort((x, y) => x - y), lo = sorted[8], hi = sorted[16];
+    const lvl = v => v <= lo ? ['billig', C.green] : v >= hi ? ['dyr', C.red] : ['middels', C.amber];
+    const spotNow = Q_TODAY[nowQ], [lvlLabel, lvlCol] = lvl(TODAY[nowHi]);
+    const fl = Math.max(0.6, 3.2 - s.watt / 1500);
+    const cable = del => ({ stroke: C.amber, strokeWidth: 1.6, strokeDasharray: '3 5', animation: `flow ${fl}s linear ${del}s infinite`, filter: `drop-shadow(0 0 2px ${a(C.amber, 0.8)})` });
+    const win = del => ({ fill: 'rgb(242 181 115)', filter: 'drop-shadow(0 0 5px rgb(242 181 115 / 0.8))', animation: `glow 3s ease-in-out ${del}s infinite` });
+    const q = s.sub === 'tom' ? Q_TOM : Q_TODAY, pr = q.map((v, i) => this.price(v, Math.floor(i / 4)));
+    const mn = Math.floor(Math.min(...pr) / 10) * 10, mx = Math.ceil(Math.max(...pr) / 10) * 10;
+    const X = i => (i / 95 * 300).toFixed(1), Y = v => (100 - (v - mn) / (mx - mn) * 100).toFixed(1);
+    const line = pr.map((v, i) => `${X(i)},${Y(v)}`).join(' ');
+    const sel = s.scrub ?? (s.sub === 'today' ? nowQ : null);
+    const hhmm = i => `${String(Math.floor(i / 4)).padStart(2, '0')}:${String((i % 4) * 15).padStart(2, '0')}`;
+    const useToday = USE.slice(0, nowHi + 1), kwhToday = useToday.reduce((x, y) => x + y, 0) + USE[nowHi] * (nowH - nowHi) - USE[nowHi];
+    const krToday = USE.slice(0, nowHi + 1).reduce((x, y, i) => x + y * (i === nowHi ? nowH - nowHi : 1) * this.price(TODAY[i], i) / 100, 0);
+    const dayUse = s.dayOff === 0 ? USE.map((v, i) => i < nowHi ? v : i === nowHi ? v * (nowH - nowHi) : null) : USE.map((v, i) => v * (0.85 + ((i * 7 + s.dayOff * 13) % 10) / 30));
+    const kMax = 2.5, dd = new Date(d); dd.setDate(d.getDate() + s.dayOff);
+    const dayKwh = dayUse.reduce((x, y) => x + (y || 0), 0), dayKr = dayUse.reduce((x, y, i) => x + (y || 0) * this.price(TODAY[i], i) / 100, 0);
+    const srcSplit = [['Varmepumpe', 0.38, C.blue], ['Varmtvannsbereder', 0.24, C.teal], ['Elbillader', 0.18, C.green], ['Øvrig forbruk', 0.2, '#7f7f7f']];
+    const incRow = (k, icon, label) => { const on = s.inc[k]; return { icon, label, sub: on ? 'Inkludert' : 'Ikke inkludert', go: () => this.setState(x => ({ inc: { ...x.inc, [k]: !x.inc[k] } })),
+      style: { height: 64, borderRadius: 32, padding: '0 16px 0 8px', display: 'flex', alignItems: 'center', gap: 12, background: on ? PINK : '#2f2f2f', color: on ? '#2a1720' : '#fafafa', transition: 'background .2s, transform .12s' },
+      iconWrap: { width: 48, height: 48, borderRadius: 24, flex: 'none', display: 'grid', placeItems: 'center', background: on ? 'rgba(42,23,32,0.12)' : '#2f2f2f' } }; };
+    const loads = CIRC.map(([, , amp, w], i) => i === 0 ? w + (s.watt - 2074) * 0.4 : i === 4 ? w + (s.watt - 2074) * 0.3 : w);
+    const pages = [[{ icon: 'bolt', label: 'Pris nå', value: nf(this.price(spotNow, nowHi) / 100, 2), unit: 'kr/kWh' }, { icon: 'receipt_long', label: 'Strømregning sep.', value: nf(1560), unit: 'kr' }],
+      [{ icon: 'trending_down', label: 'Billigst i dag', value: nf(this.price(Math.min(...Q_TODAY), 3) / 100, 2), unit: 'kr/kWh' }, { icon: 'shield', label: 'Norgespris', value: '0,50', unit: 'kr/kWh' }]];
+    return {
+      heroCard: { position: 'relative', height: 184, borderRadius: 28, overflow: 'hidden', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.05)', transition: 'background 1s',
+        background: lvlLabel === 'dyr' ? 'linear-gradient(180deg, #2a1a1c, #3a2226 70%, #4a2a2c)' : lvlLabel === 'billig' ? 'linear-gradient(180deg, #16241e, #1d3028 70%, #243a30)' : 'linear-gradient(180deg, #26211a, #332b1f 70%, #413524)' },
+      sparks: [[14,0],[26,1.2],[38,0.5],[50,2],[62,0.8],[72,1.6],[82,0.3],[90,2.4],[44,3],[68,2.8],[20,2.2],[56,3.4]].map(([x, del], i) => ({ position: 'absolute', left: `${x}%`, bottom: -4, width: i % 3 ? 2 : 3, height: i % 3 ? 2 : 3, borderRadius: 2, background: lvlCol, boxShadow: `0 0 6px ${lvlCol}`, animation: `rise ${Math.max(1.6, 4.6 - s.watt / 1200) + (i % 3) * 0.5}s linear ${del}s infinite` })),
+      heroBolt: { position: 'absolute', right: 86, top: 34, fontSize: 38, color: lvlCol, fontVariationSettings: "'FILL' 1", filter: `drop-shadow(0 0 14px ${a(lvlCol, 0.7)})`, animation: 'boltglow 2.4s ease-in-out infinite' },
+      heroGlow: { position: 'absolute', inset: 0, background: `radial-gradient(60% 90% at 72% 62%, ${a(lvlCol, 0.22)}, rgba(28,28,31,0) 70%)`, transition: 'background 1s' },
+      ...(() => { const hs = this.hist || [s.watt], n = hs.length, lo2 = Math.min(...hs) - 200, hi2 = Math.max(...hs) + 200, px = i => (i / (n - 1) * 100).toFixed(2), py = v => (100 - (v - lo2) / (hi2 - lo2) * 100).toFixed(2);
+        const pts = hs.map((v, i) => `${px(i)},${py(v)}`).join(' '), ly = py(hs[n - 1]);
+        return { traceLine: pts, traceArea: `0,100 ${pts} 100,100`,
+          traceStroke: { stroke: lvlCol, transition: 'stroke 1s' }, traceFill: { fill: a(lvlCol, 0.12), stroke: 'none', transition: 'fill 1s' },
+          traceDot: { position: 'absolute', right: -5, top: `calc(${ly}% - 5px)`, width: 10, height: 10, borderRadius: 5, background: lvlCol, boxShadow: `0 0 12px ${lvlCol}`, transition: 'top .8s ease' },
+          traceRing: { position: 'absolute', right: -11, top: `calc(${ly}% - 11px)`, width: 22, height: 22, borderRadius: 11, boxShadow: `inset 0 0 0 1.5px ${lvlCol}`, animation: 'ping 1.8s ease-out infinite', transition: 'top .8s ease' } }; })(),
+      heroPrice: nf(this.price(spotNow, nowHi) / 100, 2), costPerHour: nf(s.watt / 1000 * this.price(spotNow, nowHi) / 100, 2),
+      costRate: { fontSize: 11, color: lvlCol, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' },
+      spark: TODAY.map((v, i) => ({ flex: 1, height: `${25 + (v - 90) / 145 * 75}%`, borderRadius: 1, background: lvl(v)[1], opacity: i === nowHi ? 1 : i < nowHi ? 0.35 : 0.7, animation: i === nowHi ? 'blink 1.6s ease-in-out infinite' : 'none' })),
+      spotRange: `${nf(Math.min(...TODAY) / 100, 2)}–${nf(Math.max(...TODAY) / 100, 2)} kr`,
+      lvlChip: { height: 26, padding: '0 10px 0 9px', borderRadius: 13, display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap', background: a(lvlCol, 0.18), color: lvlCol },
+      lvlDot: { width: 7, height: 7, borderRadius: 4, background: lvlCol }, lvlLabel,
+      watt: nf(s.watt), todayKr: nf(krToday), todayKwh: nf(kwhToday, 1),
+      tabs: [seg(s.tab, 'pris', 'Priser', () => this.setState({ tab: 'pris' })), seg(s.tab, 'bruk', 'Forbruk', () => this.setState({ tab: 'bruk' })), seg(s.tab, 'kurs', 'Kurser', () => this.setState({ tab: 'kurs' }))],
+      isPris: s.tab === 'pris', isForbruk: s.tab === 'bruk', isKurs: s.tab === 'kurs',
+      cardPages: pages.map(cards => ({ cards })),
+      onCardScroll: e => { const el = e.currentTarget, p = Math.round(el.scrollLeft / el.clientWidth); if (p !== s.page) this.setState({ page: p }); },
+      cardDots: pages.map((_, i) => ({ width: 8, height: 8, borderRadius: 4, background: i === s.page ? '#7f7f7f' : '#3a3a3a', transition: 'background .2s' })),
+      subTabs: [seg(s.sub, 'today', 'Time for time', () => this.setState({ sub: 'today', scrub: null })), seg(s.sub, 'tom', 'I morgen', () => this.setState({ sub: 'tom', scrub: null })), seg(s.sub, 'ex', 'Eksempler', () => this.setState({ sub: 'ex' }))],
+      showChart: s.sub !== 'ex', showEx: s.sub === 'ex',
+      chartTitle: `${s.sub === 'tom' ? 'I morgen' : 'I dag'} · øre/kWh`,
+      chartHint: sel != null ? `${hhmm(sel)} · ${nf(pr[sel] / 100, 2)} kr` : `snitt ${nf(pr.reduce((x, y) => x + y, 0) / 9600, 2)} kr`,
+      yTicks: [0, 1, 2, 3].map(k => ({ label: nf(mx - (mx - mn) * k / 3), line: { position: 'absolute', left: 0, right: 0, top: `${k / 3 * 100}%`, borderTop: k === 3 ? '1px solid #3a3a3a' : '1px dashed #444446' } })),
+      linePts: line, areaPts: `0,100 ${line} 300,100`,
+      showNow: sel != null,
+      nowLine: sel == null ? {} : { position: 'absolute', top: 0, bottom: 0, left: `${sel / 95 * 100}%`, borderLeft: `1px dashed ${C.amber}`, pointerEvents: 'none' },
+      nowDot: sel == null ? {} : { position: 'absolute', left: -6, top: `calc(${Y(pr[sel])}% - 5px)`, width: 10, height: 10, borderRadius: 5, background: '#fafafa', boxShadow: `0 0 0 3px ${a(C.blue, 0.5)}` },
+      scrub: e => this.setState({ scrub: this.pos(e) }), scrubMove: e => { if (e.buttons || e.pointerType === 'mouse') this.setState({ scrub: this.pos(e) }); }, scrubEnd: () => this.setState({ scrub: null }),
+      examples: EX.map(([icon, name, sub, kwh, dur], i) => { const now = kwh * this.price(spotNow, nowHi) / 100; let best = 1e9, bh = 0; for (let h = nowHi; h <= 24 - dur; h++) { const c = TODAY.slice(h, h + dur).reduce((x, y, j) => x + this.price(y, h + j), 0) / dur; if (c < best) { best = c; bh = h; } }
+        return { icon, name, sub, now: nf(now, 2), best: `${nf(kwh * best / 100, 2)} kr kl. ${String(bh).padStart(2, '0')}`, row: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none' } }; }),
+      incl: [incRow('net', 'electric_meter', 'Nettleie'), incRow('co', 'storefront', 'Strømselskap'), incRow('vat', 'account_balance', 'Moms')],
+      useCards: [{ icon: 'home', label: 'Forbruk nå', value: nf(s.watt), unit: 'W' }, { icon: 'bolt', label: 'Dagens forbruk', value: nf(kwhToday, 1), unit: 'kWh' }],
+      sums: [['I dag', kwhToday, krToday], ['September', 312 + kwhToday, 548 + krToday], ['2026', 11480, 11870]].map(([label, kwh, kr], i) => ({ label, kwh: nf(kwh, i ? 0 : 1), kr: nf(kr), row: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none' } })),
+      dayLabel: `${dd.getDate()}. ${MONTHS[dd.getMonth()]}${s.dayOff === 0 ? ' · i dag' : ''}`,
+      goToday: () => this.setState({ dayOff: 0, hourSel: null }), dayPrev: () => this.setState({ dayOff: s.dayOff - 1, hourSel: null }), dayNext: () => s.dayOff < 0 && this.setState({ dayOff: s.dayOff + 1, hourSel: null }),
+      nowChip: { height: 34, padding: '0 14px', borderRadius: 17, fontSize: 13, fontWeight: 600, background: s.dayOff === 0 ? a(C.blue, 0.18) : '#2f2f2f', color: s.dayOff === 0 ? C.blue : '#afafaf' },
+      nextBtn: { width: 40, height: 40, borderRadius: 20, display: 'grid', placeItems: 'center', background: '#2f2f2f', opacity: s.dayOff < 0 ? 1 : 0.35 },
+      hourHint: s.hourSel != null && dayUse[s.hourSel] != null ? `${String(s.hourSel).padStart(2, '0')}–${String(s.hourSel + 1).padStart(2, '0')} · ${nf(dayUse[s.hourSel], 2)} kWh` : `${nf(dayKwh, 1)} kWh · ${nf(dayKr)} kr`,
+      kTicks: [0, 1, 2, 3].map(k => ({ label: nf(kMax - kMax * k / 3, 1), line: { position: 'absolute', left: 0, right: 0, top: `${k / 3 * 100}%`, borderTop: k === 3 ? '1px solid #3a3a3a' : '1px dashed #444446' } })),
+      hours: dayUse.map((v, i) => ({ go: () => this.setState({ hourSel: s.hourSel === i ? null : i }), bar: { height: v == null ? 0 : `${Math.min(100, v / kMax * 100)}%`, borderRadius: 4, background: i === s.hourSel ? '#fafafa' : s.dayOff === 0 && i === nowHi ? C.amber : a(C.blue, 0.75), transition: 'height .3s, background .2s' } })),
+      sources: [...srcSplit.map(([name, f, col]) => ({ name, kwh: nf(dayKwh * f, 2), kr: nf(dayKr * f, 2), dot: { width: 10, height: 10, borderRadius: 5, background: col, flex: 'none' }, nameStyle: { fontSize: 13 } })),
+        { name: 'Strømnett totalt', kwh: nf(dayKwh, 2), kr: nf(dayKr, 2), dot: { width: 10, height: 10, flex: 'none' }, nameStyle: { fontSize: 13, fontWeight: 600 } }].map((r, i) => ({ ...r, row: { display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 72px 72px', gap: 8, alignItems: 'center', fontSize: 13, padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.05)' } })),
+      mainPct: Math.round(s.watt / (230 * 40 * 3 * 0.58) * 100),
+      phases: [['L1', 0.42], ['L2', 0.34], ['L3', 0.24]].map(([name, f]) => { const amp = s.watt * f / 230; return { name, a: nf(amp, 1), bar: { display: 'block', height: '100%', width: `${amp / 40 * 100}%`, borderRadius: 5, background: amp > 32 ? C.red : C.green, transition: 'width .6s' } }; }),
+      circuits: CIRC.map(([icon, name, amp, , ph], i) => { const w = Math.max(0, Math.round(loads[i])), f = w / (amp * 230), on = w > 0; return { icon, name, w: nf(w), sub: `${amp} A · ${ph}${on ? ` · ${Math.round(f * 100)} % av kursen` : ' · ingen last'}`,
+        bar: { display: 'block', height: '100%', width: `${Math.max(on ? 2 : 0, f * 100)}%`, borderRadius: 3, background: f > 0.8 ? C.red : f > 0.5 ? C.amber : C.blue, transition: 'width .6s' },
+        iconWrap: { width: 48, height: 48, borderRadius: 24, flex: 'none', display: 'grid', placeItems: 'center', background: '#2f2f2f', color: on ? '#fafafa' : '#696969' } }; }),
+    };
+  }
+}
+</script>
+</body>
+</html>

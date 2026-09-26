@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#232323;color:#fafafa;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#fafafa}a:hover{color:rgb(242 133 201)}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;user-select:none}
+</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;max-width:440px;min-height:100vh;margin:0 auto;background:#232323;padding:20px 10px 40px;display:flex;flex-direction:column;gap:10px">
+  <header style="display:flex;align-items:center;gap:12px;padding:0 8px 6px">
+    <span style="width:40px;height:40px;border-radius:20px;background:#e9e7e2;color:#232323;display:grid;place-items:center"><span class="ms" style="font-size:22px">heat_pump</span></span>
+    <span style="flex:1;font-size:28px;font-weight:500">Varmepumpe</span>
+  </header>
+  <section style="position:relative;border-radius:30px;padding:18px;background:linear-gradient(160deg, #3a2622, #2e2a2a 60%, #2f2f2f);display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <span style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#d8c9c4">NIBE S1255 · hus</span><span style="{{ chip }}"><span class="ms" style="font-size:14px;font-variation-settings:'FILL' 1">{{ chipIcon }}</span>{{ mode }}</span></span>
+      <span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><span style="font-size:12px;color:#d8c9c4">Ute</span><span style="font-size:20px">{{ outdoor }}°</span></span>
+    </div>
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px">
+      <span style="display:flex;flex-direction:column;gap:4px"><span style="font-size:48px;font-weight:300;letter-spacing:-0.04em;line-height:1">{{ indoor }}°</span><span style="font-size:13px;color:#d8c9c4">Inne · tur {{ supply }}° · retur {{ ret }}°</span></span>
+      <div style="display:flex;align-items:center;height:44px;border-radius:22px;background:rgba(0,0,0,0.25)">
+        <button onClick="{{ dec }}" style="width:40px;height:44px;display:grid;place-items:center"><span class="ms" style="font-size:20px">remove</span></button>
+        <span style="font-size:15px;min-width:40px;text-align:center">{{ target }}°</span>
+        <button onClick="{{ inc }}" style="width:40px;height:44px;display:grid;place-items:center"><span class="ms" style="font-size:20px">add</span></button>
+      </div>
+    </div>
+  </section>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <sc-for list="{{ stats }}" as="p" hint-placeholder-count="6">
+      <div style="display:flex;align-items:center;gap:12px;height:64px;padding:0 12px 0 6px;border-radius:32px;background:#2f2f2f;min-width:0">
+        <span style="width:52px;height:52px;border-radius:26px;background:#3a3a3a;display:grid;place-items:center;flex:none"><span class="ms" style="{{ p.iconStyle }}">{{ p.icon }}</span></span>
+        <span style="display:flex;flex-direction:column;gap:1px;min-width:0"><span style="font-size:15px;font-weight:500;white-space:nowrap">{{ p.v }}</span><span style="font-size:12px;color:#979797;white-space:nowrap">{{ p.l }}</span></span>
+      </div>
+    </sc-for>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:28px;background:#2f2f2f">
+    <div style="display:flex;justify-content:space-between"><span style="font-size:14px;font-weight:500">Varmtvann</span><span style="font-size:12px;color:#979797">{{ hwText }}</span></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:24px;background:#232323"><sc-for list="{{ hw }}" as="h" hint-placeholder-count="3"><button onClick="{{ h.go }}" style="{{ h.style }}">{{ h.l }}</button></sc-for></div>
+  </div>
+  <button onClick="{{ toggleAux }}" style="display:flex;align-items:center;gap:14px;height:66px;padding:0 18px 0 6px;border-radius:33px;background:#2f2f2f;text-align:left">
+    <span style="width:56px;height:56px;border-radius:28px;background:#3a3a3a;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:24px">electric_bolt</span></span>
+    <span style="flex:1;display:flex;flex-direction:column;gap:1px"><span style="font-size:15px;font-weight:500">Tilleggsvarme</span><span style="font-size:12px;color:#979797">Elkolbe · maks 6 kW</span></span>
+    <span style="{{ auxTrack }}"><span style="{{ auxKnob }}"></span></span>
+  </button>
+  <div style="display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:28px;background:#2f2f2f">
+    <div style="display:flex;justify-content:space-between"><span style="font-size:14px;font-weight:500">Energi siste 7 dager</span><span style="font-size:12px;color:#979797">kWh · COP 3,9</span></div>
+    <div style="display:flex;gap:8px;height:100px;align-items:flex-end"><sc-for list="{{ week }}" as="w" hint-placeholder-count="7"><div style="flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px"><div style="flex:1;width:100%;display:flex;align-items:flex-end"><span style="{{ w.bar }}"></span></div><span style="font-size:11px;color:#979797">{{ w.l }}</span></div></sc-for></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:440,&quot;height&quot;:900}}">
+const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)', AMBER = 'rgb(242 181 115)', RED = 'rgb(242 128 115)', BLUE = 'rgb(115 185 242)';
+class Component extends DCLogic {
+  state = { target: 21.5, hw: 'normal', aux: false };
+  renderVals() {
+    const s = this.state, indoor = 21.4, heating = s.target > indoor, nf = n => n.toLocaleString('nb-NO', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const W = [38, 42, 35, 47, 51, 44, 29], mx = Math.max(...W);
+    return {
+      indoor: nf(indoor), outdoor: '8,2', supply: '34', ret: '29', target: nf(s.target),
+      dec: () => this.setState({ target: Math.max(16, s.target - 0.5) }), inc: () => this.setState({ target: Math.min(26, s.target + 0.5) }),
+      mode: heating ? 'Varmer' : 'Holder', chipIcon: heating ? 'local_fire_department' : 'check',
+      chip: { height: 26, padding: '0 10px 0 8px', borderRadius: 13, display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, alignSelf: 'flex-start', background: 'rgba(0,0,0,0.25)', color: heating ? AMBER : '#d8c9c4' },
+      stats: [['water_heater', '48°', 'Varmtvann', RED], ['speed', '42 Hz', 'Kompressor', '#fafafa'], ['bolt', '1,8 kW', 'Effekt nå', AMBER], ['eco', '3,9', 'COP i dag', 'rgb(102 209 158)'], ['device_thermostat', '−2°', 'Gradminutter', BLUE], ['schedule', '41 d', 'Siden avriming', '#fafafa']].map(([icon, v, l, col]) => ({ icon, v, l, iconStyle: { fontSize: 24, color: col } })),
+      hwText: { eco: 'Økonomi · 45°', normal: 'Normal · 50°', lux: 'Luksus · 55°' }[s.hw],
+      hw: [['eco', 'Økonomi'], ['normal', 'Normal'], ['lux', 'Luksus']].map(([k, l]) => ({ l, go: () => this.setState({ hw: k }), style: { height: 40, borderRadius: 20, fontSize: 14, fontWeight: 500, background: s.hw === k ? PINK : 'transparent', color: s.hw === k ? '#2a1720' : '#afafaf' } })),
+      toggleAux: () => this.setState({ aux: !s.aux }),
+      auxTrack: { position: 'relative', width: 44, height: 26, borderRadius: 13, flex: 'none', background: s.aux ? AMBER : '#545454', transition: 'background .2s' },
+      auxKnob: { position: 'absolute', top: 3, left: s.aux ? 21 : 3, width: 20, height: 20, borderRadius: 10, background: s.aux ? '#2a1d0e' : '#c7c7c7', transition: 'left .2s' },
+      week: W.map((w, i) => ({ l: ['Ma', 'Ti', 'On', 'To', 'Fr', 'Lø', 'I dag'][i], bar: { width: '100%', height: `${w / mx * 100}%`, borderRadius: 8, background: i === 6 ? AMBER : '#545454' } })),
+    };
+  }
+}
+</script>
+</body>
+</html>

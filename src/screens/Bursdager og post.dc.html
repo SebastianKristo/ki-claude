@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#232323;color:#fafafa;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#fafafa}a:hover{color:rgb(242 133 201)}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;user-select:none}
+</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;max-width:420px;min-height:100vh;margin:0 auto;background:#232323;padding:22px 14px 40px;display:flex;flex-direction:column;gap:16px">
+  <header style="display:flex;align-items:center;gap:12px;padding:0 6px">
+    <span style="width:40px;height:40px;border-radius:20px;background:#e9e7e2;color:#232323;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">redeem</span></span>
+    <div style="flex:1;min-width:0;font-size:26px;font-weight:500;letter-spacing:-0.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Bursdager og post</div>
+    <button style="width:40px;height:40px;border-radius:20px;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:26px">close</span></button>
+  </header>
+
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <sc-for list="{{ topCards }}" as="t" hint-placeholder-count="2">
+        <button onClick="{{ t.go }}" style="{{ t.card }}" style-active="transform:scale(0.98)">
+          <span style="{{ t.iconWrap }}"><span class="ms" style="font-size:28px;font-variation-settings:'FILL' 1">{{ t.icon }}</span></span>
+          <span style="flex:1"></span>
+          <span style="{{ t.subStyle }}">{{ t.sub }}</span>
+          <span style="display:flex;align-items:baseline;gap:5px;white-space:nowrap;padding:0 0 6px 12px"><span style="font-size:44px;font-weight:300;letter-spacing:-0.04em;line-height:1">{{ t.main }}</span><span style="font-size:14px">{{ t.unit }}</span></span>
+        </button>
+      </sc-for>
+    </div>
+    <div style="display:flex;justify-content:center;gap:6px">
+      <sc-for list="{{ topDots }}" as="d" hint-placeholder-count="2"><button onClick="{{ d.go }}" style="{{ d.style }}"></button></sc-for>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 0 0 6px">
+    <span style="font-size:15px;font-weight:500">{{ secTitle }}</span>
+    <button onClick="{{ toggleCal }}" style="{{ calBtn }}"><span class="ms" style="font-size:20px">{{ calIcon }}</span></button>
+  </div>
+
+  <sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+    <sc-if value="{{ isBdayMode }}" hint-placeholder-val="{{ false }}">
+    <section style="display:flex;flex-direction:column;gap:10px">
+      <sc-for list="{{ bdays }}" as="b" hint-placeholder-count="6">
+        <div style="{{ b.row }}">
+          <span style="{{ b.avatar }}">{{ b.initial }}</span>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:17px;font-weight:500">{{ b.name }}</span>
+            <span style="font-size:13px;color:#979797">{{ b.sub }}</span>
+          </div>
+          <span style="{{ b.daysStyle }}">{{ b.days }}</span>
+        </div>
+      </sc-for>
+    </section>
+    <sc-if value="{{ adding }}" hint-placeholder-val="{{ false }}">
+      <section style="display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:30px;background:#2f2f2f;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.08)">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:0 4px">
+          <span style="font-size:16px;font-weight:500">Ny bursdag</span>
+          <button onClick="{{ closeAdd }}" style="width:32px;height:32px;border-radius:16px;display:grid;place-items:center;color:#979797"><span class="ms" style="font-size:20px">close</span></button>
+        </div>
+        <input value="{{ fName }}" onChange="{{ setName }}" placeholder="Navn" style="height:48px;border-radius:24px;border:0;outline:none;padding:0 18px;background:#3a3a3a;color:#fafafa;font:inherit;font-size:15px"></input>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <span style="font-size:12px;color:#7f7f7f;padding:0 18px">Fødselsdato</span>
+          <input type="date" value="{{ fDate }}" onChange="{{ setDate }}" style="height:48px;border-radius:24px;border:0;outline:none;padding:0 18px;background:#3a3a3a;color:#fafafa;font:inherit;font-size:15px;color-scheme:dark"></input>
+        </div>
+        <button onClick="{{ save }}" style="{{ saveStyle }}" style-active="transform:scale(0.98)">Lagre</button>
+      </section>
+    </sc-if>
+    <button onClick="{{ openAdd }}" style="height:56px;border-radius:28px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;font-weight:500;background:#2f2f2f;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.1)" style-active="transform:scale(0.98)"><span class="ms" style="font-size:22px">add</span>Legg til bursdag</button>
+    </sc-if>
+    <sc-if value="{{ isPostMode }}" hint-placeholder-val="{{ true }}">
+
+    <section style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:14px;border-radius:30px;background:#2f2f2f">
+      <sc-for list="{{ postDays }}" as="d" hint-placeholder-count="14">
+        <div style="{{ d.cell }}">
+          <span style="font-size:10px;color:#7f7f7f">{{ d.wd }}</span>
+          <span style="font-size:15px;font-weight:500;font-variant-numeric:tabular-nums">{{ d.n }}</span>
+          <span class="ms" style="{{ d.icon }}">mail</span>
+        </div>
+      </sc-for>
+    </section>
+    <section style="display:flex;flex-direction:column;gap:10px">
+      <sc-for list="{{ parcels }}" as="p" hint-placeholder-count="3">
+        <div style="display:flex;align-items:center;gap:14px;padding:16px 20px;border-radius:30px;background:#2f2f2f">
+          <span style="{{ p.iconWrap }}"><span class="ms" style="font-size:20px;font-variation-settings:'FILL' 1">{{ p.icon }}</span></span>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:7px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+              <span style="font-size:16px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.name }}</span>
+              <span style="font-size:13px;color:#979797;white-space:nowrap">{{ p.eta }}</span>
+            </div>
+            <div style="display:flex;gap:3px"><sc-for list="{{ p.steps }}" as="st" hint-placeholder-count="4"><span style="{{ st }}"></span></sc-for></div>
+            <span style="font-size:13px;color:#979797">{{ p.status }}</span>
+          </div>
+        </div>
+      </sc-for>
+    </section>
+    </sc-if>
+  </sc-if>
+
+  <sc-if value="{{ isCal }}" hint-placeholder-val="{{ false }}">
+    <section style="display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:30px;background:#2f2f2f">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <button onClick="{{ prevMonth }}" style="width:40px;height:40px;border-radius:20px;background:#3a3a3a;display:grid;place-items:center"><span class="ms" style="font-size:22px">chevron_left</span></button>
+        <button onClick="{{ goToday }}" style="font-size:17px;font-weight:500">{{ monthLabel }}</button>
+        <button onClick="{{ nextMonth }}" style="width:40px;height:40px;border-radius:20px;background:#3a3a3a;display:grid;place-items:center"><span class="ms" style="font-size:22px">chevron_right</span></button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px">
+        <sc-for list="{{ weekdays }}" as="w" hint-placeholder-count="7"><div style="text-align:center;font-size:11px;color:#696969;padding:2px 0">{{ w }}</div></sc-for>
+        <sc-for list="{{ cells }}" as="c" hint-placeholder-count="42">
+          <button onClick="{{ c.pick }}" style="{{ c.style }}">
+            <span style="{{ c.num }}">{{ c.n }}</span>
+            <span style="display:flex;gap:3px;height:6px">
+              <span style="{{ c.dBday }}"></span><span style="{{ c.dPost }}"></span><span style="{{ c.dPkg }}"></span>
+            </span>
+          </button>
+        </sc-for>
+      </div>
+      <div style="display:flex;gap:14px;justify-content:center;font-size:12px;color:#979797">
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:4px;background:rgb(242 133 201)"></span>Bursdag</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:4px;background:rgb(242 128 115)"></span>Post</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:4px;background:rgb(242 181 115)"></span>Pakke</span>
+      </div>
+    </section>
+    <div style="font-size:15px;font-weight:500;padding:4px 6px 0">{{ selTitle }}</div>
+    <section style="display:flex;flex-direction:column;gap:10px">
+      <sc-for list="{{ selItems }}" as="e" hint-placeholder-count="1">
+        <div style="{{ e.row }}">
+          <span style="{{ e.iconWrap }}"><span class="ms" style="font-size:20px;font-variation-settings:'FILL' 1">{{ e.icon }}</span></span>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:16px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ e.title }}</span>
+            <span style="font-size:13px;color:#979797">{{ e.sub }}</span>
+          </div>
+        </div>
+      </sc-for>
+      <sc-if value="{{ selEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:18px 20px;border-radius:30px;background:#2f2f2f;font-size:14px;color:#7f7f7f">Ingen bursdager eller post denne dagen</div></sc-if>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:1100}}">
+const C = { pink: 'rgb(242 133 201)', red: 'rgb(242 128 115)', amber: 'rgb(242 181 115)' };
+const a = (c, o) => c.replace(')', ` / ${o})`);
+const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
+const TODAY = new Date(2026, 8, 25);
+const REF = new Date(2026, 8, 28);
+const BDAYS = [['Mormor','1941-10-03'],['Cybele','1972-11-14'],['Onkel Lars','1968-12-02'],['Rune','1969-01-21'],['Sebastian','2006-03-08'],['Tante Kari','1975-05-30'],['Farfar','1938-07-19']];
+const PARCELS = [['Zalando','package_2','Til hentested · Coop Extra',3,'I dag',0],['Komplett · USB-hub','local_shipping','Under transport',2,'Man',3],['Apotek 1','inventory_2','Sendingen er registrert',1,'Tir–ons',4]];
+const same = (x, y) => x.getFullYear() === y.getFullYear() && x.getMonth() === y.getMonth() && x.getDate() === y.getDate();
+const isPost = d => { const wd = d.getDay(); if (!wd || wd === 6) return false; const days = Math.round((d - REF) / 864e5), weeks = Math.floor(days / 7), wdays = weeks * 5 + (((days % 7) + 7) % 7); return ((wdays % 2) + 2) % 2 === 0; };
+class Component extends DCLogic {
+  state = { view: 'list', month: [2026, 8], sel: [2026, 8, 25], extra: (() => { try { return JSON.parse(localStorage.getItem('bdays-extra') || '[]'); } catch (e) { return []; } })(), adding: false, fName: '', fDate: '' };
+  renderVals() {
+    const s = this.state, ALL = [...BDAYS, ...s.extra];
+    const ok = s.fName.trim() && /^\d{4}-\d{2}-\d{2}$/.test(s.fDate);
+    const nextOf = iso => { const [by, bm, bd] = iso.split('-').map(Number); let n = new Date(2026, bm - 1, bd); if (n < TODAY) n = new Date(2027, bm - 1, bd); return { date: n, age: n.getFullYear() - by, bm, bd, by }; };
+    const bl = ALL.map(([name, iso]) => ({ name, ...nextOf(iso) })).map(b => ({ ...b, days: Math.round((b.date - TODAY) / 864e5) })).sort((p, q) => p.days - q.days);
+    const nb = bl[0];
+    const postDays = Array.from({ length: 14 }, (_, i) => new Date(2026, 8, 28 + i));
+    const firstDeliv = Array.from({ length: 10 }, (_, i) => new Date(2026, 8, 26 + i)).find(isPost);
+    const [y, m] = s.month, f1 = new Date(y, m, 1), off = (f1.getDay() + 6) % 7;
+    const cells = Array.from({ length: 42 }, (_, i) => new Date(y, m, 1 - off + i));
+    const bdOn = d => bl.filter(b => b.bm - 1 === d.getMonth() && b.bd === d.getDate());
+    const pkOn = d => PARCELS.filter(p => same(new Date(2026, 8, 25 + p[5]), d));
+    const sel = new Date(...s.sel);
+    const dot = (on, c) => ({ width: 6, height: 6, borderRadius: 3, background: c, display: on ? 'block' : 'none' });
+    const selItems = [
+      ...bdOn(sel).map(b => ({ icon: 'cake', title: b.name, sub: `Fyller ${sel.getFullYear() - b.by}`, c: C.pink, ink: '#2a1720' })),
+      ...(isPost(sel) ? [{ icon: 'mail', title: 'Posten leverer', sub: 'Brev i postkassen', c: C.red, ink: '#2a1512' }] : []),
+      ...pkOn(sel).map(p => ({ icon: p[1], title: p[0], sub: p[2], c: C.amber, ink: '#2a2010' })),
+    ].map(e => ({ ...e, row: { display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px 14px 14px', borderRadius: 30, background: `linear-gradient(100deg, ${a(e.c, 0.2)}, ${a(e.c, 0.05)} 70%), #2f2f2f` },
+      iconWrap: { width: 44, height: 44, borderRadius: 22, flex: 'none', display: 'grid', placeItems: 'center', background: e.c, color: e.ink } }));
+    const isT = same(sel, TODAY);
+    return {
+      views: [['list', 'Liste', 'view_agenda'], ['cal', 'Kalender', 'calendar_month']].map(([k, label, icon]) => ({ label, icon, go: () => this.setState({ view: k }),
+        style: { height: 40, padding: '0 18px 0 14px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 500, whiteSpace: 'nowrap', background: s.view === k ? PINK : 'transparent', color: s.view === k ? '#2a1720' : '#afafaf', transition: 'background .25s' } })),
+      isList: s.view === 'list', isCal: s.view === 'cal',
+      isPostMode: (s.mode || 'post') === 'post', isBdayMode: s.mode === 'bday',
+      ...(() => { const isB = s.mode === 'bday';
+        return {
+          flip: () => this.setState({ mode: isB ? 'post' : 'bday' }),
+          top: isB ? { icon: 'cake', sub: `${nb.name} fyller ${nb.age}`, main: nb.days, unit: nb.days === 1 ? 'dag' : 'dager' }
+            : { icon: 'mail', sub: 'Neste post', main: firstDeliv.toLocaleDateString('nb-NO', { weekday: 'short' }).replace('.', '').replace(/^./, c => c.toUpperCase()), unit: firstDeliv.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' }).replace(/\.$/, '') },
+          topCards: [
+            { k: 'post', icon: 'mail', sub: 'Neste post', main: firstDeliv.toLocaleDateString('nb-NO', { weekday: 'short' }).replace('.', '').replace(/^./, c => c.toUpperCase()), unit: firstDeliv.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' }).replace(/\.$/, ''), pink: false },
+            { k: 'bday', icon: 'cake', sub: `${nb.name} fyller ${nb.age}`, main: nb.days, unit: nb.days === 1 ? 'dag' : 'dager', pink: true },
+          ].map(t => ({ ...t, go: () => this.setState({ mode: t.k }),
+            card: { height: 190, boxSizing: 'border-box', padding: 12, borderRadius: 32, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, textAlign: 'left', minWidth: 0, background: t.pink ? PINK : '#3a3a3a', color: t.pink ? '#2a1720' : '#fafafa', transition: 'transform .2s' },
+            iconWrap: { width: 60, height: 60, borderRadius: 30, display: 'grid', placeItems: 'center', background: t.pink ? 'rgba(42,23,32,0.12)' : 'rgba(255,255,255,0.1)' },
+            subStyle: { fontSize: 15, paddingLeft: 12, paddingTop: 4, color: t.pink ? '#2a1720' : '#afafaf', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', boxSizing: 'border-box' } })),
+          topCard: { height: 210, boxSizing: 'border-box', padding: 16, borderRadius: 32, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4, textAlign: 'left', background: isB ? PINK : '#3a3a3a', color: isB ? '#2a1720' : '#fafafa', transition: 'background .4s, color .4s, transform .2s' },
+          topIconWrap: { width: 64, height: 64, borderRadius: 32, display: 'grid', placeItems: 'center', background: isB ? 'rgba(42,23,32,0.12)' : 'rgba(255,255,255,0.1)' },
+          topSub: { fontSize: 16, color: isB ? '#2a1720' : '#afafaf', whiteSpace: 'nowrap', paddingTop: 4 },
+          topDots: ['post', 'bday'].map(k => ({ go: () => this.setState({ mode: k }), style: { width: 8, height: 8, borderRadius: 4, background: (s.mode || 'post') === k ? '#979797' : '#3a3a3a', transition: 'background .25s' } })),
+          secTitle: isB ? 'Bursdager' : 'Posten · 1670 Strømstad',
+          toggleCal: () => this.setState({ view: s.view === 'cal' ? 'list' : 'cal' }),
+          calIcon: s.view === 'cal' ? 'view_agenda' : 'calendar_month',
+          calBtn: { width: 40, height: 40, borderRadius: 20, display: 'grid', placeItems: 'center', background: s.view === 'cal' ? PINK : '#2f2f2f', color: s.view === 'cal' ? '#2a1720' : '#fafafa', transition: 'background .25s' },
+        }; })(),
+      postCard: { position: 'relative', height: 168, boxSizing: 'border-box', padding: 14, borderRadius: 30, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4, textAlign: 'left', minWidth: 0, background: '#3a3a3a', color: '#fafafa', boxShadow: (s.mode || 'post') === 'post' ? 'inset 0 0 0 2px #fafafa' : 'none', transition: 'box-shadow .25s, transform .2s' },
+      bdayCard: { position: 'relative', height: 168, boxSizing: 'border-box', padding: 14, borderRadius: 30, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4, textAlign: 'left', minWidth: 0, background: PINK, color: '#2a1720', boxShadow: s.mode === 'bday' ? 'inset 0 0 0 2px #fafafa' : 'none', transition: 'box-shadow .25s, transform .2s' },
+      adding: s.adding, fName: s.fName, fDate: s.fDate,
+      openAdd: () => this.setState({ adding: true }), closeAdd: () => this.setState({ adding: false, fName: '', fDate: '' }),
+      setName: e => this.setState({ fName: e.target.value }), setDate: e => this.setState({ fDate: e.target.value }),
+      save: () => { if (!ok) return; const extra = [...s.extra, [s.fName.trim(), s.fDate]]; try { localStorage.setItem('bdays-extra', JSON.stringify(extra)); } catch (e) {} this.setState({ extra, adding: false, fName: '', fDate: '' }); },
+      saveStyle: { height: 48, borderRadius: 24, fontSize: 15, fontWeight: 600, background: ok ? PINK : '#3a3a3a', color: ok ? '#2a1720' : '#696969', transition: 'background .2s' },
+      nextBday: { days: nb.days, unit: nb.days === 1 ? 'dag' : 'dager', name: `${nb.name} fyller ${nb.age}`, when: nb.days === 0 ? 'I dag' : nb.days === 1 ? 'I morgen' : `Om ${nb.days} dager`, short: `Fyller ${nb.age} · ${nb.date.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' }).replace(/\.$/, '')}` },
+      postNext: { short: firstDeliv.toLocaleDateString('nb-NO', { weekday: 'short' }).replace('.', '').replace(/^./, c => c.toUpperCase()), day: firstDeliv.toLocaleDateString('nb-NO', { weekday: 'long' }).replace(/^./, c => c.toUpperCase()), date: firstDeliv.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' }).replace(/\.$/, '') },
+      bdays: bl.slice(1).map(b => { const soon = b.days < 60; return { name: b.name, initial: b.name[0], sub: `Fyller ${b.age} · ${b.date.toLocaleDateString('nb-NO', { day: 'numeric', month: 'long' })}`, days: `${b.days} d`,
+        row: { display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px 14px 14px', borderRadius: 30, background: soon ? `linear-gradient(100deg, ${a(C.pink, 0.18)}, ${a(C.pink, 0.04)} 70%), #2f2f2f` : '#2f2f2f' },
+        avatar: { width: 44, height: 44, borderRadius: 22, flex: 'none', display: 'grid', placeItems: 'center', fontSize: 17, fontWeight: 600, background: soon ? C.pink : '#3a3a3a', color: soon ? '#2a1720' : '#afafaf' },
+        daysStyle: { fontSize: 13, fontWeight: 500, padding: '5px 11px', borderRadius: 12, background: soon ? a(C.pink, 0.22) : '#3a3a3a', color: soon ? '#fafafa' : '#7f7f7f', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' } }; }),
+      postDays: postDays.map(d => { const on = isPost(d), we = d.getDay() === 0 || d.getDay() === 6; return { n: d.getDate(), wd: d.toLocaleDateString('nb-NO', { weekday: 'short' }).replace('.', ''),
+        cell: { height: 70, borderRadius: 18, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, background: on ? a(C.red, 0.18) : '#3a3a3a', boxShadow: on ? `inset 0 0 0 1px ${a(C.red, 0.45)}` : 'none', opacity: we ? 0.4 : 1 },
+        icon: { fontSize: 14, color: C.red, fontVariationSettings: "'FILL' 1", opacity: on ? 1 : 0 } }; }),
+      parcels: PARCELS.map(([name, icon, status, step, eta]) => ({ name, icon, status, eta,
+        iconWrap: { width: 44, height: 44, borderRadius: 22, flex: 'none', display: 'grid', placeItems: 'center', background: step >= 3 ? C.amber : a(C.amber, 0.18), color: step >= 3 ? '#2a2010' : C.amber },
+        steps: [1, 2, 3, 4].map(k => ({ flex: 1, height: 4, borderRadius: 2, background: k <= step ? C.amber : '#444446' })) })),
+      monthLabel: f1.toLocaleDateString('nb-NO', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase()),
+      prevMonth: () => this.setState({ month: m === 0 ? [y - 1, 11] : [y, m - 1] }), nextMonth: () => this.setState({ month: m === 11 ? [y + 1, 0] : [y, m + 1] }),
+      goToday: () => this.setState({ month: [2026, 8], sel: [2026, 8, 25] }),
+      weekdays: ['M', 'T', 'O', 'T', 'F', 'L', 'S'],
+      cells: cells.map(d => { const inM = d.getMonth() === m, act = same(d, sel), today = same(d, TODAY), hb = inM && bdOn(d).length > 0;
+        return { n: d.getDate(), pick: () => inM && this.setState({ sel: [d.getFullYear(), d.getMonth(), d.getDate()] }),
+          style: { height: 50, borderRadius: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, background: act ? PINK : hb ? a(C.pink, 0.16) : inM ? '#3a3a3a' : 'transparent', boxShadow: today && !act ? 'inset 0 0 0 1.5px #fafafa' : 'none', opacity: inM ? 1 : 0.25, transition: 'background .2s' },
+          num: { fontSize: 14, fontWeight: act || today ? 600 : 500, color: act ? '#2a1720' : '#fafafa', fontVariantNumeric: 'tabular-nums' },
+          dBday: dot(hb, act ? '#2a1720' : C.pink), dPost: dot(inM && isPost(d), act ? '#6a2a20' : C.red), dPkg: dot(inM && pkOn(d).length > 0, act ? '#6a5020' : C.amber) }; }),
+      selTitle: (isT ? 'I dag · ' : '') + sel.toLocaleDateString('nb-NO', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, c => c.toUpperCase()),
+      selItems, selEmpty: !selItems.length,
+    };
+  }
+}
+</script>
+</body>
+</html>

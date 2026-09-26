@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#232323;color:#fafafa;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#fafafa}a:hover{color:rgb(242 133 201)}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;user-select:none}
+</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;max-width:420px;min-height:100vh;margin:0 auto;background:#232323;padding:20px 18px 40px;display:flex;flex-direction:column;gap:16px">
+  <header style="display:flex;align-items:center;gap:12px">
+    <span style="width:40px;height:40px;border-radius:20px;background:#e1e1e1;color:#232323;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">computer</span></span>
+    <div style="flex:1;font-size:26px;font-weight:500;letter-spacing:-0.02em">Datamaskiner</div>
+  </header>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:4px;border-radius:22px;background:#2f2f2f">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2"><button onPointerDown="{{ t.odown }}" onPointerMove="{{ t.omove }}" onPointerUp="{{ t.oup }}" onPointerCancel="{{ t.oup }}" onClick="{{ t.go }}" style="{{ t.style }}"><span class="ms" style="font-size:20px">{{ t.icon }}</span>{{ t.label }}</button></sc-for>
+  </div>
+  <section style="display:flex;flex-direction:column;gap:14px;padding:16px;border-radius:26px;background:#2f2f2f">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="{{ m.art }}"><span class="ms" style="font-size:26px;font-variation-settings:'FILL' 1">{{ m.artIcon }}</span></span>
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#7f7f7f">{{ m.src }}</span><span style="font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.title }}</span></span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:14px">
+      <button onClick="{{ m.prev }}" style="width:48px;height:48px;border-radius:24px;background:#3a3a3a;display:grid;place-items:center"><span class="ms" style="font-size:24px;font-variation-settings:'FILL' 1">skip_previous</span></button>
+      <button onClick="{{ m.play }}" style="width:60px;height:60px;border-radius:30px;background:#fafafa;color:#232323;display:grid;place-items:center" style-active="transform:scale(0.94)"><span class="ms" style="font-size:30px;font-variation-settings:'FILL' 1">{{ m.playIcon }}</span></button>
+      <button onClick="{{ m.next }}" style="width:48px;height:48px;border-radius:24px;background:#3a3a3a;display:grid;place-items:center"><span class="ms" style="font-size:24px;font-variation-settings:'FILL' 1">skip_next</span></button>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button onClick="{{ m.mute }}" style="width:36px;height:36px;border-radius:18px;background:#3a3a3a;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:20px">{{ m.volIcon }}</span></button>
+      <input type="range" min="0" max="100" value="{{ m.vol }}" onChange="{{ m.setVol }}" style="flex:1;accent-color:rgb(242 133 201)"></input>
+      <span style="font-size:13px;min-width:38px;text-align:right;font-variant-numeric:tabular-nums">{{ m.vol }} %</span>
+    </div>
+  </section>
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+    <sc-for list="{{ stats }}" as="g" hint-placeholder-count="6">
+      <div style="display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:22px;background:#2f2f2f;min-width:0">
+        <span style="font-size:11px;color:#7f7f7f;white-space:nowrap">{{ g.label }}</span>
+        <span style="font-size:22px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap">{{ g.val }}</span>
+        <span style="height:4px;border-radius:2px;background:#3a3a3a;overflow:hidden"><span style="{{ g.bar }}"></span></span>
+      </div>
+    </sc-for>
+  </div>
+  <sc-for list="{{ groups }}" as="gr" hint-placeholder-count="3">
+    <span style="font-size:12px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#7f7f7f;padding:4px 4px 0">{{ gr.title }}</span>
+    <section style="display:flex;flex-direction:column;padding:4px 16px;border-radius:24px;background:#2f2f2f">
+      <sc-for list="{{ gr.rows }}" as="r" hint-placeholder-count="3">
+        <button onClick="{{ r.go }}" style="{{ r.row }}">
+          <span class="ms" style="font-size:20px;width:24px;flex:none;color:#afafaf">{{ r.icon }}</span>
+          <span style="flex:1;min-width:0;font-size:14px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.label }}</span>
+          <sc-if value="{{ r.isVal }}" hint-placeholder-val="{{ true }}"><span style="{{ r.valStyle }}">{{ r.val }}</span></sc-if>
+          <sc-if value="{{ r.isToggle }}" hint-placeholder-val="{{ false }}"><span style="{{ r.track }}"><span style="{{ r.knob }}"></span></span></sc-if>
+          <sc-if value="{{ r.isBtn }}" hint-placeholder-val="{{ false }}"><span class="ms" style="font-size:20px;color:#7f7f7f">chevron_right</span></sc-if>
+        </button>
+      </sc-for>
+    </section>
+  </sc-for>
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+    <sc-for list="{{ power }}" as="p" hint-placeholder-count="3"><button onClick="{{ p.go }}" style="{{ p.style }}"><span class="ms" style="font-size:24px">{{ p.icon }}</span>{{ p.label }}</button></sc-for>
+  </div>
+  <sc-if value="{{ hasMsg }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#979797;text-align:center">{{ msg }}</span></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:1200}}">
+const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
+const GREEN = 'rgb(102 209 158)', AMBER = 'rgb(242 181 115)', RED = 'rgb(242 128 115)', BLUE = 'rgb(115 185 242)';
+const TABORD = (comp, key, list) => {
+  const LK = 'tab-order:' + key; let ord = null; try { ord = JSON.parse(localStorage.getItem(LK) || 'null'); } catch (e) {}
+  const st = comp.state.__tdrag; let L = list.map((t, i) => ({ t, k: String(t.label ?? i) }));
+  if (ord) L.sort((a, b) => { const ia = ord.indexOf(a.k), ib = ord.indexOf(b.k); return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib); });
+  const keys = L.map(x => x.k), mine = st && st.key === key;
+  const begin = (el, k, x0) => { const sib = [...el.parentElement.children].filter(c => c.tagName === el.tagName), rects = sib.map(c => c.getBoundingClientRect()), i = sib.indexOf(el);
+    window.__tabReorder = true; if (navigator.vibrate) navigator.vibrate(10); comp.setState({ __tdrag: { key, k, dx: 0 } });
+    const mv = e => { e.preventDefault(); e.stopPropagation(); comp.setState({ __tdrag: { key, k, dx: e.clientX - x0 } }); };
+    const fin = e => { window.removeEventListener('pointermove', mv, true); window.removeEventListener('pointerup', fin, true); window.removeEventListener('pointercancel', fin, true);
+      e.stopPropagation(); setTimeout(() => { window.__tabReorder = false; }, 60);
+      if (e.type === 'pointerup') { const r0 = rects[Math.max(0, i)] || rects[0], cx = r0.left + r0.width / 2 + (e.clientX - x0); let j = rects.findIndex(r => cx >= r.left && cx <= r.right); if (j < 0) j = cx < rects[0].left ? 0 : rects.length - 1;
+        const a2 = keys.filter(x => x !== k); a2.splice(j, 0, k); try { localStorage.setItem(LK, JSON.stringify(a2)); } catch (x) {} }
+      comp._tEat = true; setTimeout(() => { comp._tEat = false; }, 350); comp.setState({ __tdrag: null }); };
+    window.addEventListener('pointermove', mv, { capture: true, passive: false }); window.addEventListener('pointerup', fin, true); window.addEventListener('pointercancel', fin, true); };
+  return L.map(({ t, k }) => { const d = mine && st.k === k;
+    return { ...t,
+      odown: e => { const el = e.currentTarget, x0 = e.clientX, y0 = e.clientY; clearTimeout(comp._tHold); comp._tXY = [x0, y0]; comp._tHold = setTimeout(() => begin(el, k, x0), 380); },
+      omove: e => { const p = comp._tXY; if (p && Math.hypot(e.clientX - p[0], e.clientY - p[1]) > 8) clearTimeout(comp._tHold); },
+      oup: () => clearTimeout(comp._tHold),
+      ...(t.go ? { go: e => { if (comp._tEat) return; t.go(e); } } : {}),
+      style: d ? { ...t.style, position: 'relative', zIndex: 5, transform: `translateX(${st.dx}px) scale(1.06)`, boxShadow: '0 8px 20px rgba(0,0,0,0.45), inset 0 0 0 1.5px rgb(242 133 201)', transition: 'none', touchAction: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }
+        : mine ? { ...t.style, opacity: 0.65, transition: 'opacity .2s' } : { ...t.style, WebkitTouchCallout: 'none', userSelect: 'none' } }; });
+};
+class Component extends DCLogic {
+  state = { tab: 'mac', mac: { play: true, vol: 42, mute: false, awake: true }, pc: { play: false, vol: 65, mute: false }, msg: '' };
+  set(k, f) { this.setState(s => ({ [k]: { ...s[k], ...f } })); }
+  run(label) { this.setState({ msg: `${label} · sendt` }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ msg: '' }), 2200); }
+  __tabWrap(v) { if (v && Array.isArray(v.tabs)) v.tabs = TABORD(this, 'datamaskiner', v.tabs); return v; }
+  renderVals() { return this.__tabWrap(this.__rv()); }
+  __rv() {
+    const s = this.state, mac = s.tab === 'mac', d = s[s.tab], k = s.tab;
+    const tr = on => ({ track: { position: 'relative', width: 44, height: 26, borderRadius: 13, flex: 'none', background: on ? 'rgb(242 133 201)' : '#545454', transition: 'background .2s' }, knob: { position: 'absolute', top: 3, left: on ? 21 : 3, width: 20, height: 20, borderRadius: 10, background: '#fafafa', transition: 'left .2s' } });
+    const row = (icon, label, o = {}) => ({ icon, label, isVal: o.val != null, isToggle: o.on != null, isBtn: !!o.btn, val: o.val, go: o.go || (() => {}), valStyle: { fontSize: 13, color: o.col || '#afafaf', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }, ...(o.on != null ? tr(o.on) : {}),
+      row: { display: 'flex', alignItems: 'center', gap: 12, minHeight: 50, borderTop: '1px solid rgba(255,255,255,0.05)', width: '100%' } });
+    const bar = (v, c) => ({ display: 'block', height: '100%', width: `${v}%`, borderRadius: 2, background: v > 80 ? RED : v > 60 ? AMBER : c });
+    const stats = mac ? [['CPU', 18, BLUE], ['Minne', 64, BLUE], ['Disk', 71, BLUE]].map(([l, v, c]) => ({ label: l, val: `${v} %`, bar: bar(v, c) }))
+      : [['CPU', 23, BLUE], ['GPU', 41, BLUE], ['GPU temp', 58, GREEN, '°C'], ['Minne', 47, BLUE], ['Disk C:', 82, BLUE], ['Disk D:', 36, BLUE]].map(([l, v, c, u]) => ({ label: l, val: `${v}${u ? ' ' + u : ' %'}`, bar: bar(v, c) }));
+    const groups = mac ? [
+      { title: 'Skjerm', rows: [row('keep', 'Keep Awake', { on: d.awake, go: () => this.set(k, { awake: !d.awake }) }), row('light_mode', 'Vekk skjerm', { btn: true, go: () => this.run('Vekk skjerm') }), row('dark_mode', 'Sov skjerm', { btn: true, go: () => this.run('Sov skjerm') }), row('wallpaper', 'Screensaver', { btn: true, go: () => this.run('Screensaver') })] },
+      { title: 'System', rows: [row('schedule', 'Oppetid', { val: '6 d 4 t' }), row('public', 'Offentlig IP', { val: '84.212.41.9' })] },
+      { title: 'Sensorer', rows: [row('videocam', 'Kamera', { val: 'Av' }), row('mic', 'Mikrofon', { val: 'På', col: AMBER })] }]
+      : [
+      { title: 'Skjermer', rows: [row('desktop_windows', 'Antall skjermer', { val: '3' }), row('monitor', 'Primær skjerm', { val: 'DELL U2723QE' }), row('light_mode', 'Vekk skjermer', { btn: true, go: () => this.run('Vekk skjermer') }), row('dark_mode', 'Sov skjermer', { btn: true, go: () => this.run('Sov skjermer') }), row('lock', 'Lås', { btn: true, go: () => this.run('Lås PC') })] },
+      { title: 'Lyd', rows: [row('speaker', 'Standard enhet', { val: 'Sonos Arc' }), row('volume_off', 'Dempet', { val: d.mute ? 'Ja' : 'Nei' }), row('mic', 'Standard mikrofon', { val: 'Shure MV7' }), row('graphic_eq', 'Aktive lydøkter', { val: '3' })] },
+      { title: 'Nettverk', rows: [row('lan', 'Ethernet', { val: '1 Gbit/s', col: GREEN }), row('wifi', 'WiFi 2', { val: 'Frakoblet' }), row('vpn_lock', 'Surfshark VPN', { val: 'Tilkoblet', col: GREEN })] }];
+    const pw = (icon, label, danger) => ({ icon, label, go: () => this.run(label), style: { height: 80, borderRadius: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 13, fontWeight: 500, background: danger ? 'rgb(242 128 115 / 0.15)' : '#2f2f2f', color: danger ? 'rgb(242 128 115)' : '#fafafa' } });
+    return {
+      tabs: [['mac', 'Mac mini', 'desktop_mac'], ['pc', 'Stasjonær PC', 'desktop_windows']].map(([id, label, icon]) => ({ label, icon, go: () => this.setState({ tab: id }), style: { height: 52, borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 15, fontWeight: 500, background: s.tab === id ? PINK : 'transparent', color: s.tab === id ? '#2a1720' : '#979797' } })),
+      m: { src: mac ? 'Spiller nå · Mac mini' : 'Sonos · Stasjonær PC', title: mac ? (d.play ? 'Fred again.. – Delilah (pull me out of this)' : 'Pauset') : (d.play ? 'Lo-fi beats' : 'Ingenting spilles'), artIcon: 'music_note', playIcon: d.play ? 'pause' : 'play_arrow',
+        art: { width: 52, height: 52, borderRadius: 14, flex: 'none', display: 'grid', placeItems: 'center', background: d.play ? PINK : '#3a3a3a', color: d.play ? '#2a1720' : '#7f7f7f' },
+        play: () => this.set(k, { play: !d.play }), prev: () => this.run('Forrige'), next: () => this.run('Neste'), vol: d.mute ? 0 : d.vol, volIcon: d.mute ? 'volume_off' : 'volume_up',
+        mute: () => this.set(k, { mute: !d.mute }), setVol: e => this.set(k, { vol: +e.target.value, mute: false }) },
+      stats, groups,
+      power: mac ? [pw('bedtime', 'Sleep'), pw('power_settings_new', 'Shutdown', true)] : [pw('bedtime', 'Sleep'), pw('restart_alt', 'Restart'), pw('power_settings_new', 'Shutdown', true)],
+      hasMsg: !!s.msg, msg: s.msg,
+    };
+  }
+}
+</script>
+</body>
+</html>
