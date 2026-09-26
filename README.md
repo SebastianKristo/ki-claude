@@ -62,6 +62,11 @@ Med strategien over skjer dette automatisk: den lager én pop-up per skjerm (`#k
 pop-upen er designets egen popup-topp. Uten Bubble Card brukes designets innebygde ark
 (`popups: intern` tvinger det).
 
+Pop-upene bruker samme Bubble-oppsett som dine egne (navn og ikon i Bubble-toppen, blur 20,
+88 % opasitet, stilene under) – designets egen topp inne i skjermen skjules. Overstyr hvilke
+som helst Bubble-valg for alle pop-ups med `bubble:` i strategien, eller få designets popup-topp
+i stedet med `popup_header: true` på pop-up-kortet.
+
 Manuelt oppsett – Hjem-kortet får `popups: bubble`, og hver pop-up er et Bubble Card:
 
 ```yaml
@@ -71,25 +76,36 @@ cards:
     popups: bubble
   - type: custom:bubble-card
     card_type: pop-up
+    name: Vanning
+    icon: mdi:sprinkler-variant
     hash: '#ki-vann'
-    show_header: false
+    is_sidebar_hidden: true
+    margin_top_mobile: 50px
+    margin_top_desktop: 50px
+    card_layout: large
     bg_color: '#232323'
-    bg_opacity: '100'
-    width_desktop: 440px
+    bg_blur: '20'
+    shadow_opacity: '20'
+    bg_opacity: '88'
+    button_type: name
+    styles: |-
+      .bubble-pop-up-container {
+        --vertical-stack-card-gap: 0px!important;
+      } #header-container > div > div {
+        background: var(--gray200)!important;
+      }
+      #header-container > button {background: none;}
+      .icon-container {background-color:var(--blue)!important;}
+      .icon-container > ha-icon {color:var(--black)!important;opacity:1!important}
+      .bubble-icon {
+        --mdc-icon-size: 24px !important;
+      }
     cards:
       - type: custom:ki-claude-card
         popup: vann          # skjermen velges ut fra nøkkelen
-  - type: custom:bubble-card
-    card_type: pop-up
-    hash: '#ki-rom-stue'
-    show_header: false
-    bg_color: '#232323'
-    bg_opacity: '100'
-    cards:
-      - type: custom:ki-claude-card
-        popup: rom-stue
-        props: { roomId: stue }
 ```
+
+For et rom: `hash: '#ki-rom-<area_id>'` og `popup: rom-<area_id>` med `props: { roomId: <area_id> }`.
 
 Nøkler: `strom`, `sik`, `vann`, `vac`, `media`, `car`, `server`, `settings`, `cal`, `vaer`, `lys`,
 `cam`, `klima`, `trash`, `todo`, `plants`, `sleep`, `bill`, `pool`, `mower`, `nibe`, `printer`,
