@@ -71,6 +71,29 @@ const a = (c, o) => c.replace(')', ` / ${o})`);
 const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
 const GREEN = 'rgb(102 209 158)';
 let uid = 100;
+const MND = ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des'];
+// Live: todo lists from config `todo_lists: [..]` (or aliases liste1/liste2), else the first two todo.* entities.
+function loadLive() {
+  const cfg = Array.isArray(ha.config.todo_lists) ? ha.config.todo_lists : null;
+  const pick = [ha.first('liste1'), ha.first('liste2')].filter(Boolean);
+  const lists = (cfg || (pick.length ? pick : ha.domain('todo'))).filter(id => ha.state(id)).slice(0, 2);
+  return lists.length ? { lists } : null;
+}
+// Priority: "prioritet: høy|medium|lav" (or !, !!) in the description, else high when overdue/due today, else medium.
+function prioOf(t) {
+  const d = String(t.description || '').toLowerCase();
+  const m = /prio(?:ritet)?\s*:?\s*(høy|hoy|high|medium|middels|lav|low)/.exec(d);
+  if (m) return /^(høy|hoy|high)$/.test(m[1]) ? 'h' : /^(lav|low)$/.test(m[1]) ? 'l' : 'm';
+  if (/(^|\s)!!/.test(d) || /(^|\s)!!\s*$/.test(t.summary || '')) return 'h';
+  if (t.due) { const due = new Date(t.due), e = new Date(); e.setHours(23, 59, 59, 999); if (!isNaN(due) && due <= e) return 'h'; }
+  return 'm';
+}
+function metaOf(t) {
+  const rest = String(t.description || '').replace(/prio(?:ritet)?\s*:?\s*\S+/i, '').trim();
+  let due = '';
+  if (t.due) { const d = new Date(t.due); if (!isNaN(d)) due = `Frist ${d.getDate()}. ${MND[d.getMonth()]}` + (String(t.due).length > 10 ? ` ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : ''); }
+  return [due, rest.split('\n')[0]].filter(Boolean).join(' · ');
+}
 class Component extends DCLogic {
   state = { tab: 'store', filter: 'open', draft: '', prio: 'm',
     items: [
@@ -83,26 +106,40 @@ class Component extends DCLogic {
   upd(id, f) { this.setState(s => ({ items: s.items.map(x => x.id === id ? { ...x, ...f(x) } : x) })); }
   renderVals() {
     const s = this.state;
-    const inList = s.items.filter(x => x.list === s.tab);
+    const L = loadLive();
+    let tabDefs = [['store', 'Store oppgaver'], ['pers', 'Personlig']], items = s.items, tab = s.tab;
+    if (L) {
+      tabDefs = L.lists.map(id => [id, ha.name(id, id.split('.')[1])]);
+      if (!L.lists.includes(tab)) tab = L.lists[0];
+      items = [];
+      L.lists.forEach(id => (ha.todo(id) || []).forEach(t => items.push({ id: t.uid, list: id, text: t.summary || '', prio: prioOf(t), done: t.status === 'completed', who: metaOf(t) })));
+    }
+    const inList = items.filter(x => x.list === tab);
     const done = inList.filter(x => x.done).length;
     const order = { h: 0, m: 1, l: 2 };
     const shown = inList.filter(x => s.filter === 'all' || (s.filter === 'open' ? !x.done : s.filter === 'done' ? x.done : x.prio === 'h' && !x.done)).sort((p, q) => (p.done - q.done) || (order[p.prio] - order[q.prio]));
     const tag = (p, full) => ({ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 8, background: a(PR[p][1], full ? 0.9 : 0.18), color: full ? '#232323' : PR[p][1], whiteSpace: 'nowrap' });
+    const openCount = k => L && ha.todo(k) === null ? Math.max(0, Math.round(ha.num(k, 0))) : items.filter(x => x.list === k && !x.done).length;
     return {
       headline: inList.length - done ? `${inList.length - done} gjenstår` : 'Alt er gjort',
       subline: `${inList.length} oppgaver · ${done} fullført`,
       progress: { width: `${inList.length ? done / inList.length * 100 : 0}%`, height: '100%', borderRadius: 3, background: GREEN, transition: 'width .4s' },
-      tabs: [['store', 'Store oppgaver'], ['pers', 'Personlig']].map(([k, label]) => { const act = s.tab === k, n = s.items.filter(x => x.list === k && !x.done).length; return { label, count: n, go: () => this.setState({ tab: k }),
+      tabs: tabDefs.map(([k, label]) => { const act = tab === k, n = openCount(k); return { label, count: n, go: () => this.setState({ tab: k }),
         style: { height: 40, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 13, fontWeight: 500, background: act ? PINK : 'transparent', color: act ? '#2a1720' : '#979797' },
         countStyle: { minWidth: 20, height: 20, borderRadius: 10, display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 600, background: act ? 'rgba(42,23,32,0.14)' : '#3a3a3a' } }; }),
       draft: s.draft, setDraft: e => this.setState({ draft: e.target.value }),
       cyclePrio: () => this.setState({ prio: { l: 'm', m: 'h', h: 'l' }[s.prio] }),
       draftPrio: { label: PR[s.prio][0], style: { ...tag(s.prio), height: 32, padding: '0 12px', borderRadius: 16, fontSize: 12 } },
-      add: e => { e.preventDefault(); const t = s.draft.trim(); if (!t) return; this.setState({ draft: '', filter: 'open', items: [{ id: ++uid, list: s.tab, text: t, prio: s.prio, done: false, who: 'Sebastian' }, ...s.items] }); },
+      add: e => {
+        e.preventDefault(); const t = s.draft.trim(); if (!t) return;
+        if (L) { this.setState({ draft: '', filter: 'open' }); return ha.call('todo', 'add_item', { entity_id: tab, item: t, ...(s.prio !== 'm' ? { description: `Prioritet: ${PR[s.prio][0]}` } : {}) }); }
+        this.setState({ draft: '', filter: 'open', items: [{ id: ++uid, list: s.tab, text: t, prio: s.prio, done: false, who: 'Sebastian' }, ...s.items] });
+      },
       filters: [['open', 'Åpne'], ['high', 'Høy'], ['done', 'Fullført'], ['all', 'Alle']].map(([k, label]) => ({ label, go: () => this.setState({ filter: k }), style: { height: 32, padding: '0 13px', borderRadius: 16, fontSize: 12, fontWeight: 500, background: s.filter === k ? '#fafafa' : '#2f2f2f', color: s.filter === k ? '#232323' : '#afafaf' } })),
       empty: !shown.length,
-      items: shown.map((x, i) => ({ text: x.text, prioLabel: PR[x.prio][0], prio: tag(x.prio), meta: x.done ? `Fullført · ${x.who}` : x.who,
-        toggle: () => this.upd(x.id, y => ({ done: !y.done })), remove: () => this.setState(st => ({ items: st.items.filter(y => y.id !== x.id) })),
+      items: shown.map((x, i) => ({ text: x.text, prioLabel: PR[x.prio][0], prio: tag(x.prio), meta: x.done ? (x.who ? `Fullført · ${x.who}` : 'Fullført') : x.who,
+        toggle: () => L ? ha.call('todo', 'update_item', { entity_id: x.list, item: x.id, status: x.done ? 'needs_action' : 'completed' }) : this.upd(x.id, y => ({ done: !y.done })),
+        remove: () => L ? ha.call('todo', 'remove_item', { entity_id: x.list, item: x.id }) : this.setState(st => ({ items: st.items.filter(y => y.id !== x.id) })),
         row: { display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 4px', borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none', opacity: x.done ? 0.55 : 1, transition: 'opacity .2s' },
         box: { width: 26, height: 26, borderRadius: 9, flex: 'none', marginTop: 1, display: 'grid', placeItems: 'center', background: x.done ? GREEN : 'transparent', boxShadow: x.done ? 'none' : 'inset 0 0 0 1.5px #545454', transition: 'background .2s' },
         check: { fontSize: 18, color: '#232323', opacity: x.done ? 1 : 0, fontVariationSettings: "'wght' 600" },

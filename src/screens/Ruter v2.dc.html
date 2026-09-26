@@ -143,19 +143,75 @@ const SX = { 'sensor.ruter_avvik_summary': ['Ruter avvik', 'ruter_avvik', [['1',
   'sensor.min_pendling_summary': ['Min pendling', 'min_pendling', [['2', 'metro', 'Normal service', '', '', '', ''], ['19', 'tram', 'Endret holdeplass ved Homansbyen', 'planned', 'Holdeplassen flyttes 50 m mot Bislett på grunn av gravearbeid.', 'Mandag 28. september kl. 06:00', 'Fredag 9. oktober kl. 18:00']]] };
 const DEF = { stops: [['sensor.entur_majorstuen', 'Majorstuen', 'subway', '4 min gange', [], 2], ['sensor.entur_bislett', 'Bislett', 'tram', '6 min gange', [], 2], ['sensor.entur_homansbyen', 'Homansbyen', 'tram', '3 min gange', ['19'], 2], ['sensor.entur_smestad', 'Smestad', 'subway', 'Hytta', [], 2], ['sensor.entur_holbergs_plass', 'Holbergs plass', 'directions_bus', '8 min gange', [], 2]], sum: 'sensor.ruter_avvik_summary', hideLines: {}, extra: [], showDis: true, hideZero: false, planned: true, walk: true, rt: true, sort: 'liste' };
 const slugOf = e => e.replace('sensor.entur_', '');
+
+// ── Live-kobling: Entur (entur_public_transport) + Entur SX-avvik (entur_sx) ────────────
+// Stopp = sensorer fra entur_public_transport (eller sensor.entur_* / sensor.transport_* med
+// avgangsattributter). Avvik = oppsummeringssensorer (sensor.*_summary fra entur_sx) med
+// linjesensorer sensor.<enhet>_<operatør>_line_<linje>. Standardoppsett i kortkonfig:
+// `ruter: { stops: [{ entity, name, icon, walk, lines: [], n }], summary: sensor.x_summary }`.
+// Brukerens valg i «Rediger» lagres i localStorage (ruter-v2-cfg) som i designet.
+const pad2 = n => String(n).padStart(2, '0');
+const minsTo = t => { if (t == null || t === '') return null; let d;
+  if (/^\d{1,2}:\d{2}/.test(String(t))) { const [h, m] = String(t).split(':').map(Number); d = new Date(); d.setHours(h, m, 0, 0); if (d - Date.now() < -3600e3) d = new Date(d.getTime() + 864e5); }
+  else d = new Date(t); if (isNaN(d)) return null; return Math.round((d - Date.now()) / 60000); };
+const kindOf = (line, mode) => { const m = String(mode || '').toLowerCase(); if (MODE[m]) return m; if (/rail|train/.test(m)) return 'rail'; if (/ferry|water|boat/.test(m)) return 'water';
+  const n = parseInt(line, 10); if (/^[A-Z]/i.test(String(line || ''))) return 'rail'; if (n >= 1 && n <= 6) return 'metro'; if (n >= 11 && n <= 19) return 'tram'; return 'bus'; };
+const ICON = { metro: 'subway', tram: 'tram', bus: 'directions_bus', rail: 'train', water: 'directions_boat' };
+const isStop = (st, id) => { const a = st.attributes || {}; return (ha.hass?.entities?.[id]?.platform === 'entur_public_transport') || ((/^sensor\.(entur|transport)_/.test(id)) && (a.route != null || a.due_at != null || a.stop_id != null)); };
+function liveStops() { return ha.domain('sensor', isStop).map(id => { const a = ha.state(id).attributes || {}; const d = liveDeps(id)[0];
+  return [id, String(a.friendly_name || id).replace(/^(Entur|Transport)\s+/i, ''), String(a.stop_id || ''), ICON[kindOf(d && d[0], a.transport_mode)] || 'directions_bus']; }); }
+function liveDeps(id) {
+  const st = ha.state(id); if (!st) return [];
+  const a = st.attributes || {}, out = [];
+  const add = (route, at, rt, due) => { if (!route && at == null) return; const r = String(route || '').trim(); const sp = r.indexOf(' ');
+    const line = sp > 0 ? r.slice(0, sp) : r, dest = sp > 0 ? r.slice(sp + 1) : r; const m = due != null && !isNaN(parseInt(due, 10)) ? parseInt(due, 10) : minsTo(at);
+    if (m == null || m < -1) return; out.push([line, kindOf(line, a.transport_mode), dest, Math.max(0, m), rt === false || rt === 'false' ? 0 : 1]); };
+  add(a.route, a.due_at, a.real_time, a.due_in ?? (isNaN(parseInt(st.state, 10)) ? null : st.state));
+  if (a.next_route || a.next_due_at) add(a.next_route, a.next_due_at, a.next_real_time, a.next_due_in);
+  for (let i = 1; i <= 12; i++) { if (a[`route_${i}`] != null || a[`due_at_${i}`] != null) add(a[`route_${i}`], a[`due_at_${i}`], a[`real_time_${i}`]); }
+  Object.keys(a).filter(k => /^departure_#\d+$/.test(k)).sort((x, y) => parseInt(x.slice(11)) - parseInt(y.slice(11))).forEach(k => {
+    const mm = /^(ca\.\s*)?(\d{1,2}:\d{2})\s+(.*)$/.exec(String(a[k])); if (mm) add(mm[3], mm[2], !mm[1]); });
+  return out.sort((x, y) => x[3] - y[3]);
+}
+const depsFor = ent => ha.state(ent) ? liveDeps(ent) : (DEP[slugOf(ent)] || []);
+const fmtWhen = v => { if (!v) return ''; const d = new Date(v); if (isNaN(d)) return String(v); const t = `kl. ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  if (d.toDateString() === new Date().toDateString()) return `I dag ${t}`; const w = d.toLocaleDateString('nb-NO', { weekday: 'long', day: 'numeric', month: 'long' }); return `${w.charAt(0).toUpperCase()}${w.slice(1)} ${t}`; };
+function liveSX() {
+  const sums = ha.domain('sensor', (st, id) => /_summary$/.test(id) && (ha.hass?.entities?.[id]?.platform === 'entur_sx' || ha.domain('sensor', (x, l) => l.startsWith(id.replace(/_summary$/, '_')) && /_line_\w+$/.test(l)).length > 0));
+  const out = {};
+  sums.forEach(id => { const dev = id.split('.')[1].replace(/_summary$/, '');
+    const lines = ha.domain('sensor', (x, l) => l.startsWith(`sensor.${dev}_`) && /_line_\w+$/.test(l)).map(l => { const st = ha.state(l), a = st.attributes || {};
+      const n = parseInt(st.state, 10), line = (l.match(/_line_(\w+)$/) || [0, '?'])[1];
+      const status = String(a.status || a.progress || '').toLowerCase();
+      const stt = /open|active|aktiv|ongoing/.test(status) ? 'open' : /plan/.test(status) ? 'planned' : (Number.isFinite(n) && n > 0 ? 'open' : '');
+      const sum = a.summary || (Number.isFinite(n) ? (n > 0 ? `${n} avvik` : 'Normal service') : ['unknown', 'unavailable'].includes(st.state) ? 'Normal service' : st.state);
+      return [line, kindOf(line, a.transport_mode), sum, stt, a.description || a.advice || '', fmtWhen(a.valid_from || a.validity_start || a.start_time), fmtWhen(a.valid_to || a.validity_end || a.end_time), l]; });
+    out[id] = [String(ha.attr(id, 'friendly_name', dev)).replace(/\s*summary$/i, '').replace(/_/g, ' '), dev, lines]; });
+  return out;
+}
 class Component extends DCLogic {
   state = { disOpen: false, xOpen: null, edOpen: false, edTab: 'stops', stopSel: null, customQ: '' };
-  cfg() { if (this._c === undefined) { try { this._c = JSON.parse(localStorage.getItem('ruter-v2-cfg') || 'null'); } catch (e) { this._c = null; } } return { ...DEF, ...(this.state.cS || this._c || {}) }; }
+  cfg() { if (this._c === undefined) { try { this._c = JSON.parse(localStorage.getItem('ruter-v2-cfg') || 'null'); } catch (e) { this._c = null; } } return { ...this.def(), ...(this.state.cS || this._c || {}) }; }
+  def() {
+    const L = this.L; if (!L) return DEF;
+    const rc = ha.config.ruter || {};
+    const stops = (rc.stops || []).length ? rc.stops.map(x => { const f = L.found.find(y => y[0] === x.entity); return [x.entity, x.name || (f ? f[1] : x.entity), x.icon || (f ? f[3] : 'directions_bus'), x.walk || '', x.lines || [], x.n || 2]; })
+      : L.found.slice(0, 5).map(f => [f[0], f[1], f[3], '', [], 2]);
+    return { ...DEF, stops, sum: rc.summary || Object.keys(L.sx)[0] || '' };
+  }
   set(p) { const n = { ...this.cfg(), ...p }; try { localStorage.setItem('ruter-v2-cfg', JSON.stringify(n)); } catch (e) {} this._c = n; this.setState({ cS: n }); }
   renderVals() {
+    const found = ha.live ? liveStops() : [], sx = ha.live ? liveSX() : {};
+    this.L = found.length || Object.keys(sx).length ? { found, sx } : null;
+    const FOUNDX = this.L ? found : FOUND, SXX = this.L ? sx : SX;
     const s = this.state, C = this.cfg();
     const badge = (line, kind, big) => ({ display: 'inline-flex', alignItems: 'center', gap: 3, minWidth: 30, height: big ? 28 : 26, padding: '0 8px', boxSizing: 'border-box', borderRadius: kind === 'bus' ? 7 : 13, justifyContent: 'center', fontSize: 13, fontWeight: 700, background: (MODE[kind] || MODE.bus)[1], color: '#fff', flex: 'none' });
     const sw = on => ({ track: { position: 'relative', width: 44, height: 26, borderRadius: 13, flex: 'none', background: on ? GREEN : '#545454', transition: 'background .2s' }, knob: { position: 'absolute', top: 3, left: on ? 21 : 3, width: 20, height: 20, borderRadius: 10, background: '#fafafa', transition: 'left .2s' } });
-    const SXd = SX[C.sum] || ['Egendefinert', 'egen', []], dev = SXd[1];
-    const lines = [...SXd[2].map(([line, kind, sum, st, desc, from, to]) => ({ ent: `sensor.${dev}_rut_line_${line}`, line, kind, sum, st, desc, from, to })), ...C.extra.map(e => ({ ent: e, line: (e.match(/line_(\w+)$/) || [0, '?'])[1], kind: 'bus', sum: 'Normal service', st: '' }))];
+    const SXd = SXX[C.sum] || ['Egendefinert', 'egen', []], dev = SXd[1];
+    const lines = [...SXd[2].map(([line, kind, sum, st, desc, from, to, ent]) => ({ ent: ent || `sensor.${dev}_rut_line_${line}`, line, kind, sum, st, desc, from, to })), ...C.extra.filter(e => !SXd[2].some(x => x[7] === e)).map(e => { const st = ha.state(e); if (!st) return { ent: e, line: (e.match(/line_(\w+)$/) || [0, '?'])[1], kind: 'bus', sum: 'Normal service', st: '' }; const a = st.attributes || {}, line = (e.match(/line_(\w+)$/) || [0, '?'])[1], n = parseInt(st.state, 10), status = String(a.status || a.progress || '').toLowerCase(); return { ent: e, line, kind: kindOf(line, a.transport_mode), sum: a.summary || (Number.isFinite(n) ? (n > 0 ? `${n} avvik` : 'Normal service') : st.state), st: /open|active/.test(status) || n > 0 ? 'open' : /plan/.test(status) ? 'planned' : '', desc: a.description || '', from: fmtWhen(a.valid_from), to: fmtWhen(a.valid_to) }; })];
     const shown = lines.filter(l => !C.hideLines[l.ent]), active = shown.filter(l => l.st === 'open'), planned = shown.filter(l => l.st === 'planned'), cnt = active.length + (C.planned ? planned.length : 0);
     const items = shown.filter(l => l.st === 'open' || (C.planned && l.st === 'planned'));
-    let stops = C.stops.map(([ent, name, icon, walk, wl, n]) => { const D = (DEP[slugOf(ent)] || []).filter(d => !wl.length || wl.includes(d[0])).slice(0, n);
+    let stops = C.stops.map(([ent, name, icon, walk, wl, n]) => { const D = depsFor(ent).filter(d => !wl.length || wl.includes(d[0])).slice(0, n);
       return { ent, name, icon, walk: C.walk ? walk : '', empty: !D.length, first: D[0] ? `${D[0][3]} min` : '–', min: D[0] ? D[0][3] : 99,
         deps: D.map(([line, kind, dest, m, rt]) => ({ line, dest, badge: badge(line, kind), rt: C.rt && !!rt, when: m <= 1 ? 'Nå' : `${m} min`, timeStyle: { fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', minWidth: 48, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: m <= 2 ? AMBER : '#fafafa' } })) }; });
     if (C.sort === 'tid') stops = [...stops].sort((a, b) => a.min - b.min);
@@ -178,15 +234,15 @@ class Component extends DCLogic {
       ed: { reset: () => { try { localStorage.removeItem('ruter-v2-cfg'); } catch (e) {} this._c = null; this.setState({ cS: null }); },
         tabs: [['stops', 'Avganger'], ['dis', 'Avvik'], ['view', 'Visning']].map(([k, label]) => ({ label, go: () => this.setState({ edTab: k }), style: { height: 40, borderRadius: 18, fontSize: 14, fontWeight: 500, background: s.edTab === k ? PINK : 'transparent', color: s.edTab === k ? '#2a1720' : '#afafaf' } })),
         isStops: s.edTab === 'stops', isDis: s.edTab === 'dis', isView: s.edTab === 'view',
-        stops: S.map(([ent, name, icon, walk, wl, n], i) => { const open = s.stopSel === ent, avail = [...new Set((DEP[slugOf(ent)] || []).map(d => d[0]))];
+        stops: S.map(([ent, name, icon, walk, wl, n], i) => { const open = s.stopSel === ent, avail = [...new Set(depsFor(ent).map(d => d[0]))];
           return { ent, name, icon, open, toggle: () => this.setState({ stopSel: open ? null : ent }), up: () => mv(i, -1), down: () => mv(i, 1), upS: sq(i > 0), downS: sq(i < S.length - 1), del: () => setS(S.filter((_, j) => j !== i)), n,
             nDec: () => upS(i, 5, Math.max(1, n - 1)), nInc: () => upS(i, 5, Math.min(10, n + 1)),
             fields: [['Navn', 1, name, 'Majorstuen', false], ['Ikon', 2, icon, 'subway', false], ['Sensor', 0, ent, 'sensor.entur_…', true], ['Gangtid / tekst', 3, walk, '4 min gange', true]].map(([label, k, v, ph, full]) => ({ label, v, ph, set: e => upS(i, k, e.target.value), wrap: { display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, gridColumn: full ? '1 / -1' : 'auto' } })),
             lines: avail.map(l => ({ label: l, go: () => upS(i, 4, wl.includes(l) ? wl.filter(x => x !== l) : [...wl, l]), style: chipS(wl.includes(l)) })) }; }),
-        found: `${FOUND.filter(f => !S.some(x => x[0] === f[0])).length} funnet`,
-        stopOpts: FOUND.filter(f => !S.some(x => x[0] === f[0])).map(([id, n, nsr]) => ({ id, label: `${n} · ${nsr}` })),
-        addStop: e => { const v = e.target.value; if (!v) return; const f = FOUND.find(x => x[0] === v); setS([...S, [v, f[1], f[3], '', [], 2]]); this.setState({ stopSel: v }); e.target.value = ''; },
-        sumName: SXd[0], sumEnt: C.sum, sumOpts: Object.entries(SX).map(([id, [n]]) => ({ id, label: `${n} · ${id}` })), setSum: e => this.set({ sum: e.target.value }),
+        found: `${FOUNDX.filter(f => !S.some(x => x[0] === f[0])).length} funnet`,
+        stopOpts: FOUNDX.filter(f => !S.some(x => x[0] === f[0])).map(([id, n, nsr]) => ({ id, label: `${n} · ${nsr}` })),
+        addStop: e => { const v = e.target.value; if (!v) return; const f = FOUNDX.find(x => x[0] === v); setS([...S, [v, f[1], f[3], '', [], 2]]); this.setState({ stopSel: v }); e.target.value = ''; },
+        sumName: SXd[0], sumEnt: C.sum, sumOpts: Object.entries(SXX).map(([id, [n]]) => ({ id, label: `${n} · ${id}` })), setSum: e => this.set({ sum: e.target.value }),
         lineMeta: `${shown.length} av ${lines.length} vises`,
         lines: lines.map((l, i) => { const on = !C.hideLines[l.ent]; return { ent: l.ent, line: l.line, modeIcon: (MODE[l.kind] || MODE.bus)[0], state: l.sum, badge: badge(l.line, l.kind), go: () => this.set({ hideLines: { ...C.hideLines, [l.ent]: on } }), ...sw(on),
           row: { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.06)', width: '100%' } }; }),

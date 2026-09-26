@@ -29,7 +29,7 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
   </header>
 
   <div style="display:flex;justify-content:center">
-    <div data-glass-drag="x" style="display:flex;gap:2px;padding:4px;border-radius:22px;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.12)">
+    <div data-glass-drag="x" style="display:flex;gap:2px;padding:4px;border-radius:22px;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.12);max-width:100%;box-sizing:border-box;overflow-x:auto;scrollbar-width:none">
       <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4"><button onPointerDown="{{ t.odown }}" onPointerMove="{{ t.omove }}" onPointerUp="{{ t.oup }}" onPointerCancel="{{ t.oup }}" onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button></sc-for>
     </div>
   </div>
@@ -225,57 +225,128 @@ const TABORD = (comp, key, list) => {
       style: d ? { ...t.style, position: 'relative', zIndex: 5, transform: `translateX(${st.dx}px) scale(1.06)`, boxShadow: '0 8px 20px rgba(0,0,0,0.45), inset 0 0 0 1.5px rgb(242 133 201)', transition: 'none', touchAction: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }
         : mine ? { ...t.style, opacity: 0.65, transition: 'opacity .2s' } : { ...t.style, WebkitTouchCallout: 'none', userSelect: 'none' } }; });
 };
+// ── Live-kobling: KI Lys / KI Rom (scener per rom) + KI Utelys ───────────────
+// Rom: sensor.<slug>_lys_oversikt (ki_lys/ki_rom, integrasjon: ki_lys) + HA-områder for lys uten KI-rom.
+// Etasjer: hass.floors/areas[].floor_id, ellers ki_rom sin sensor.<rom>_oversikt (etasje/etasje_niva).
+// Utelys: switch/number/sensor.ki_utelys_* + sun.sun; lampene fra ha.config.utelys, Innstillinger-listen eller oppdaget.
+// Uten lys i hass vises designets demo-data uendret.
+const MS_ROOM = [[/stue|sofa|living/, 'weekend'], [/kj(ø|o)kken|kitchen|countertop|stove/, 'kitchen'], [/gang|entr(e|é)|hall|door/, 'door_front'], [/bad|wc|toalett|shower|bath/, 'bathtub'], [/vask|laundry|washing/, 'local_laundry_service'], [/sov|bed/, 'bed'], [/kontor|pult|office|desk/, 'desk'], [/garasje|garage|carport/, 'garage'], [/ute|hage|terrasse|veranda|garden|tree|yard/, 'yard'], [/kjeller|loft|stairs/, 'stairs'], [/spise|dining/, 'dining'], [/barn|gutte|jente|child|teddy/, 'child_care']];
+const roomIcon = (name, mdi) => { const n = (String(name || '') + ' ' + String(mdi || '')).toLowerCase(); const m = MS_ROOM.find(([r]) => r.test(n)); return m ? m[1] : 'meeting_room'; };
+const strip = (n, room) => { const t = String(n || ''), r = String(room || ''); return r && t.toLowerCase().startsWith(r.toLowerCase() + ' ') && t.length > r.length + 1 ? t.charAt(r.length + 1).toUpperCase() + t.slice(r.length + 2) : t; };
+const hhmm = v => { const d = v ? new Date(v) : null; return d && !isNaN(d) ? d.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' }).replace('.', ':') : null; };
+const LSCENE = { max: 'maks', kveld: 'komfort', dim: 'mindre', natt: 'natt', av: 'av' };
+const isGroup = id => Array.isArray(ha.attr(id, 'entity_id'));
+const dimmable = id => { if (!id || !id.startsWith('light.')) return false; const m = ha.attr(id, 'supported_color_modes', null); return m ? m.some(x => x !== 'onoff') : ha.attr(id, 'brightness', null) != null; };
+const lpct = id => { const s = ha.state(id); if (!s || !ha.on(id, false)) return 0; const b = s.attributes && s.attributes.brightness; return b == null ? 100 : Math.max(1, Math.round(b / 2.55)); };
+function loadLive(CF) {
+  if (!ha.live) return null;
+  const H = ha.hass, AR = H.areas || {}, FL = H.floors || {};
+  const jul = new Set(ha.attr(ha.first('jul_nedtelling', 'sensor.ki_jul_nedtelling'), 'lys', []) || []);
+  const allLights = ha.domain('light', (st, id) => !isGroup(id));
+  const kiRom = ha.ki('ki_rom', a => a.area_id && a.area_id !== 'totalt');
+  const floorOf = aid => { const ar = AR[aid], fid = ar && ar.floor_id, f = fid && FL[fid]; if (f) return { id: fid, name: f.name, lvl: f.level ?? 0 };
+    if (fid) { const o = kiRom.find(id => ha.attr(id, 'etasje_id') === fid); return { id: fid, name: o ? ha.attr(o, 'etasje', fid) : fid.charAt(0).toUpperCase() + fid.slice(1).replace(/_/g, ' '), lvl: o ? ha.attr(o, 'etasje_niva', 0) : 0 }; }
+    const o = kiRom.find(id => ha.attr(id, 'area_id') === aid); const en = o && ha.attr(o, 'etasje'); return en ? { id: ha.attr(o, 'etasje_id') || en, name: en, lvl: ha.attr(o, 'etasje_niva', 0) } : null; };
+  const rooms = [], covered = new Set();
+  ha.ki('ki_lys', a => a.ki_type === 'oversikt').forEach(id => { const A = ha.state(id).attributes, aid = A.area_id || id; const lys = (A.lys || []).filter(x => !jul.has(x));
+    lys.forEach(x => covered.add(x)); const sw = ha.first('lys_alle_' + aid, 'switch.' + (A.slug || aid) + '_lys_alle');
+    rooms.push({ aid, name: A.rom || ha.name(id, aid), icon: roomIcon(A.rom, AR[aid] && AR[aid].icon), lys, scener: A.scener || [], sw, dom: (H.entities && H.entities[id] && H.entities[id].platform) === 'ki_rom' ? 'ki_rom' : 'ki_lys', fl: floorOf((A.area_ids || [aid])[0]) }); });
+  const byArea = {};
+  allLights.filter(id => !covered.has(id) && !jul.has(id)).forEach(id => { const ar = ha.area(id); const k = ar ? ar.area_id : ''; (byArea[k] = byArea[k] || []).push(id); });
+  Object.entries(byArea).forEach(([aid, lys]) => { const ex = rooms.find(r => r.aid === aid); if (ex) { ex.lys = ex.lys.concat(lys); return; } const nm = aid ? (AR[aid] && AR[aid].name) || aid : 'Uten rom';
+    rooms.push({ aid, name: nm, icon: roomIcon(nm, AR[aid] && AR[aid].icon), lys: lys.sort(), scener: [], sw: null, dom: null, fl: aid ? floorOf(aid) : null }); });
+  if (!rooms.length && !ha.state('switch.ki_utelys_auto')) return null;
+  const fmap = {}; rooms.forEach(r => { if (r.fl) fmap[r.fl.id] = r.fl; });
+  const floors = Object.values(fmap).sort((a, b) => (a.lvl - b.lvl) || String(a.name).localeCompare(b.name));
+  const short = n => String(n).replace(/\s*etasje$/i, ' etg');
+  const tabs = floors.map(f => ({ key: 'f:' + f.id, label: short(f.name), rooms: rooms.filter(r => r.fl && r.fl.id === f.id) }));
+    // utelys
+  const U = { auto: ha.first('utelys_auto', 'switch.ki_utelys_auto'), kveld: ha.first('utelys_kveld', 'switch.ki_utelys_kveld'), morgen: ha.first('utelys_morgen', 'switch.ki_utelys_morgen'),
+    status: ha.first('utelys_status', 'sensor.ki_utelys_status'), paa: ha.first('utelys_neste_paa', 'sensor.ki_utelys_neste_paa'), av: ha.first('utelys_neste_av', 'sensor.ki_utelys_neste_av'),
+    tp: ha.first('utelys_terskel_paa', 'number.ki_utelys_terskel_paa'), ta: ha.first('utelys_terskel_av', 'number.ki_utelys_terskel_av'), mm: ha.first('utelys_minst_morke', 'number.ki_utelys_minst_morke'), sun: ha.first('sol', 'sun.sun') };
+  const cu = ha.config.utelys;
+  let lamps = Array.isArray(cu) ? cu.map(x => typeof x === 'string' ? { ent: x } : { ent: x.entity, name: x.name, icon: x.icon }) : null;
+  if (!lamps) { const own = (CF.lamps || []).filter(l => l[2] && ha.state(l[2])); if (own.length) lamps = own.map(([name, icon, ent]) => ({ ent, name, icon })); }
+  if (!lamps) lamps = allLights.filter(id => !jul.has(id) && (/(^|_)(ute|utelys|veranda|terrasse|inngang|hage|carport|fasade|garasje|platting)/.test(id.split('.')[1]) || /^(ute|hage|utend)/i.test((ha.area(id) || {}).name || ''))).map(ent => ({ ent }));
+  lamps = lamps.filter(l => l.ent).map(l => { const nm = l.name || strip(ha.name(l.ent, l.ent), 'Ute'); return { ent: l.ent, name: nm, icon: l.icon || (/inngang|vegg|wall|fasade/i.test(l.ent + nm) ? 'wall_lamp' : 'light') }; });
+  const outSet = new Set(lamps.map(l => l.ent)), rest = rooms.filter(r => !r.fl && !r.lys.every(id => outSet.has(id)));
+  if (rest.length) tabs.push({ key: 'f:_', label: floors.length ? 'Øvrige rom' : 'Rom', rooms: rest });
+  const sun = U.sun && ha.state(U.sun) ? ha.state(U.sun).attributes : {};
+  const rise = sun.next_rising && new Date(sun.next_rising), set = sun.next_setting && new Date(sun.next_setting);
+  const dayMs = rise && set ? (set < rise ? set - (rise - 864e5) : set - rise) : null;
+  return { rooms, tabs, lamps, U,
+    on: hhmm(ha.val(U.paa)) || hhmm(sun.next_dusk), off: hhmm(ha.val(U.av)) || hhmm(sun.next_dawn),
+    rise: hhmm(sun.next_rising), set: hhmm(sun.next_setting), dusk: hhmm(sun.next_dusk), dayLen: dayMs ? `${Math.floor(dayMs / 36e5)} t ${Math.round(dayMs % 36e5 / 6e4)} min` : null };
+}
 class Component extends DCLogic {
   cfg() { if (this._cf === undefined) { try { this._cf = JSON.parse(localStorage.getItem('lys-v4-cfg') || 'null'); } catch (e) { this._cf = null; } } return { ...CF0, ...(this.state.cfS || this._cf || {}) }; }
   setCfg(p) { const n = { ...this.cfg(), ...p }; try { localStorage.setItem('lys-v4-cfg', JSON.stringify(n)); } catch (e) {} this._cf = n; this.setState({ cfS: n }); }
-  state = { tab: 'out', mode: 'auto', kveld: true, morgen: true, fold: {}, v: { ...INIT, 'ute:Verandalampe': 80, 'ute:Utelys inngang': 60 }, scene: null };
+  state = { tab: 'out', mode: 'auto', kveld: true, morgen: true, fold: {}, v: { ...INIT, 'ute:Verandalampe': 80, 'ute:Utelys inngang': 60 }, scene: null, pv: {} };
   setV(k, v) { this.setState(s => ({ scene: null, v: { ...s.v, [k]: v } })); }
-  drag(k, cur) {
+  // live: forhåndsvisning mens man drar, tjenestekall når man slipper
+  lv(ent) { const p = this.state.pv[ent]; return p && Date.now() - p.t < 4000 ? p.v : lpct(ent); }
+  setLight(ent, v) { if (!ent) return; if (ent.startsWith('light.') && v > 0 && dimmable(ent)) return ha.call('light', 'turn_on', { entity_id: ent, brightness_pct: v }); return ha.turn(ent, v > 0); }
+  drag(k, cur, ent) {
     return { down: e => { e.currentTarget.setPointerCapture?.(e.pointerId); this.d = { x: e.clientX, moved: false }; },
-      move: e => { if (!this.d) return; if (Math.abs(e.clientX - this.d.x) > 5) this.d.moved = true; if (this.d.moved) { const r = e.currentTarget.getBoundingClientRect(); this.setV(k, Math.round(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * 100)); } },
-      up: () => { if (this.d && !this.d.moved) this.setV(k, cur ? 0 : 70); this.d = null; } };
+      move: e => { if (!this.d) return; if (Math.abs(e.clientX - this.d.x) > 5) this.d.moved = true; if (this.d.moved) { const r = e.currentTarget.getBoundingClientRect(), v = Math.round(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * 100);
+        if (ent) { this.d.v = v; this.setState(st => ({ pv: { ...st.pv, [ent]: { v, t: Date.now() } } })); } else this.setV(k, v); } },
+      up: () => { if (this.d && !this.d.moved) { if (ent) ha.toggle(ent); else this.setV(k, cur ? 0 : 70); } else if (this.d && ent && this.d.v != null) this.setLight(ent, this.d.v); this.d = null; } };
   }
   __tabWrap(v) { if (v && Array.isArray(v.tabs)) v.tabs = TABORD(this, 'lys', v.tabs); return v; }
   renderVals() { return this.__tabWrap(this.__rv()); }
   __rv() {
-    const s = this.state;
+    const s = this.state, LV = loadLive(this.cfg());
     const sw = on => ({ track: { position: 'relative', width: 52, height: 30, borderRadius: 15, flex: 'none', background: on ? G : '#4a4a4d', transition: 'background .2s' }, knob: { position: 'absolute', top: 4, left: on ? 26 : 4, width: 22, height: 22, borderRadius: 11, background: on ? '#2a2a2c' : '#d8d6d1', transition: 'left .2s' } });
-    const auto = (k, icon, label, sub) => { const on = s[k]; return { k: label, sub, icon, go: () => this.setState({ [k]: !on }), ...sw(on),
-      pill: { display: 'flex', alignItems: 'center', gap: 14, height: 72, padding: '0 18px 0 6px', borderRadius: 36, background: '#323235', width: '100%', boxSizing: 'border-box' },
-      iconWrap: { width: 60, height: 60, borderRadius: 30, flex: 'none', display: 'grid', placeItems: 'center', background: '#3e3e41', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.09)' } }; };
     const tab = (k, l) => ({ label: l, go: () => this.setState({ tab: k }), style: { height: 38, padding: '0 14px', borderRadius: 19, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: s.tab === k ? PINK : 'transparent', color: s.tab === k ? '#2a1720' : '#afafaf', transition: 'background .2s' } });
+    const liveTab = LV && (LV.tabs.find(t => t.key === s.tab) || (s.tab !== 'out' && s.tab !== 'on' ? LV.tabs[0] : null));
     const floorKey = s.tab === 'f2' ? 'f2' : 'f1';
+    const pillL = (v, h, r) => ({ fill: { position: 'absolute', left: 0, top: 0, bottom: 0, width: `${v}%`, background: `linear-gradient(90deg, ${a(Y, 0.18)}, ${a(Y, 0.42)})`, transition: this.d?.moved ? 'none' : 'width .35s cubic-bezier(.34,1.2,.64,1)' },
+      iconWrap: { position: 'relative', width: r, height: r, borderRadius: r / 2, flex: 'none', display: 'grid', placeItems: 'center', background: v ? Y : '#3e3e41', color: v ? '#232323' : '#696969', transition: 'background .25s' } });
+    const valTxt = (ent, v) => v ? (dimmable(ent) ? `${v} %` : 'På') : 'Av';
     const allLights = Object.entries(FLOORS).flatMap(([, rooms]) => rooms.flatMap(([id, name, , ls]) => ls.map(l => ({ key: id + ':' + l, name: l, room: name }))));
-    const on = allLights.filter(l => (s.v[l.key] || 0) > 0);
+    const roomOf = {}; if (LV) LV.rooms.forEach(r => r.lys.forEach(id => { roomOf[id] = r.name; }));
+    const on = LV ? ha.domain('light', (st, id) => !isGroup(id) && ha.on(id, false)).map(id => { const ar = ha.area(id), room = roomOf[id] || (ar && ar.name) || ''; return { ent: id, key: id, name: strip(ha.name(id, id), room), room, v: this.lv(id) }; })
+      : allLights.filter(l => (s.v[l.key] || 0) > 0).map(l => ({ ...l, v: s.v[l.key] }));
     const fold = (k, icon, title, meta, rows) => { const open = !!s.fold[k]; return { icon, title, meta, open, toggle: () => this.setState(st => ({ fold: { ...st.fold, [k]: !open } })),
       chev: { fontSize: 22, color: '#979797', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .25s' },
       rows: rows.map(([k2, v], i) => ({ k: k2, v, row: { display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none' } })) }; };
+    const sunRise = LV && LV.rise || '07:11', sunSet = LV && LV.set || '19:04';
+    // scener/rom for valgt etasje
+    const floorRooms = LV ? (liveTab ? liveTab.rooms : []) : null;
+    const runScene = (k, lvl) => (floorRooms || []).forEach(r => { const sid = LSCENE[k], sc = r.scener.find(x => x.id === sid);
+      if (sc && sc.entity) return ha.press(sc.entity); if (r.dom) return ha.call(r.dom, 'sett', { scene: sid, rom: r.aid });
+      const ls = r.lys.filter(id => id.startsWith('light.')); if (ls.length) ha.call('light', lvl ? 'turn_on' : 'turn_off', lvl ? { entity_id: ls, brightness_pct: lvl } : { entity_id: ls }); });
     return {
-      tabs: [tab('out', 'Utelys'), tab('f1', 'Første etg'), tab('f2', 'Andre etg'), tab('on', 'Lys på')],
-      isOut: s.tab === 'out', isFloor: s.tab === 'f1' || s.tab === 'f2', isOn: s.tab === 'on',
-      ...(() => { const CF = this.cfg(), OL = CF.lamps, onN = OL.filter(([n]) => (s.v['ute:' + n] || 0) > 0).length, lit = onN > 0;
+      tabs: LV ? [tab('out', 'Utelys'), ...LV.tabs.map(t => tab(t.key, t.label)), tab('on', 'Lys på')] : [tab('out', 'Utelys'), tab('f1', 'Første etg'), tab('f2', 'Andre etg'), tab('on', 'Lys på')],
+      isOut: s.tab === 'out', isFloor: LV ? !!liveTab : s.tab === 'f1' || s.tab === 'f2', isOn: s.tab === 'on',
+      ...(() => { const CF = this.cfg(), U = LV && LV.U, OL = LV ? LV.lamps.map(l => [l.name, l.icon, l.ent]) : CF.lamps, lv = (n, ent) => LV ? this.lv(ent) : s.v['ute:' + n] || 0;
+        const onN = OL.filter(([n, , ent]) => lv(n, ent) > 0).length, lit = onN > 0;
         const mins = t => { const [hh, mm] = t.split(':').map(Number); return hh * 60 + mm; }, P = m => ((m - 720 + 1440) % 1440) / 1440 * 100, nowM = new Date().getHours() * 60 + new Date().getMinutes();
-        const ON = CF.on, OFF = CF.off, left = (mins(OFF) - nowM + 1440) % 1440, dur = `${Math.floor(left / 60)} t ${left % 60} min`;
+        const ON = LV && LV.on || CF.on, OFF = LV && LV.off || CF.off, left = (mins(OFF) - nowM + 1440) % 1440, dur = `${Math.floor(left / 60)} t ${left % 60} min`;
+        const autoOn = U && U.auto ? ha.on(U.auto, true) : null, mode = autoOn === false ? 'manuell' : autoOn && s.mode === 'manuell' ? 'auto' : s.mode;
         const mark = (t, icon, col) => ({ t, icon, style: { position: 'absolute', top: 0, left: `${P(mins(t))}%`, transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 500, color: col, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' } });
-        const setAll = v => this.setState(st => { const n = { ...st.v }; OL.forEach(([nm]) => { n['ute:' + nm] = v; }); return { v: n }; });
+        const setAll = v => LV ? OL.forEach(([, , ent]) => ha.turn(ent, v > 0)) : this.setState(st => { const n = { ...st.v }; OL.forEach(([nm]) => { n['ute:' + nm] = v; }); return { v: n }; });
+        const flag = k => U && U[k] && ha.state(U[k]) ? ha.on(U[k], false) : s[k];
+        const tp = U && ha.num(U.tp, null), ta = U && ha.num(U.ta, null), mm = U && ha.num(U.mm, null), grunn = U && ha.attr(U.status, 'grunn', '');
+        const nf1 = n => String(n).replace('.', ',');
         return {
           o: { count: `${onN} av ${OL.length} på`, label: lit ? 'På' : 'Av', sub: lit ? `Slukkes ${OFF} · om ${dur}` : `Tennes ${ON} i skumringen`, icon: lit ? 'light' : 'light_off', toggle: () => setAll(lit ? 0 : 80),
             card: { display: 'flex', flexDirection: 'column', gap: 18, padding: 18, borderRadius: 30, background: lit ? `linear-gradient(160deg, ${a(Y, 0.16)}, #323235 60%)` : '#323235', boxShadow: lit ? `inset 0 0 0 1px ${a(Y, 0.3)}` : 'none', transition: 'background .4s' },
             btn: { width: 76, height: 76, borderRadius: 38, flex: 'none', display: 'grid', placeItems: 'center', background: lit ? Y : '#3e3e41', color: lit ? '#232323' : '#afafaf', boxShadow: lit ? `0 0 34px ${a(Y, 0.45)}` : 'none', transition: 'all .3s' },
-            dark: { position: 'absolute', top: 0, bottom: 0, left: `${P(mins(ON))}%`, width: `${P(mins(OFF)) - P(mins(ON))}%`, borderRadius: 10, background: s.mode === 'manuell' ? '#545457' : `linear-gradient(90deg, ${a(Y, 0.55)}, ${a(Y, 0.3)})` },
-            ticks: ['19:04', '07:11'].map(t => ({ line: { position: 'absolute', top: 8, bottom: 8, left: `${P(mins(t))}%`, width: 1, background: 'rgba(255,255,255,0.25)' } })),
+            dark: { position: 'absolute', top: 0, bottom: 0, left: `${P(mins(ON))}%`, width: `${P(mins(OFF)) - P(mins(ON))}%`, borderRadius: 10, background: mode === 'manuell' ? '#545457' : `linear-gradient(90deg, ${a(Y, 0.55)}, ${a(Y, 0.3)})` },
+            ticks: [sunSet, sunRise].map(t => ({ line: { position: 'absolute', top: 8, bottom: 8, left: `${P(mins(t))}%`, width: 1, background: 'rgba(255,255,255,0.25)' } })),
             now: { position: 'absolute', top: 4, bottom: 4, left: `calc(${P(nowM)}% - 2px)`, width: 4, borderRadius: 2, background: '#fafafa', boxShadow: '0 0 0 2px #323235' },
-            marks: [mark('19:04', 'wb_twilight', '#979797'), mark(ON, 'light', Y), mark(OFF, 'light_off', Y), mark('07:11', 'wb_sunny', '#979797')].map((m, i) => ({ ...m, style: { ...m.style, top: i % 3 ? 0 : 15 } })) },
-          outLamps: OL.map(([name, icon, ent]) => { const k = 'ute:' + name, v = s.v[k] || 0; return { name, icon, ent, val: v ? `${v} %` : 'Av', ...this.drag(k, v),
+            marks: [mark(sunSet, 'wb_twilight', '#979797'), mark(ON, 'light', Y), mark(OFF, 'light_off', Y), mark(sunRise, 'wb_sunny', '#979797')].map((m, i) => ({ ...m, style: { ...m.style, top: i % 3 ? 0 : 15 } })) },
+          outLamps: OL.map(([name, icon, ent]) => { const k = 'ute:' + name, v = lv(name, ent); return { name, icon, ent, val: LV ? valTxt(ent, v) : v ? `${v} %` : 'Av', ...this.drag(k, v, LV ? ent : null),
             pill: { position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', gap: 10, height: 72, padding: '0 14px 0 6px', borderRadius: 36, background: '#323235', touchAction: 'none', cursor: 'pointer', userSelect: 'none' },
-            fill: { position: 'absolute', left: 0, top: 0, bottom: 0, width: `${v}%`, background: `linear-gradient(90deg, ${a(Y, 0.18)}, ${a(Y, 0.42)})`, transition: this.d?.moved ? 'none' : 'width .35s cubic-bezier(.34,1.2,.64,1)' },
-            iconWrap: { position: 'relative', width: 60, height: 60, borderRadius: 30, flex: 'none', display: 'grid', placeItems: 'center', background: v ? Y : '#3e3e41', color: v ? '#232323' : '#696969', transition: 'background .25s' },
+            ...pillL(v, 72, 60),
             valStyle: { fontSize: 12, color: v ? '#c7c7c7' : '#696969' } }; }),
-          modes: [['auto', 'Auto'], ['tid', 'Tidsplan'], ['manuell', 'Manuelt']].map(([k, label]) => ({ label, go: () => this.setState({ mode: k }), style: { height: 32, padding: '0 12px', borderRadius: 16, fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', background: s.mode === k ? PINK : 'transparent', color: s.mode === k ? '#2a1720' : '#afafaf' } })),
-          modeInfo: s.mode === 'auto' ? `Tennes når ${CF.luxEnt} er under ${CF.luxOn} lx, og slukkes over ${CF.luxOff} lx.` : s.mode === 'tid' ? `Tennes ${ON} (skumring ${CF.offset >= 0 ? '+' : '−'}${Math.abs(CF.offset)} min) og slukkes ${OFF}, senest ${CF.latest}.` : 'Automatikken er av. Utelyset styres bare fra knappene over.',
-          autos: s.mode === 'manuell' ? [] : [['kveld', 'wb_twilight', 'Kveld', 'Tenn i skumringen'], ['morgen', 'wb_sunny', 'Morgen', `Tenn før det lysner, fra ${CF.morning}`]].map(([k, icon, label, sub], i) => ({ k: label, sub, icon, go: () => this.setState({ [k]: !s[k] }), ...sw(s[k]),
+          modes: [['auto', 'Auto'], ['tid', 'Tidsplan'], ['manuell', 'Manuelt']].map(([k, label]) => ({ label, go: () => { if (autoOn !== null && (k === 'manuell') === autoOn) ha.turn(U.auto, k !== 'manuell'); this.setState({ mode: k }); }, style: { height: 32, padding: '0 12px', borderRadius: 16, fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', background: mode === k ? PINK : 'transparent', color: mode === k ? '#2a1720' : '#afafaf' } })),
+          modeInfo: autoOn !== null && mode !== 'manuell' ? (mode === 'auto' ? `Tennes når sola er under ${nf1(tp ?? -4)}° og slukkes over ${nf1(ta ?? -2.5)}°.${grunn ? ` Nå: ${grunn}.` : ''}` : `Tennes ${ON} og slukkes ${OFF} ut fra solhøyden, men bare når det er minst ${nf1(mm ?? 5)} t mørketid.`)
+            : mode === 'auto' ? `Tennes når ${CF.luxEnt} er under ${CF.luxOn} lx, og slukkes over ${CF.luxOff} lx.` : mode === 'tid' ? `Tennes ${ON} (skumring ${CF.offset >= 0 ? '+' : '−'}${Math.abs(CF.offset)} min) og slukkes ${OFF}, senest ${CF.latest}.` : 'Automatikken er av. Utelyset styres bare fra knappene over.',
+          autos: mode === 'manuell' ? [] : [['kveld', 'wb_twilight', 'Kveld', 'Tenn i skumringen'], ['morgen', 'wb_sunny', 'Morgen', `Tenn før det lysner, fra ${CF.morning}`]].map(([k, icon, label, sub], i) => ({ k: label, sub, icon, go: () => U && U[k] && ha.state(U[k]) ? ha.toggle(U[k]) : this.setState({ [k]: !s[k] }), ...sw(flag(k)),
             row: { display: 'flex', alignItems: 'center', gap: 12, minHeight: 60, borderTop: i ? '1px solid rgba(255,255,255,0.06)' : 'none', width: '100%' } })) }; })(),
-      folds: [fold('sol', 'light_mode', 'Sola', '↑ 07:11 ↓ 19:04', [['Soloppgang', '07:11'], ['Solnedgang', '19:04'], ['Borgerlig skumring', '19:41'], ['Dagslengde', '11 t 53 min']])],
+      folds: [fold('sol', 'light_mode', 'Sola', `↑ ${sunRise} ↓ ${sunSet}`, [['Soloppgang', sunRise], ['Solnedgang', sunSet], ['Borgerlig skumring', LV && LV.dusk || '19:41'], ['Dagslengde', LV && LV.dayLen || '11 t 53 min']])],
       cf: (() => { const CF = this.cfg(), open = !!s.cfOpen, L = CF.lamps, upL = (i, k, v) => this.setCfg({ lamps: L.map((x, j) => { if (j !== i) return x; const b = [...x]; b[k] = v; return b; }) });
         const inp = w => ({ width: w, height: 38, borderRadius: 12, border: 0, outline: 'none', padding: '0 10px', background: '#252527', color: '#fafafa', font: 'inherit', fontSize: 14, fontWeight: 500, textAlign: 'center', fontVariantNumeric: 'tabular-nums', colorScheme: 'dark', flex: 'none' });
         const f = (k, hint, key, type, w, step) => ({ k, hint, type, v: CF[key], step: step || 1, inp: inp(w), set: e => this.setCfg({ [key]: type === 'number' ? +e.target.value : e.target.value }), row: { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 4px', borderTop: '1px solid rgba(255,255,255,0.05)' } });
@@ -284,21 +355,20 @@ class Component extends DCLogic {
           ents: [['Lysnivåsensor', 'luxEnt', 'sensor.…'], ['Automatikk-bryter', 'autoEnt', 'input_boolean.…']].map(([k, key, ph]) => ({ k, ph, v: CF[key], set: e => this.setCfg({ [key]: e.target.value.trim() }) })),
           lamps: L.map(([name, icon, ent], i) => ({ name, icon, ent, setName: e => upL(i, 0, e.target.value), setIcon: e => upL(i, 1, e.target.value), setEnt: e => upL(i, 2, e.target.value.trim()), del: () => this.setCfg({ lamps: L.filter((_, j) => j !== i) }) })),
           addLamp: () => this.setCfg({ lamps: [...L, ['Ny lampe', 'lightbulb', 'light.']] }), reset: () => { try { localStorage.removeItem('lys-v4-cfg'); } catch (e) {} this._cf = null; this.setState({ cfS: null }); } }; })(),
-      scenes: SC.map(([k, label, icon, lvl]) => { const act = s.scene === k; return { label, icon,
-        go: () => this.setState(st => { const v = { ...st.v }; FLOORS[floorKey].forEach(([id, , , ls]) => ls.forEach(l => { v[id + ':' + l] = lvl; })); return { v, scene: k }; }),
+      scenes: SC.map(([k, label, icon, lvl]) => { const act = LV ? s.scene === s.tab + ':' + k : s.scene === k; return { label, icon,
+        go: () => LV ? (runScene(k, lvl), this.setState({ scene: s.tab + ':' + k })) : this.setState(st => { const v = { ...st.v }; FLOORS[floorKey].forEach(([id, , , ls]) => ls.forEach(l => { v[id + ':' + l] = lvl; })); return { v, scene: k }; }),
         bubble: { width: 58, height: 58, borderRadius: 29, display: 'grid', placeItems: 'center', background: act ? PINK : '#323235', color: act ? '#2a1720' : '#afafaf', transform: act ? 'scale(1.06)' : 'scale(1)', transition: 'transform .35s cubic-bezier(.34,1.8,.64,1), background .25s' },
         iconStyle: { fontSize: 24, fontVariationSettings: `'FILL' ${act ? 1 : 0}` }, labelStyle: { fontSize: 11, fontWeight: 500, color: act ? '#fafafa' : '#7f7f7f' } }; }),
-      rooms: FLOORS[floorKey].map(([id, name, icon, ls]) => { const n = ls.filter(l => (s.v[id + ':' + l] || 0) > 0).length; return { name, icon, sum: n ? `${n} på` : 'alle av', allLabel: n ? 'Av' : 'På',
-        all: () => this.setState(st => { const v = { ...st.v }; ls.forEach(l => { v[id + ':' + l] = n ? 0 : 70; }); return { v, scene: null }; }),
+      rooms: (LV ? floorRooms.map(r => [r.aid, r.name, r.icon, r.lys, r]) : FLOORS[floorKey]).map(([id, name, icon, ls, R]) => { const val = l => R ? this.lv(l) : s.v[id + ':' + l] || 0, n = ls.filter(l => val(l) > 0).length; return { name, icon, sum: n ? `${n} på` : 'alle av', allLabel: n ? 'Av' : 'På',
+        all: () => R ? (R.sw ? ha.turn(R.sw, !n) : ls.forEach(l => ha.turn(l, !n))) : this.setState(st => { const v = { ...st.v }; ls.forEach(l => { v[id + ':' + l] = n ? 0 : 70; }); return { v, scene: null }; }),
         allStyle: { height: 30, padding: '0 12px', borderRadius: 15, fontSize: 12, fontWeight: 600, background: n ? '#3e3e41' : a(Y, 0.18), color: n ? '#afafaf' : Y },
-        lights: ls.map(l => { const k = id + ':' + l, v = s.v[k] || 0; return { name: l, val: v ? `${v} %` : 'Av', ...this.drag(k, v),
+        lights: ls.map(l => { const k = id + ':' + l, v = val(l); return { name: R ? strip(ha.name(l, l), name) : l, ent: R ? l : undefined, val: R ? valTxt(l, v) : v ? `${v} %` : 'Av', ...this.drag(k, v, R ? l : null),
           pill: { position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', gap: 8, height: 56, padding: '0 12px 0 6px', borderRadius: 28, background: '#323235', touchAction: 'none', cursor: 'pointer', userSelect: 'none' },
-          fill: { position: 'absolute', left: 0, top: 0, bottom: 0, width: `${v}%`, background: `linear-gradient(90deg, ${a(Y, 0.18)}, ${a(Y, 0.42)})`, transition: this.d?.moved ? 'none' : 'width .35s cubic-bezier(.34,1.2,.64,1)' },
-          iconWrap: { position: 'relative', width: 44, height: 44, borderRadius: 22, flex: 'none', display: 'grid', placeItems: 'center', background: v ? Y : '#3e3e41', color: v ? '#232323' : '#696969', transition: 'background .25s' },
+          ...pillL(v, 56, 44),
           valStyle: { fontSize: 11, color: v ? '#c7c7c7' : '#696969' } }; }) }; }),
-      onCount: on.length, onWatt: on.reduce((t, l) => t + Math.round((s.v[l.key] || 0) * 0.09), 0), noneOn: !on.length,
-      allOff: () => this.setState({ v: {}, scene: 'av' }),
-      onList: on.map(l => ({ name: l.name, room: l.room, val: `${s.v[l.key]} %`, off: () => this.setV(l.key, 0) })),
+      onCount: on.length, onWatt: on.reduce((t, l) => t + Math.round((l.v || 0) * 0.09), 0), noneOn: !on.length,
+      allOff: () => LV ? (() => { const ids = on.map(l => l.ent); return ids.length && ha.call('light', 'turn_off', { entity_id: ids }); })() : this.setState({ v: {}, scene: 'av' }),
+      onList: on.map(l => ({ name: l.name, room: l.room, val: LV ? valTxt(l.ent, l.v) : `${l.v} %`, off: () => LV ? ha.turn(l.ent, false) : this.setV(l.key, 0) })),
     };
   }
 }

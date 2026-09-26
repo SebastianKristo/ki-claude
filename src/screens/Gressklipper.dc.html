@@ -26,7 +26,7 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
     <div style="position:absolute;left:0;right:0;bottom:0;height:70px;background:repeating-linear-gradient(90deg, #2f5a37 0 22px, #36683f 22px 44px);opacity:0.8"></div>
     <span style="{{ mower }}"><span class="ms" style="font-size:30px;font-variation-settings:'FILL' 1">agriculture</span></span>
     <div style="position:absolute;left:18px;top:18px;display:flex;flex-direction:column;gap:8px">
-      <span style="font-size:13px;color:#cfdccf">Automower 430X</span>
+      <span style="font-size:13px;color:#cfdccf">{{ model }}</span>
       <span style="{{ chip }}"><span style="{{ chipDot }}"></span>{{ status }}</span>
     </div>
     <div style="position:absolute;right:18px;top:18px;display:flex;flex-direction:column;align-items:flex-end;gap:2px">
@@ -39,7 +39,8 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
     <sc-for list="{{ stats }}" as="p" hint-placeholder-count="4">
-      <div style="display:flex;align-items:center;gap:12px;height:64px;padding:0 12px 0 6px;border-radius:32px;background:#2f2f2f;min-width:0">
+      <div onClick="{{ p.go }}" style="display:flex;align-items:center;gap:12px;height:64px;padding:0 12px 0 6px
+;border-radius:32px;background:#2f2f2f;min-width:0">
         <span style="width:52px;height:52px;border-radius:26px;background:#3a3a3a;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:24px">{{ p.icon }}</span></span>
         <span style="display:flex;flex-direction:column;gap:1px;min-width:0"><span style="font-size:15px;font-weight:500;white-space:nowrap">{{ p.v }}</span><span style="font-size:12px;color:#979797;white-space:nowrap">{{ p.l }}</span></span>
       </div>
@@ -58,21 +59,118 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:440,&quot;height&quot;:900}}">
 const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)', GREEN = 'rgb(102 209 158)';
 const ZONES = [['plen', 'Plen Sør', 'i går'], ['hage', 'Hage bak', '2 d siden'], ['forhage', 'Forhage', 'i dag']];
+const DEMO_STATS = [['schedule', '2 t 14 min', 'Klippetid i dag'], ['content_cut', '84 %', 'Knivslitasje'], ['square_foot', '1 150 m²', 'Areal'], ['signal_cellular_alt', 'God', 'Signal']];
+const DAY_L = ['Ma', 'Ti', 'On', 'To', 'Fr', 'Lø', 'Sø'];
+const LBL = { mow: 'Klipper', pause: 'Pauset', park: 'Parkert', home: 'Lader' };
+const STATE_LBL = { mowing: 'Klipper', paused: 'Pauset', docked: 'Parkert', returning: 'Kjører hjem', error: 'Feil', unavailable: 'Utilgjengelig', unknown: 'Ukjent' };
+const fmtNum = (v, d = 0) => Number(v).toLocaleString('nb-NO', { maximumFractionDigits: d }).replace(/ /g, ' ');
+function ago(iso) {
+  if (!iso) return '';
+  const d = new Date(iso); if (isNaN(d)) return String(iso);
+  const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+  const days = Math.round((t0 - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 864e5);
+  return days <= 0 ? 'i dag' : days === 1 ? 'i går' : days + ' d siden';
+}
+// Sensor value → short text ("2 t 14 min" for durations, "84 %", "God" for dBm …)
+function statText(id) {
+  const st = ha.state(id); if (!st) return '—';
+  const v = parseFloat(st.state), u = st.attributes.unit_of_measurement || '';
+  if (!Number.isFinite(v)) return ha.val(id, '—');
+  const dur = { h: 60, min: 1, s: 1 / 60, d: 1440 }[u];
+  if (dur !== undefined && (st.attributes.device_class === 'duration' || u === 'h' || u === 'min')) {
+    const m = Math.round(v * dur), h = Math.floor(m / 60);
+    return h ? `${fmtNum(h)} t ${m % 60} min` : `${m} min`;
+  }
+  if (u === 'dBm') return v >= -60 ? 'God' : v >= -75 ? 'Middels' : 'Svak';
+  return fmtNum(v, 1) + (u ? ' ' + u : '');
+}
+// Live: first lawn_mower (or alias `gressklipper` / config `mower`) + sibling entities with the same object_id prefix.
+function loadLive() {
+  const id = ha.first('gressklipper', ha.config.mower) || ha.domain('lawn_mower')[0];
+  const st = id && ha.state(id);
+  if (!st) return null;
+  const obj = id.split('.')[1], fname = st.attributes.friendly_name || '';
+  const P = (dom, ...sfx) => sfx.map(x => `${dom}.${obj}_${x}`);
+  const state = st.state;
+  const batId = ha.first('batteri', P('sensor', 'battery', 'battery_level', 'batteri'));
+  const battery = Math.round(ha.num(batId, ha.attr(id, 'battery_level', NaN)));
+  const charging = ha.on(ha.first('lader', P('binary_sensor', 'charging', 'battery_charging')), false);
+  const active = state === 'mowing' ? 'mow' : state === 'paused' ? 'pause' : state === 'returning' ? 'home'
+    : state === 'docked' ? (charging || (Number.isFinite(battery) && battery < 100) ? 'home' : 'park') : null;
+  const status = state === 'docked' ? (active === 'home' ? 'Lader' : 'Parkert') : STATE_LBL[state] || state;
+  const statDefs = [
+    ['klippetid', 'schedule', 'Klippetid', P('sensor', 'cutting_time', 'mowing_time', 'total_cutting_time')],
+    ['knivslitasje', 'content_cut', 'Knivslitasje', P('sensor', 'cutting_blade_usage_time', 'blade_usage', 'blade_wear')],
+    ['areal', 'square_foot', 'Areal', P('sensor', 'area', 'work_area_progress', 'total_drive_distance')],
+    ['signal', 'signal_cellular_alt', 'Signal', P('sensor', 'rssi', 'wifi_signal', 'signal_strength')],
+  ];
+  const stats = statDefs.map(([alias, icon, l, c]) => {
+    const sid = ha.first(alias, c);
+    const nm = sid ? ha.name(sid, l).replace(fname, '').trim() : '';
+    return { icon, v: sid ? statText(sid) : '—', l: nm || l, id: sid };
+  });
+  // Zones: config `zones: [{name, entity?|service?, data?, sist?}]`, else options of sensor.<mower>_work_area
+  const areaId = ha.first('arbeidsomraade', P('sensor', 'work_area'));
+  const cur = areaId ? ha.val(areaId, '') : '';
+  let zones = [];
+  if (Array.isArray(ha.config.zones)) zones = ha.config.zones.map((z, i) => ({ key: 'z' + i, name: z.name || ha.name(z.entity, z.entity) || 'Sone', last: z.sist ? ago(ha.val(z.sist)) : '', raw: z }));
+  else if (areaId) zones = (ha.attr(areaId, 'options', []) || []).filter(o => !/^no_work_area/.test(o)).map((o, i) => ({ key: 'z' + i, name: o, last: o === cur ? 'nå' : '', raw: null }));
+  const curKey = (zones.find(z => z.name === cur || (z.raw && z.raw.entity && ha.on(z.raw.entity))) || {}).key;
+  // Schedule: mower calendar (Automower creates calendar.<name>) → first window per weekday, next 7 days
+  const calId = ha.first('timeplan', 'calendar.' + obj);
+  let days = null;
+  if (calId) {
+    ha.state(calId); // register dependency so the async events re-render
+    days = DAY_L.map(() => null);
+    (ha.events(calId, 7) || []).forEach(e => {
+      const s = new Date(e.start?.dateTime || e.start?.date || e.start), en = new Date(e.end?.dateTime || e.end?.date || e.end);
+      if (isNaN(s)) return;
+      const wd = (s.getDay() + 6) % 7;
+      if (!days[wd]) days[wd] = `${s.getHours()}–${isNaN(en) ? '' : en.getHours()}`;
+    });
+  }
+  return { id, st, battery, active, status, stats, zones, curKey, cur, days, calId, platform: ha.hass?.entities?.[id]?.platform, schedSwitch: ha.first('timeplan_bryter', P('switch', 'enable_schedule')) };
+}
 class Component extends DCLogic {
   state = { st: 'mow', zone: 'plen', days: [1, 0, 1, 0, 1, 1, 0] };
+  act(k) {
+    const L = this.L;
+    if (!L) return this.setState({ st: k });
+    if (k === 'mow') return ha.call('lawn_mower', 'start_mowing', { entity_id: L.id });
+    if (k === 'pause') return ha.call('lawn_mower', 'pause', { entity_id: L.id });
+    if (k === 'park' && L.platform === 'husqvarna_automower') return ha.call('husqvarna_automower', 'override_schedule', { entity_id: L.id, override_mode: 'park', duration: { hours: 3 } });
+    return ha.call('lawn_mower', 'dock', { entity_id: L.id });
+  }
+  zoneGo(z) {
+    const L = this.L, r = z && z.raw;
+    if (!r) return ha.moreInfo(L.id);
+    if (r.service) { const [d, sv] = r.service.split('.'); return ha.call(d, sv, r.data || {}); }
+    if (r.entity) { const d = r.entity.split('.')[0]; return d === 'button' ? ha.press(r.entity) : d === 'script' ? ha.call('script', 'turn_on', { entity_id: r.entity }) : ha.turn(r.entity, true); }
+    return ha.call('lawn_mower', 'start_mowing', { entity_id: L.id });
+  }
   renderVals() {
-    const s = this.state, mowing = s.st === 'mow', z = ZONES.find(x => x[0] === s.zone);
-    const LBL = { mow: 'Klipper', pause: 'Pauset', park: 'Parkert', home: 'Lader' };
-    const ctrl = (k, icon, label) => ({ icon, label, go: () => this.setState({ st: k }), style: { height: 86, borderRadius: 26, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 13, fontWeight: 500, background: s.st === k ? PINK : '#2f2f2f', color: s.st === k ? '#2a1720' : '#fafafa' } });
+    const L = this.L = loadLive();
+    const s = this.state, cur = L ? L.active : s.st, mowing = cur === 'mow';
+    const zoneKey = L ? L.curKey : s.zone;
+    const zoneList = L ? L.zones.map(z => [z.key, z.name, z.last, z]) : ZONES;
+    const z = zoneList.find(x => x[0] === zoneKey);
+    const ctrl = (k, icon, label) => ({ icon, label, go: () => this.act(k), style: { height: 86, borderRadius: 26, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 13, fontWeight: 500, background: cur === k ? PINK : '#2f2f2f', color: cur === k ? '#2a1720' : '#fafafa' } });
+    const stats = L ? L.stats.map(x => [x.icon, x.v, x.l]) : DEMO_STATS;
     return {
-      status: LBL[s.st], battery: s.st === 'home' ? 88 : 64, zone: z[1],
+      model: L ? ha.name(L.id, 'Gressklipper') : 'Automower 430X',
+      status: L ? L.status : LBL[s.st],
+      battery: L ? (Number.isFinite(L.battery) ? L.battery : '–') : s.st === 'home' ? 88 : 64,
+      zone: L ? (z ? z[1] : L.cur && !/^no_work_area/.test(L.cur) ? L.cur : '') : z[1],
       chip: { height: 26, padding: '0 10px', borderRadius: 13, display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, background: 'rgba(0,0,0,0.3)' },
-      chipDot: { width: 7, height: 7, borderRadius: 4, background: mowing ? GREEN : '#afafaf' },
+      chipDot: { width: 7, height: 7, borderRadius: 4, background: mowing ? GREEN : L && L.st.state === 'error' ? '#ff6b6b' : '#afafaf' },
       mower: { position: 'absolute', left: mowing ? '58%' : '12%', bottom: 44, width: 54, height: 54, borderRadius: 27, display: 'grid', placeItems: 'center', background: '#fafafa', color: '#2a3a2c', boxShadow: '0 6px 16px rgba(0,0,0,0.4)', transition: 'left 1.2s cubic-bezier(.34,1.2,.64,1)' },
       ctrls: [ctrl('mow', 'play_arrow', 'Start'), ctrl('pause', 'pause', 'Pause'), ctrl('park', 'local_parking', 'Parker'), ctrl('home', 'home', 'Hjem')],
-      stats: [['schedule', '2 t 14 min', 'Klippetid i dag'], ['content_cut', '84 %', 'Knivslitasje'], ['square_foot', '1 150 m²', 'Areal'], ['signal_cellular_alt', 'God', 'Signal']].map(([icon, v, l]) => ({ icon, v, l })),
-      zones: ZONES.map(([k, name, last]) => ({ name, last, go: () => this.setState({ zone: k, st: 'mow' }), style: { height: 50, padding: '0 16px', borderRadius: 25, display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, fontWeight: 500, background: s.zone === k ? 'rgba(128,200,140,0.18)' : '#3a3a3a', boxShadow: s.zone === k ? `inset 0 0 0 1.5px ${GREEN}` : 'none' } })),
-      days: ['Ma', 'Ti', 'On', 'To', 'Fr', 'Lø', 'Sø'].map((l, i) => { const on = !!s.days[i]; return { l, t: on ? '10–14' : 'Av', go: () => this.setState({ days: s.days.map((x, j) => j === i ? (x ? 0 : 1) : x) }), style: { height: 58, borderRadius: 18, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, background: on ? 'rgba(128,200,140,0.22)' : '#3a3a3a', color: on ? '#e8f5ea' : '#979797' } }; }),
+      stats: stats.map(([icon, v, l], i) => ({ icon, v, l, go: L && L.stats[i].id ? () => ha.moreInfo(L.stats[i].id) : undefined })),
+      zones: zoneList.map(([k, name, last, zz]) => ({ name, last, go: () => L ? this.zoneGo(zz) : this.setState({ zone: k, st: 'mow' }), style: { height: 50, padding: '0 16px', borderRadius: 25, display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, fontWeight: 500, background: zoneKey === k ? 'rgba(128,200,140,0.18)' : '#3a3a3a', boxShadow: zoneKey === k ? `inset 0 0 0 1.5px ${GREEN}` : 'none' } })),
+      days: DAY_L.map((l, i) => {
+        const t = L ? (L.days ? L.days[i] : null) : s.days[i] ? '10–14' : null, on = !!t;
+        return { l, t: on ? t : L && !L.days ? '—' : 'Av', go: () => L ? ha.moreInfo(L.calId || L.schedSwitch || L.id) : this.setState({ days: s.days.map((x, j) => j === i ? (x ? 0 : 1) : x) }), style: { height: 58, borderRadius: 18, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, background: on ? 'rgba(128,200,140,0.22)' : '#3a3a3a', color: on ? '#e8f5ea' : '#979797' } };
+      }),
     };
   }
 }

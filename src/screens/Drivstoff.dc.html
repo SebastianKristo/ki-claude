@@ -24,7 +24,7 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
   </header>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
     <sc-for list="{{ best }}" as="b" hint-placeholder-count="2">
-      <div style="display:flex;flex-direction:column;gap:4px;padding:16px;border-radius:24px;background:#2f2f2f;min-width:0">
+      <div onClick="{{ b.go }}" style="display:flex;flex-direction:column;gap:4px;padding:16px;border-radius:24px;background:#2f2f2f;min-width:0">
         <span style="font-size:12px;color:#7f7f7f">Billigst {{ b.type }}</span>
         <span style="font-size:34px;font-weight:500;letter-spacing:-0.03em;line-height:1.05;font-variant-numeric:tabular-nums">{{ b.price }}<span style="font-size:13px;color:#7f7f7f;font-weight:400"> kr/l</span></span>
         <span style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.name }}</span>
@@ -38,7 +38,7 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
   <section style="display:flex;flex-direction:column;border-radius:24px;background:#2f2f2f;padding:6px 14px">
     <div style="display:grid;grid-template-columns:minmax(0,1fr) 62px 62px;gap:8px;padding:10px 0 6px;font-size:11px;color:#7f7f7f"><span>Stasjon</span><span style="text-align:right">Diesel</span><span style="text-align:right">Bensin 95</span></div>
     <sc-for list="{{ rows }}" as="r" hint-placeholder-count="5">
-      <div style="{{ r.row }}">
+      <div onClick="{{ r.go }}" style="{{ r.row }}">
         <span style="display:flex;align-items:center;gap:10px;min-width:0">
           <span style="{{ r.logo }}">{{ r.init }}</span>
           <span style="display:flex;flex-direction:column;gap:1px;min-width:0"><span style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span><span style="font-size:11px;color:#7f7f7f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.meta }}</span></span>
@@ -48,30 +48,102 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
       </div>
     </sc-for>
   </section>
-  <span style="font-size:12px;color:#696969;padding:0 6px">Viser de 5 første · priser fra sensor.drivstoffpriser_oslo og _stromstad</span>
+  <span style="font-size:12px;color:#696969;padding:0 6px">{{ footer }}</span>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:800}}">
 const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
 const GREEN = 'rgb(102 209 158)';
-const OSLO = [['Circle K', 'Majorstuen', 'Kirkeveien 64', 0.8, '22:14', 21.89, 21.29, 'rgb(242 128 115)'], ['Uno-X', 'Smestad', 'Smestadveien 2', 2.1, '21:50', 21.19, 20.49, 'rgb(242 128 115)'], ['Esso', 'Frogner', 'Frognerveien 40', 1.6, '20:32', 21.59, 20.99, 'rgb(115 185 242)'], ['Shell', 'Bislett', 'Pilestredet 60', 1.4, '22:01', 21.99, 21.39, 'rgb(242 210 111)'], ['YX', 'Ullevål', 'Sognsveien 10', 2.8, '19:48', 20.95, 20.29, 'rgb(102 209 158)'], ['St1', 'Økern', 'Økernveien 145', 5.2, '18:20', 20.79, 20.19, 'rgb(242 181 115)']];
-const STROM = [['Preem', 'Strömstad', 'Oslovägen 2', 1.2, '20:40', 19.35, 18.60, 'rgb(102 209 158)'], ['Circle K', 'Strömstad', 'Uddevallavägen 1', 1.9, '21:05', 19.55, 18.85, 'rgb(242 128 115)'], ['OKQ8', 'Skee', 'Skee 112', 4.4, '17:10', 19.15, 18.39, 'rgb(115 185 242)'], ['Ingo', 'Strömstad', 'Norra Hamngatan', 0.6, '22:20', 19.05, 18.29, 'rgb(242 210 111)']];
-const nf = n => n.toLocaleString('nb-NO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const DEMO_OSLO = [['Circle K', 'Majorstuen', 'Kirkeveien 64', 0.8, '22:14', 21.89, 21.29, 'rgb(242 128 115)'], ['Uno-X', 'Smestad', 'Smestadveien 2', 2.1, '21:50', 21.19, 20.49, 'rgb(242 128 115)'], ['Esso', 'Frogner', 'Frognerveien 40', 1.6, '20:32', 21.59, 20.99, 'rgb(115 185 242)'], ['Shell', 'Bislett', 'Pilestredet 60', 1.4, '22:01', 21.99, 21.39, 'rgb(242 210 111)'], ['YX', 'Ullevål', 'Sognsveien 10', 2.8, '19:48', 20.95, 20.29, 'rgb(102 209 158)'], ['St1', 'Økern', 'Økernveien 145', 5.2, '18:20', 20.79, 20.19, 'rgb(242 181 115)']];
+const DEMO_STROM = [['Preem', 'Strömstad', 'Oslovägen 2', 1.2, '20:40', 19.35, 18.60, 'rgb(102 209 158)'], ['Circle K', 'Strömstad', 'Uddevallavägen 1', 1.9, '21:05', 19.55, 18.85, 'rgb(242 128 115)'], ['OKQ8', 'Skee', 'Skee 112', 4.4, '17:10', 19.15, 18.39, 'rgb(115 185 242)'], ['Ingo', 'Strömstad', 'Norra Hamngatan', 0.6, '22:20', 19.05, 18.29, 'rgb(242 210 111)']];
+const nf = n => n == null || !Number.isFinite(n) ? '–' : n.toLocaleString('nb-NO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// ── Live-kobling: drivstoffpriser (ingen ki-integrasjon) ─────────────────────
+// Områder = sensorer med en liste over stasjoner i et attributt (stasjoner/stations/priser/prices/data).
+// Standard: alias `drivstoff_oslo` (sensor.drivstoffpriser_oslo) og `drivstoff_stromstad`
+// (sensor.drivstoffpriser_stromstad) + alle sensor.drivstoffpriser_* / sensorer med stasjonsliste.
+// Kortkonfig `drivstoff: { omrader: [{ entity, navn }], stasjoner: [{ navn, sted, adresse, km, bensin: <sensor>, diesel: <sensor>, omrade }] }`.
+const BRAND = [[/circle|statoil/i, 'rgb(242 128 115)'], [/uno/i, 'rgb(242 128 115)'], [/esso|okq8/i, 'rgb(115 185 242)'], [/shell|ingo/i, 'rgb(242 210 111)'], [/yx|preem/i, 'rgb(102 209 158)'], [/st1|best/i, 'rgb(242 181 115)']];
+const brandCol = n => (BRAND.find(([r]) => r.test(n)) || [0, 'rgb(173 153 230)'])[1];
+const pad2 = n => String(n).padStart(2, '0');
+const pick = (o, ...ks) => { for (const k of ks) { if (o && o[k] != null && o[k] !== '') return o[k]; } return undefined; };
+const numOf = v => { if (v == null) return null; if (typeof v === 'object') v = pick(v, 'pris', 'price', 'value', 'state'); const n = parseFloat(String(v).replace(',', '.')); return Number.isFinite(n) && n > 0 ? n : null; };
+const fuelOf = (x, re) => {
+  let v = null;
+  Object.keys(x || {}).forEach(k => { if (v == null && re.test(k)) v = numOf(x[k]); });
+  const lists = [x.priser, x.prices, x.fuel, x.drivstoff].filter(Boolean);
+  lists.forEach(l => { if (v != null) return; if (Array.isArray(l)) { const f = l.find(p => re.test(String(pick(p, 'type', 'navn', 'name', 'fuel', 'drivstoff') || ''))); if (f) v = numOf(f); } else Object.keys(l).forEach(k => { if (v == null && re.test(k)) v = numOf(l[k]); }); });
+  return v;
+};
+const RE_B = /bensin|petrol|gasoline|95|blyfri|e10/i, RE_D = /diesel/i;
+const timeOf = v => {
+  if (v == null || v === '') return ['', 0];
+  if (/^\d{1,2}:\d{2}$/.test(String(v))) { const [h, m] = String(v).split(':').map(Number); return [`${pad2(h)}:${pad2(m)}`, h * 60 + m]; }
+  const d = new Date(typeof v === 'number' && v < 1e12 ? v * 1000 : v); if (isNaN(d)) return [String(v), 0];
+  const today = d.toDateString() === new Date().toDateString();
+  return [today ? `${pad2(d.getHours())}:${pad2(d.getMinutes())}` : `${d.getDate()}.${d.getMonth() + 1}.`, d.getTime() / 60000];
+};
+const stationOf = (x, r) => {
+  const brand = String(pick(x, 'kjede', 'brand', 'merke', 'navn', 'name', 'stasjon', 'station') || 'Stasjon');
+  const full = String(pick(x, 'navn', 'name', 'stasjon', 'station') || brand);
+  const place = pick(x, 'sted', 'city', 'by', 'omrade', 'area', 'location') || (full !== brand ? full.replace(brand, '').trim() : '');
+  const [upd, ts] = timeOf(pick(x, 'oppdatert', 'updated', 'last_updated', 'tid', 'time', 'timestamp'));
+  return [brand, String(place || ''), String(pick(x, 'adresse', 'address', 'gate', 'street') || ''), numOf(pick(x, 'avstand', 'distance', 'km', 'dist')), upd, fuelOf(x, RE_B), fuelOf(x, RE_D), brandCol(brand), r, ts];
+};
+function loadLive() {
+  const cfg = ha.config.drivstoff || {};
+  let regions = (cfg.omrader || []).map(o => typeof o === 'string' ? { entity: o } : o).filter(o => o && o.entity);
+  if (!regions.length) {
+    const ids = [ha.first('drivstoff_oslo', 'sensor.drivstoffpriser_oslo'), ha.first('drivstoff_stromstad', 'sensor.drivstoffpriser_stromstad')];
+    ha.domain('sensor', (s, id) => id.startsWith('sensor.drivstoffpriser_') || ['stasjoner', 'stations'].some(k => Array.isArray(s.attributes?.[k]))).forEach(id => ids.push(id));
+    regions = [...new Set(ids.filter(id => id && ha.state(id)))].map(entity => ({ entity }));
+  }
+  const rows = [];
+  regions.forEach((o, r) => {
+    const st = ha.state(o.entity); if (!st) return;
+    const a = st.attributes || {};
+    o.navn = o.navn || String(a.friendly_name || o.entity.split('.')[1]).replace(/^drivstoffpriser[ _]?/i, '').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
+    const list = pick(a, 'stasjoner', 'stations', 'priser', 'prices', 'data');
+    (Array.isArray(list) ? list : []).forEach(x => { const row = stationOf(x, r); row[10] = o.entity; rows.push(row); });
+  });
+  (cfg.stasjoner || []).forEach(x => {
+    const ri = Math.max(0, regions.findIndex(o => o.navn === x.omrade || o.entity === x.omrade));
+    const b = x.bensin && ha.num(x.bensin, null), d = x.diesel && ha.num(x.diesel, null);
+    if (b == null && d == null) return;
+    const upd = timeOf(ha.state(x.bensin || x.diesel)?.last_updated);
+    rows.push([x.kjede || x.navn || 'Stasjon', x.sted || '', x.adresse || '', x.km ?? null, upd[0], b, d, brandCol(x.kjede || x.navn || ''), ri, upd[1], x.bensin || x.diesel]);
+  });
+  if (!rows.length) return null;
+  return { regions, rows };
+}
+
 class Component extends DCLogic {
   state = { sort: 'bensin' };
   renderVals() {
+    const L = loadLive();
     const s = this.state, k = s.sort;
-    let src = k === 'oslo' ? OSLO : k === 'strom' ? STROM : [...OSLO, ...STROM];
-    src = [...src].sort((a, b) => k === 'diesel' ? a[6] - b[6] : k === 'bensin' ? a[5] - b[5] : k === 'upd' ? b[4].localeCompare(a[4]) : a[3] - b[3]);
-    const all = [...OSLO, ...STROM], minB = Math.min(...src.map(x => x[5])), minD = Math.min(...src.map(x => x[6]));
-    const cb = all.reduce((m, x) => x[5] < m[5] ? x : m), cd = all.reduce((m, x) => x[6] < m[6] ? x : m);
+    const OSLO = L ? L.rows.filter(x => x[8] === 0) : DEMO_OSLO, STROM = L ? L.rows.filter(x => x[8] === 1) : DEMO_STROM;
+    const regionSorts = L ? L.regions.map((o, i) => [i === 0 ? 'oslo' : i === 1 ? 'strom' : 'r' + i, `Nærmest ${o.navn}`, i]).filter(r => L.rows.some(x => x[8] === r[2])) : [['oslo', 'Nærmest Oslo', 0], ['strom', 'Nærmest Strømstad', 1]];
+    const rs = regionSorts.find(r => r[0] === k);
+    const all = L ? L.rows : [...OSLO, ...STROM];
+    let src = rs ? all.filter(x => L ? x[8] === rs[2] : (rs[2] === 0 ? OSLO : STROM).includes(x)) : all;
+    const P = v => v == null ? Infinity : v;
+    src = [...src].sort((a, b) => k === 'diesel' ? P(a[6]) - P(b[6]) : k === 'bensin' ? P(a[5]) - P(b[5]) : k === 'upd' ? (L ? (b[9] || 0) - (a[9] || 0) : b[4].localeCompare(a[4])) : P(a[3]) - P(b[3]));
+    const minB = Math.min(...src.map(x => P(x[5]))), minD = Math.min(...src.map(x => P(x[6])));
+    const cheapest = i => all.reduce((m, x) => P(x[i]) < P(m[i]) ? x : m, all[0]);
+    const cb = cheapest(5), cd = cheapest(6);
     const pStyle = on => ({ textAlign: 'right', fontSize: 14, fontWeight: on ? 600 : 500, fontVariantNumeric: 'tabular-nums', color: on ? GREEN : '#fafafa' });
+    const nm = x => [x[0], x[1]].filter(Boolean).join(' ');
+    const meta = (x, addr) => [addr ? x[2] : '', x[3] != null ? `${nf(x[3])} km` : '', x[4]].filter(Boolean).join(' · ');
+    const ids = L ? L.regions.map(o => o.entity) : ['sensor.drivstoffpriser_oslo', 'sensor.drivstoffpriser_stromstad'];
+    const pre = ids[0] ? ids[0].slice(0, ids[0].lastIndexOf('_')) : '';
     return {
-      best: [['bensin', cb, 5], ['diesel', cd, 6]].map(([t, x, i]) => ({ type: t, price: nf(x[i]), name: `${x[0]} ${x[1]}`, meta: `${nf(x[3])} km · ${x[4]}` })),
-      sorts: [['bensin', 'Bensin'], ['diesel', 'Diesel'], ['oslo', 'Nærmest Oslo'], ['strom', 'Nærmest Strømstad'], ['upd', 'Sist oppdatert']].map(([id, label]) => ({ label, go: () => this.setState({ sort: id }), style: { height: 36, padding: '0 14px', borderRadius: 18, flex: 'none', fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: k === id ? PINK : '#2f2f2f', color: k === id ? '#2a1720' : '#afafaf' } })),
-      rows: src.slice(0, 5).map((x, i) => ({ name: `${x[0]} ${x[1]}`, init: x[0][0], meta: `${x[2]} · ${nf(x[3])} km · ${x[4]}`, d: nf(x[6]), b: nf(x[5]), dStyle: pStyle(x[6] === minD), bStyle: pStyle(x[5] === minB),
+      best: [['bensin', cb, 5], ['diesel', cd, 6]].map(([t, x, i]) => ({ type: t, price: nf(x && x[i]), name: x ? nm(x) : '–', meta: x ? meta(x, false) : '', go: () => L && x && ha.moreInfo(x[10]) })),
+      sorts: [['bensin', 'Bensin'], ['diesel', 'Diesel'], ...regionSorts.map(r => [r[0], r[1]]), ['upd', 'Sist oppdatert']].map(([id, label]) => ({ label, go: () => this.setState({ sort: id }), style: { height: 36, padding: '0 14px', borderRadius: 18, flex: 'none', fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: k === id ? PINK : '#2f2f2f', color: k === id ? '#2a1720' : '#afafaf' } })),
+      rows: src.slice(0, 5).map((x, i) => ({ name: nm(x), init: (x[0] || '?')[0], meta: meta(x, true), d: nf(x[6]), b: nf(x[5]), dStyle: pStyle(x[6] != null && x[6] === minD), bStyle: pStyle(x[5] != null && x[5] === minB), go: () => L && ha.moreInfo(x[10]),
         logo: { width: 34, height: 34, borderRadius: 17, flex: 'none', display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 600, background: x[7], color: '#232323' },
         row: { display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 62px 62px', gap: 8, alignItems: 'center', padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.05)' } })),
+      footer: `Viser de 5 første · priser fra ${ids.map((id, i) => i && pre && id.startsWith(pre + '_') ? id.slice(pre.length) : id).join(' og ')}`,
     };
   }
 }

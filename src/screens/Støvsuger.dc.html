@@ -20,7 +20,8 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 </helmet>
 <div style="box-sizing:border-box;width:100%;max-width:420px;min-height:100vh;margin:0 auto;background:#232323;padding:20px 18px 40px;display:flex;flex-direction:column;gap:22px">
   <header style="display:flex;align-items:center;justify-content:space-between">
-    <div style="font-size:13px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#7f7f7f">Sir Sweeps</div>
+    <div style="font-size:13px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#7f7f7f">{{ title }}</div>
+
     <button style="width:36px;height:36px;border-radius:18px;background:#3a3a3a;display:grid;place-items:center"><span class="ms" style="font-size:20px">close</span></button>
   </header>
 
@@ -147,65 +148,161 @@ const a = (c, o) => c.replace(')', ` / ${o})`);
 const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
 const ROOMS = [['sov','Soverom','bed',14,[4,4,44,34]],['mamma','Mamma','bed',11,[52,4,44,26]],['kontor','Kontor','desk',9,[52,34,44,26]],['pappa','Pappa','single_bed',12,[4,42,44,34]],['trapp','Trapp','stairs',4,[52,64,44,14]],['gang','Gang','door_front',7,[4,80,92,16]]];
 const ZONES = ['Spisebord lite','Spisebord mye','Stue uten spisebord','Under sofa'];
+const DEMO_PARTS = [['Hovedbørste', 72, 300], ['Sidebørste', 41, 200], ['Filter', 12, 150], ['Sensorer', 88, 30]];
+const DEMO_STATS = [['Totalt', '312 t'], ['Areal', '8 420 m²'], ['Turer', '214']];
+const SUCTION = [['quiet', 'Stille', /quiet|silent|stille|low|eco|gentle/i], ['std', 'Standard', /balanced|standard|normal|medium|auto/i], ['turbo', 'Turbo', /turbo|strong|high/i], ['max', 'Maks', /^max$|max(?!_?plus)|maks/i]];
+const fmt = (v, d = 0) => Number(v).toLocaleString('nb-NO', { maximumFractionDigits: d }).replace(/ /g, ' ');
+const pad = n => String(n).padStart(2, '0');
+// Numeric sensor → hours (handles s/min/h/d units)
+const hoursOf = id => { const v = ha.num(id, NaN); if (!Number.isFinite(v)) return NaN; const u = ha.unit(id, 'h'); return v * ({ s: 1 / 3600, min: 1 / 60, h: 1, d: 24 }[u] || 1); };
+function whenText(d) {
+  if (!d || isNaN(d)) return '';
+  const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+  const days = Math.round((t0 - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 864e5);
+  const hm = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return days <= 0 ? `i dag ${hm}` : days === 1 ? `i går ${hm}` : `for ${days} dager siden`;
+}
+// Live: first vacuum.* (alias `stovsuger`, config `vacuum`) + sibling entities with the same object_id (Roborock/Xiaomi naming).
+function loadLive() {
+  const id = ha.first('stovsuger', ha.config.vacuum) || ha.domain('vacuum')[0];
+  const st = id && ha.state(id);
+  if (!st) return null;
+  const obj = id.split('.')[1];
+  const P = (dom, ...sfx) => sfx.map(x => `${dom}.${obj}_${x}`);
+  const f = (alias, dom, ...sfx) => ha.first(alias, P(dom, ...sfx));
+  const raw = st.state;
+  const status = raw === 'cleaning' ? 'cleaning' : raw === 'paused' ? 'paused' : raw === 'returning' ? 'returning' : raw === 'docked' ? 'docked' : raw === 'error' ? 'error' : 'idle';
+  const batId = f('batteri', 'sensor', 'battery', 'battery_level');
+  const battery = ha.num(batId, ha.attr(id, 'battery_level', NaN));
+  const progId = f('fremdrift', 'sensor', 'cleaning_progress', 'progress');
+  const areaId = f('areal', 'sensor', 'cleaning_area', 'current_clean_area', 'last_clean_area');
+  const timeId = f('tid', 'sensor', 'cleaning_time', 'current_clean_duration', 'last_clean_duration');
+  const lastId = f('sist', 'sensor', 'last_clean_end', 'last_clean_end_time', 'last_cleaned');
+  const roomId = f('rom_na', 'sensor', 'current_room');
+  const parts = [
+    ['Hovedbørste', 300, f('hovedborste', 'sensor', 'main_brush_time_left', 'main_brush_left'), f('reset_hovedborste', 'button', 'reset_main_brush_consumable', 'reset_main_brush')],
+    ['Sidebørste', 200, f('sideborste', 'sensor', 'side_brush_time_left', 'side_brush_left'), f('reset_sideborste', 'button', 'reset_side_brush_consumable', 'reset_side_brush')],
+    ['Filter', 150, f('filter', 'sensor', 'filter_time_left', 'filter_left'), f('reset_filter', 'button', 'reset_air_filter_consumable', 'reset_filter_consumable', 'reset_filter')],
+    ['Sensorer', 30, f('sensorer', 'sensor', 'sensor_time_left', 'sensor_dirty_left'), f('reset_sensorer', 'button', 'reset_sensor_consumable', 'reset_sensor')],
+  ].filter(p => p[2]).map(([name, life, sid, btn]) => { const left = hoursOf(sid); return { name, life, left, pct: Number.isFinite(left) ? Math.max(0, Math.min(100, Math.round(left / life * 100))) : 0, sid, btn }; });
+  const tot = (alias, sfx, fn) => { const sid = f(alias, 'sensor', ...sfx); return sid ? fn(sid) : '—'; };
+  const stats = [
+    ['Totalt', tot('total_tid', ['total_cleaning_time', 'total_clean_time', 'total_duration'], s => { const h = hoursOf(s); return Number.isFinite(h) ? fmt(Math.round(h)) + ' t' : '—'; })],
+    ['Areal', tot('total_areal', ['total_cleaning_area', 'total_clean_area'], s => { const v = ha.num(s, NaN); return Number.isFinite(v) ? fmt(Math.round(v)) + ' m²' : '—'; })],
+    ['Turer', tot('turer', ['total_cleaning_count', 'total_clean_count', 'cleaning_count'], s => ha.val(s, '—'))],
+  ];
+  // Rooms / zones from card config (segment ids for Roborock/Xiaomi: app_segment_clean; zones: app_zoned_clean)
+  const rooms = (Array.isArray(ha.config.rooms) ? ha.config.rooms : []).map((r, i) => ['r' + i, r.name || 'Rom ' + (i + 1), r.icon || 'meeting_room', r.m2 || r.areal || '', r.rect || null, r]);
+  rooms.forEach((r, i) => { if (!r[4]) { const rows = Math.ceil(rooms.length / 2), h = 92 / rows; r[4] = [4 + (i % 2) * 48, 4 + Math.floor(i / 2) * h, 44, h - 4]; } });
+  const zones = (Array.isArray(ha.config.zones) ? ha.config.zones : []).map(z => ({ name: z.name || 'Sone', raw: z }));
+  const fanList = ha.attr(id, 'fan_speed_list', []) || [];
+  const fan = ha.attr(id, 'fan_speed', null);
+  const suction = fanList.length <= 4 ? fanList.map(v => [v, SUCTION.find(x => x[2].test(v))?.[1] || String(v).replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())])
+    : SUCTION.map(([, l, re]) => [fanList.find(v => re.test(v)), l]).filter(x => x[0]);
+  const mopSw = f('mopp', 'switch', 'mop', 'mopping', 'mop_mode');
+  const mopSel = mopSw ? null : ha.first('mopp_modus', P('select', 'mop_intensity', 'mop_mode', 'water_box_mode', 'mop_pad_humidity'));
+  const dnd = f('stille', 'switch', 'do_not_disturb', 'dnd');
+  const tval = x => String(ha.val(x, '')).slice(0, 5);
+  const dndSub = (() => { const b = f('stille_start', 'time', 'do_not_disturb_begin', 'dnd_start'), e = f('stille_slutt', 'time', 'do_not_disturb_end', 'dnd_end'); return b && e ? `${tval(b)}–${tval(e)}` : 'Ikke forstyrr'; })();
+  const toggles = [];
+  if (mopSw) toggles.push(['water_drop', 'Mopp', 'Mopper etter støvsuging', ha.on(mopSw, false), () => ha.toggle(mopSw), mopSw]);
+  else if (mopSel) { const opts = ha.attr(mopSel, 'options', []) || [], cur = ha.val(mopSel, 'off'), on = cur !== 'off' && !/^(off|av|none)$/i.test(cur); toggles.push(['water_drop', 'Mopp', on ? `Moppintensitet: ${cur}` : 'Mopper etter støvsuging', on, () => ha.select(mopSel, on ? (opts.find(o => /^(off|none)$/i.test(o)) || 'off') : (opts.find(o => !/^(off|none)$/i.test(o)) || cur)), mopSel]); }
+  if (dnd) toggles.push(['do_not_disturb_on', 'Stille timer', dndSub, ha.on(dnd, false), () => ha.toggle(dnd), dnd]);
+  const last = lastId ? new Date(ha.val(lastId, '')) : null;
+  const area = ha.num(areaId, NaN);
+  return { id, obj, st, status, raw, battery: Number.isFinite(battery) ? battery : 0, prog: ha.num(progId, NaN), area, mins: hoursOf(timeId) * 60, last, room: roomId ? ha.val(roomId, '') : '', parts, stats, rooms, zones, suction, fan, toggles,
+    empty: ha.first('tom', P('button', 'empty_bin', 'empty_dustbin', 'start_empty', 'evacuate', 'self_empty')), P };
+}
 class Component extends DCLogic {
   state = { tab: 'clean', status: 'docked', battery: 100, sel: [], zone: null, prog: 0, suction: 'std', mop: false, quiet: true,
-    parts: [['Hovedbørste', 72, 300], ['Sidebørste', 41, 200], ['Filter', 12, 150], ['Sensorer', 88, 30]] };
+    parts: DEMO_PARTS };
   componentDidMount() { this.t = setInterval(() => this.tick(), 800); }
   componentWillUnmount() { clearInterval(this.t); }
   tick() {
+    if (this.L) return; // live: no simulation
     const s = this.state;
     if (s.status === 'cleaning') { const p = s.prog + 3; this.setState(p >= 100 ? { prog: 100, status: 'returning' } : { prog: p, battery: Math.max(5, s.battery - 0.6) }); }
     else if (s.status === 'returning') { this.setState({ status: 'docked', prog: 0 }); }
     else if (s.status === 'docked' && s.battery < 100) this.setState({ battery: Math.min(100, s.battery + 1) });
   }
+  liveStart() {
+    const L = this.L, s = this.state;
+    if (L.status === 'paused' && !s.sel.length && !s.zone) return ha.call('vacuum', 'start', { entity_id: L.id });
+    const cmd = ha.config.room_command || 'app_segment_clean';
+    if (s.zone) {
+      const z = L.zones.find(x => x.name === s.zone); const r = z && z.raw;
+      if (r && r.service) { const [d, sv] = r.service.split('.'); return ha.call(d, sv, r.data || {}); }
+      if (r && r.entity) return ha.call(r.entity.split('.')[0] === 'script' ? 'script' : 'homeassistant', 'turn_on', { entity_id: r.entity });
+      if (r && r.zone) return ha.call('vacuum', 'send_command', { entity_id: L.id, command: 'app_zoned_clean', params: [[...r.zone, r.repeat || 1]] });
+    }
+    if (s.sel.length) {
+      const rs = s.sel.map(k => L.rooms.find(r => r[0] === k)).filter(Boolean).map(r => r[5]);
+      const segs = rs.map(r => r.segment ?? r.id).filter(x => x !== undefined && x !== null);
+      if (segs.length) return ha.call('vacuum', 'send_command', { entity_id: L.id, command: cmd, params: cmd === 'app_segment_clean' ? [{ segments: segs, repeat: 1 }] : segs });
+    }
+    return ha.call('vacuum', 'start', { entity_id: L.id });
+  }
   renderVals() {
-    const s = this.state, b = Math.round(s.battery), st = s.status;
+    const L = this.L = loadLive();
+    const s = this.state, b = Math.round(L ? L.battery : s.battery), st = L ? L.status : s.status;
+    const rooms = L ? L.rooms : ROOMS, zoneNames = L ? L.zones.map(z => z.name) : ZONES;
+    const parts = L ? L.parts.map(p => [p.name, p.pct, p.life]) : s.parts;
+    const prog = L ? (Number.isFinite(L.prog) ? L.prog : 0) : s.prog;
     const n = 24, filled = Math.round(b / 100 * n);
-    const col = st === 'cleaning' ? C.green : st === 'paused' ? C.amber : st === 'returning' ? C.blue : C.green;
-    const target = s.zone ? [s.zone] : s.sel.length ? s.sel.map(id => ROOMS.find(r => r[0] === id)[1]) : ['hele huset'];
-    const labels = { docked: b < 100 ? 'Lader i dokken' : 'I dokken', cleaning: 'Støvsuger', paused: 'Pause', returning: 'På vei hjem' };
-    const headline = st === 'cleaning' ? `Støvsuger ${target.join(', ').toLowerCase()}` : st === 'paused' ? 'Satt på pause' : st === 'returning' ? 'Ferdig, kjører hjem' : 'Klar til å støvsuge';
+    const col = st === 'cleaning' ? C.green : st === 'paused' ? C.amber : st === 'returning' ? C.blue : st === 'error' ? 'rgb(242 128 115)' : C.green;
+    const target = s.zone ? [s.zone] : s.sel.length ? s.sel.map(id => (rooms.find(r => r[0] === id) || [, '?'])[1]) : ['hele huset'];
+    const labels = { docked: b < 100 ? 'Lader i dokken' : 'I dokken', cleaning: 'Støvsuger', paused: 'Pause', returning: 'På vei hjem', idle: 'Klar', error: 'Feil' };
+    const headline = st === 'cleaning' ? (L ? (L.room ? `Støvsuger ${L.room.toLowerCase()}` : 'Støvsuger') : `Støvsuger ${target.join(', ').toLowerCase()}`) : st === 'paused' ? 'Satt på pause' : st === 'returning' ? 'Ferdig, kjører hjem' : st === 'error' ? 'Trenger hjelp' : 'Klar til å støvsuge';
     const tab = (k, l) => ({ label: l, go: () => this.setState({ tab: k }), style: { height: 38, borderRadius: 16, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: s.tab === k ? PINK : 'transparent', color: s.tab === k ? '#2a1720' : '#979797' } });
-    const start = () => this.setState({ status: 'cleaning', prog: st === 'paused' ? s.prog : 0 });
+    const start = () => L ? this.liveStart() : this.setState({ status: 'cleaning', prog: st === 'paused' ? s.prog : 0 });
+    const pause = () => L ? ha.call('vacuum', 'pause', { entity_id: L.id }) : this.setState({ status: 'paused' });
     const toggleSel = id => this.setState({ zone: null, sel: s.sel.includes(id) ? s.sel.filter(x => x !== id) : [...s.sel, id] });
     const sw = (on) => ({ track: { position: 'relative', width: 46, height: 28, borderRadius: 14, flex: 'none', background: on ? 'rgb(102 209 158)' : '#3a3a3a', transition: 'background .2s' }, knob: { position: 'absolute', top: 3, left: on ? 21 : 3, width: 22, height: 22, borderRadius: 11, background: '#fafafa', transition: 'left .2s' } });
-    const rp = ROOMS.find(r => r[0] === (s.sel[0] || 'sov'))[4];
-    const t = s.prog / 100;
+    const rp = ((L ? rooms.find(r => L.room && r[1].toLowerCase() === L.room.toLowerCase()) || rooms.find(r => r[0] === s.sel[0]) || rooms[0] : ROOMS.find(r => r[0] === (s.sel[0] || 'sov'))) || [, , , , [4, 4, 44, 34]])[4];
+    const t = prog / 100;
+    let subline;
+    if (!L) subline = st === 'cleaning' ? `${Math.round(s.prog)} % ferdig · ca. ${Math.max(1, Math.round((100 - s.prog) / 6))} min igjen` : 'Sist støvsuget i går 14:20 · 42 m²';
+    else if (st === 'cleaning') subline = [Number.isFinite(L.prog) ? `${Math.round(L.prog)} % ferdig` : '', Number.isFinite(L.mins) ? `${Math.round(L.mins)} min` : '', Number.isFinite(L.area) ? `${fmt(L.area)} m²` : ''].filter(Boolean).join(' · ') || labels[st];
+    else if (st === 'error') subline = ha.attr(L.id, 'error', '') || ha.val(ha.first('feil', L.P('sensor', 'vacuum_error', 'error')), '') || 'Sjekk støvsugeren';
+    else { const w = whenText(L.last); subline = [w ? `Sist støvsuget ${w}` : '', Number.isFinite(L.area) ? `${fmt(L.area)} m²` : ''].filter(Boolean).join(' · ') || labels[st]; }
+    const fanCur = L ? L.fan : s.suction;
+    const mainStart = { icon: 'play_arrow', label: st === 'paused' && !(L && (s.sel.length || s.zone)) ? 'Fortsett' : s.zone ? `Støvsug ${s.zone.toLowerCase()}` : s.sel.length ? `Støvsug ${s.sel.length} rom` : 'Støvsug alt', go: start, style: { height: 64, borderRadius: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 16, fontWeight: 600, background: C.green, color: '#10231a' } };
     return {
+      title: L ? ha.name(L.id, 'Støvsuger') : 'Sir Sweeps',
       ring: Array.from({ length: n }, (_, i) => ({ position: 'absolute', left: 'calc(50% - 4px)', top: 'calc(50% - 14px)', width: 8, height: 28, borderRadius: 4, transform: `rotate(${i * 15}deg) translateY(-102px)`, background: i < filled ? col : '#3a3a3a', boxShadow: i < filled && st === 'cleaning' ? `0 0 12px ${a(col, 0.6)}` : 'none', transition: 'background .4s' })),
-      coreIcon: { fontSize: 28, color: col, fontVariationSettings: "'FILL' 1" }, coreIconName: st === 'docked' ? 'battery_charging_full' : 'robot_2',
-      battery: b, coreSub: labels[st], headline,
-      subline: st === 'cleaning' ? `${Math.round(s.prog)} % ferdig · ca. ${Math.max(1, Math.round((100 - s.prog) / 6))} min igjen` : 'Sist støvsuget i går 14:20 · 42 m²',
+      coreIcon: { fontSize: 28, color: col, fontVariationSettings: "'FILL' 1" }, coreIconName: st === 'docked' ? 'battery_charging_full' : st === 'error' ? 'error' : 'robot_2',
+      battery: b, coreSub: labels[st], headline, subline,
       tabs: [tab('clean', 'Renhold'), tab('control', 'Kontroll'), tab('info', 'Info'), tab('map', 'Kart')],
       isClean: s.tab === 'clean', isControl: s.tab === 'control', isInfo: s.tab === 'info', isMap: s.tab === 'map',
-      selMeta: s.sel.length ? `${s.sel.length} valgt` : 'Ingen valgt · hele huset',
-      rooms: ROOMS.slice(0, 5).map(([id, name, icon, m2]) => { const on = s.sel.includes(id); return { name, icon, sub: `${m2} m²`, tap: () => toggleSel(id),
+      selMeta: s.sel.length ? `${s.sel.length} valgt` : L && !rooms.length ? 'Legg til rom i kortkonfig' : 'Ingen valgt · hele huset',
+      rooms: (L ? rooms : rooms.slice(0, 5)).map(([id, name, icon, m2]) => { const on = s.sel.includes(id); return { name, icon, sub: m2 ? `${m2} m²` : '', tap: () => toggleSel(id),
         style: { position: 'relative', height: 104, borderRadius: 22, padding: 16, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-start', background: on ? a(C.green, 0.14) : '#2f2f2f', boxShadow: on ? `inset 0 0 0 1px ${a(C.green, 0.45)}` : 'inset 0 0 0 1px rgba(255,255,255,0.04)', transition: 'background .2s' },
         iconStyle: { fontSize: 24, color: on ? C.green : '#979797', fontVariationSettings: `'FILL' ${on ? 1 : 0}` },
         check: { position: 'absolute', right: 14, top: 14, fontSize: 20, color: C.green, opacity: on ? 1 : 0, fontVariationSettings: "'FILL' 1", transition: 'opacity .2s' } }; }),
-      zones: ZONES.map(z => { const on = s.zone === z; return { name: z, tap: () => this.setState({ zone: on ? null : z, sel: [] }),
+      zones: zoneNames.map(z => { const on = s.zone === z; return { name: z, tap: () => this.setState({ zone: on ? null : z, sel: [] }),
         style: { flex: 'none', height: 40, padding: '0 14px 0 10px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: on ? a(C.green, 0.14) : '#2f2f2f', color: on ? '#fafafa' : '#afafaf', boxShadow: on ? `inset 0 0 0 1px ${a(C.green, 0.45)}` : 'inset 0 0 0 1px rgba(255,255,255,0.04)' } }; }),
       controls: [
-        { icon: st === 'cleaning' ? 'pause' : 'play_arrow', label: st === 'cleaning' ? 'Pause' : 'Start', go: () => st === 'cleaning' ? this.setState({ status: 'paused' }) : start() },
-        { icon: 'home', label: 'Dokk', go: () => this.setState({ status: 'returning' }) },
-        { icon: 'location_searching', label: 'Finn', go: () => {} },
-        { icon: 'delete', label: 'Tøm', go: () => {} },
+        { icon: st === 'cleaning' ? 'pause' : 'play_arrow', label: st === 'cleaning' ? 'Pause' : 'Start', go: () => st === 'cleaning' ? pause() : start() },
+        { icon: 'home', label: 'Dokk', go: () => L ? ha.call('vacuum', 'return_to_base', { entity_id: L.id }) : this.setState({ status: 'returning' }) },
+        { icon: 'location_searching', label: 'Finn', go: () => L ? ha.call('vacuum', 'locate', { entity_id: L.id }) : null },
+        { icon: 'delete', label: 'Tøm', go: () => L ? (L.empty ? ha.press(L.empty) : ha.moreInfo(L.id)) : null },
       ],
-      suction: [['quiet','Stille'],['std','Standard'],['turbo','Turbo'],['max','Maks']].map(([k, l]) => ({ label: l, go: () => this.setState({ suction: k }), style: { height: 38, borderRadius: 14, fontSize: 13, fontWeight: 500, background: s.suction === k ? '#fafafa' : 'transparent', color: s.suction === k ? '#232323' : '#979797' } })),
-      toggles: [['water_drop','Mopp','Mopper etter støvsuging','mop'],['do_not_disturb_on','Stille timer','22:00–08:00','quiet']].map(([icon, title, sub, k], i) => ({ icon, title, sub, go: () => this.setState({ [k]: !s[k] }), ...sw(s[k]),
+      suction: (L ? L.suction : [['quiet','Stille'],['std','Standard'],['turbo','Turbo'],['max','Maks']]).map(([k, l]) => ({ label: l, go: () => L ? ha.call('vacuum', 'set_fan_speed', { entity_id: L.id, fan_speed: k }) : this.setState({ suction: k }), style: { height: 38, borderRadius: 14, fontSize: 13, fontWeight: 500, background: fanCur === k ? '#fafafa' : 'transparent', color: fanCur === k ? '#232323' : '#979797' } })),
+      toggles: (L ? L.toggles : [['water_drop','Mopp','Mopper etter støvsuging','mop'],['do_not_disturb_on','Stille timer','22:00–08:00','quiet']].map(([icon, title, sub, k]) => [icon, title, sub, s[k], () => this.setState({ [k]: !s[k] })]))
+        .map(([icon, title, sub, on, go], i) => ({ icon, title, sub, go, ...sw(on),
         row: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 4px', width: '100%', borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none' } })),
-      stats: [['Totalt', '312 t'], ['Areal', '8 420 m²'], ['Turer', '214']].map(([label, v]) => ({ label, v })),
-      parts: s.parts.map(([name, pct, life], i) => { const low = pct < 20; return { name, low, val: `${pct} % · ${Math.round(pct / 100 * life)} t`,
-        reset: () => this.setState(st2 => ({ parts: st2.parts.map((p, j) => j === i ? [p[0], 100, p[2]] : p) })),
+      stats: (L ? L.stats : DEMO_STATS).map(([label, v]) => ({ label, v })),
+      parts: parts.map(([name, pct, life], i) => { const low = pct < 20; return { name, low, val: `${pct} % · ${Math.round(pct / 100 * life)} t`,
+        reset: () => L ? (L.parts[i].btn ? ha.press(L.parts[i].btn) : ha.moreInfo(L.parts[i].sid)) : this.setState(st2 => ({ parts: st2.parts.map((p, j) => j === i ? [p[0], 100, p[2]] : p) })),
         row: { display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 4px', borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none' },
         valStyle: { fontSize: 12, color: low ? C.amber : '#7f7f7f', fontVariantNumeric: 'tabular-nums' },
         bar: { width: `${pct}%`, height: '100%', borderRadius: 3, background: low ? C.amber : C.green } }; }),
-      mapRooms: ROOMS.map(([id, name, , , [x, y, w, h]]) => { const on = s.sel.includes(id); return { name, tap: () => toggleSel(id),
+      mapRooms: rooms.map(([id, name, , , [x, y, w, h]]) => { const on = s.sel.includes(id); return { name, tap: () => toggleSel(id),
         style: { position: 'absolute', left: `${x}%`, top: `${y}%`, width: `${w}%`, height: `${h}%`, borderRadius: 10, display: 'grid', placeItems: 'center', background: on ? a(C.green, 0.3) : '#3a3a3a', boxShadow: on ? `inset 0 0 0 1.5px ${C.green}` : 'none', color: on ? '#fafafa' : '#979797', transition: 'background .2s' } }; }),
       robot: { position: 'absolute', left: `calc(${st === 'cleaning' || st === 'paused' ? rp[0] + rp[2] * (0.15 + 0.7 * ((t * 5) % 1)) : 9}% - 9px)`, top: `calc(${st === 'cleaning' || st === 'paused' ? rp[1] + rp[3] * (0.2 + 0.6 * t) : 82}% - 9px)`, width: 18, height: 18, borderRadius: 9, background: '#fafafa', boxShadow: `0 0 0 4px ${a(col, 0.35)}`, transition: 'left .8s linear, top .8s linear' },
       main: st === 'cleaning'
-        ? { icon: 'pause', label: 'Pause', go: () => this.setState({ status: 'paused' }), style: { height: 64, borderRadius: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 16, fontWeight: 600, background: a(C.amber, 0.16), color: '#fafafa', boxShadow: `inset 0 0 0 1px ${a(C.amber, 0.45)}` } }
-        : { icon: 'play_arrow', label: st === 'paused' ? 'Fortsett' : s.zone ? `Støvsug ${s.zone.toLowerCase()}` : s.sel.length ? `Støvsug ${s.sel.length} rom` : 'Støvsug alt', go: start, style: { height: 64, borderRadius: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 16, fontWeight: 600, background: C.green, color: '#10231a' } },
+        ? { icon: 'pause', label: 'Pause', go: pause, style: { height: 64, borderRadius: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 16, fontWeight: 600, background: a(C.amber, 0.16), color: '#fafafa', boxShadow: `inset 0 0 0 1px ${a(C.amber, 0.45)}` } }
+        : mainStart,
     };
   }
 }

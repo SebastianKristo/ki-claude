@@ -135,18 +135,18 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:440,&quot;height&quot;:1000}}">
 const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
 const GREEN = 'rgb(102 209 158)', ORANGE = 'rgb(242 181 115)', RED = 'rgb(242 128 115)';
-const INTS = [
+const DEMO_INTS = [
   ['unifi', 'Nettverk', 'UniFi Network', 'router', 'rgb(115 185 242)'],
   ['proxmox', 'Proxmox', 'Proxmox VE', 'deployed_code', 'rgb(242 181 115)'],
   ['unraid', 'Unraid', 'Unraid', 'storage', 'rgb(242 128 115)'],
 ];
-const DEVS = [
+const DEMO_DEVS = [
   ['unifi', 'udm', 'Ruter', 'router', true], ['unifi', 'sw', 'Switch', 'lan', true], ['unifi', 'ap', 'AP', 'wifi', true],
   ['proxmox', 'pve', 'pve-01', 'dns', true], ['proxmox', 'vm-ha', 'HomeAssistant', 'home', true], ['proxmox', 'vm-frig', 'Frigate', 'videocam', true], ['proxmox', 'vm-plex', 'Plex', 'movie', false],
   ['unraid', 'array', 'Array', 'hard_drive', true], ['unraid', 'docker', 'Docker', 'deployed_code_history', true],
 ];
 // id, int, dev, name, icon, val, role
-const ENTS = [
+const DEMO_ENTS = [
   ['sensor.google_latency', 'unifi', 'udm', 'Google latency', 'speed', '10 ms', 'sum'],
   ['sensor.cloudflare_latency', 'unifi', 'udm', 'Cloudflare latency', 'speed', '9 ms', 'sum'],
   ['sensor.udm_cpu', 'unifi', 'udm', 'CPU', 'memory', '30.5%', 'graph'],
@@ -191,8 +191,72 @@ const ENTS = [
   ['button.unraid_parity_check', 'unraid', 'docker', 'Paritetssjekk', 'fact_check', 'Handling', 'action'],
 ];
 const ROLES = [['sum', 'Oppsummering', 'vertical_align_top'], ['detail', 'Detalj', 'grid_view'], ['graph', 'Graf', 'show_chart'], ['action', 'Handling', 'touch_app'], ['hide', 'Skjult', 'visibility_off']];
-const SOURCES = { unifi: ['UniFi Network', 'Omada', 'pfSense', 'OpenWrt'], proxmox: ['Proxmox VE', 'VMware ESXi', 'Unraid VM-er'], unraid: ['Unraid', 'TrueNAS', 'Synology DSM'] };
+const DEMO_SOURCES = { unifi: ['UniFi Network', 'Omada', 'pfSense', 'OpenWrt'], proxmox: ['Proxmox VE', 'VMware ESXi', 'Unraid VM-er'], unraid: ['Unraid', 'TrueNAS', 'Synology DSM'] };
+let INTS = DEMO_INTS, DEVS = DEMO_DEVS, ENTS = DEMO_ENTS, SOURCES = DEMO_SOURCES;
+
+// ── Live-kobling: serverintegrasjoner (UniFi/Omada/pfSense/OPNsense/OpenWrt, Proxmox VE,
+// Unraid/TrueNAS/Synology/QNAP, System Monitor/Glances) ─────────────────────────────────────
+// Integrasjoner, enheter og entiteter hentes fra entitetsregisteret (platform + device_id).
+// Roller (oppsummering/detalj/graf/handling/skjult), navn og rekkefølge settes i «Tilpass» og
+// lagres i localStorage (server-cfg) som i designet. `server.skjul: [entity_id…]` i kortkonfig
+// skjuler entiteter, `server.integrasjoner: { nettverk: [plattform…], … }` overstyrer kildene.
+const GROUPS = [
+  ['unifi', 'Nettverk', 'UniFi Network', 'router', 'rgb(115 185 242)', [['unifi', 'UniFi Network'], ['tplink_omada', 'Omada'], ['pfsense', 'pfSense'], ['opnsense', 'OPNsense'], ['luci', 'OpenWrt'], ['openwrt', 'OpenWrt'], ['fritz', 'FRITZ!Box'], ['asuswrt', 'ASUS'], ['netgear', 'Netgear'], ['mikrotik', 'MikroTik'], ['speedtestdotnet', 'Speedtest']]],
+  ['proxmox', 'Proxmox', 'Proxmox VE', 'deployed_code', 'rgb(242 181 115)', [['proxmoxve', 'Proxmox VE'], ['proxmox', 'Proxmox VE'], ['vmware', 'VMware ESXi']]],
+  ['unraid', 'Unraid', 'Unraid', 'storage', 'rgb(242 128 115)', [['unraid', 'Unraid'], ['truenas', 'TrueNAS'], ['synology_dsm', 'Synology DSM'], ['qnap', 'QNAP'], ['portainer', 'Portainer']]],
+  ['system', 'System', 'Systemovervåking', 'monitor_heart', 'rgb(102 209 158)', [['systemmonitor', 'System Monitor'], ['glances', 'Glances'], ['hassio', 'Home Assistant Supervisor']]],
+];
+const ICONRULES = [[/latency|ping|latens/i, 'speed'], [/cpu|processor/i, 'memory'], [/memory|minne|ram|swap/i, 'developer_board'], [/uptime|oppetid|last_boot|boot_time/i, 'schedule'], [/clients|klienter|users/i, 'group'], [/temp/i, 'thermostat'],
+  [/disk|storage|lagring|volume|array|pool|used|brukt/i, 'hard_drive'], [/parity|paritet/i, 'verified'], [/cache/i, 'bolt'], [/poe|power|effekt|watt/i, 'bolt'], [/port/i, 'cable'], [/tx|rx|throughput|traffic|trafikk|download|upload|network|bandwidth/i, 'swap_vert'],
+  [/signal|rssi/i, 'signal_cellular_alt'], [/load|last/i, 'monitoring'], [/container|docker/i, 'deployed_code'], [/restart|reboot/i, 'restart_alt'], [/shutdown|stop/i, 'stop'], [/start/i, 'play_arrow'], [/update|firmware|fastvare/i, 'update']];
+const devIcon = n => /udm|dream|gateway|router|usg|ruter|fritz|pfsense|opnsense/i.test(n) ? 'router' : /switch|usw/i.test(n) ? 'lan' : /\bap\b|u6|u7|uap|access|nano|lite|pro\b/i.test(n) ? 'wifi' : /home ?assistant|haos/i.test(n) ? 'home' : /frigate|nvr|camera|kamera/i.test(n) ? 'videocam' : /plex|jellyfin|emby|media/i.test(n) ? 'movie' : /array|nas|disk|pool|synology|truenas/i.test(n) ? 'hard_drive' : /docker|container/i.test(n) ? 'deployed_code_history' : /node|pve|server|host|proxmox/i.test(n) ? 'dns' : 'deployed_code';
+const fmtVal = id => { const st = ha.state(id); if (!st) return '–'; const d = id.split('.')[0], v = st.state, a = st.attributes || {};
+  if (d === 'button') return 'Handling'; if (['unavailable', 'unknown'].includes(v)) return 'Utilgjengelig';
+  if (d === 'binary_sensor') return a.device_class === 'running' || /status|running/i.test(id) ? (v === 'on' ? 'Kjører' : 'Stoppet') : a.device_class === 'connectivity' ? (v === 'on' ? 'Tilkoblet' : 'Frakoblet') : v === 'on' ? 'På' : 'Av';
+  if (d === 'switch') return v === 'on' ? 'På' : 'Av'; if (d === 'update') return v === 'on' ? `Ny: ${a.latest_version || 'oppdatering'}` : 'Oppdatert';
+  if (a.device_class === 'timestamp') { const s = (Date.now() - new Date(v)) / 1000; const dd = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600); return dd ? `${dd} d ${h} t` : `${h} t ${Math.floor(s % 3600 / 60)} min`; }
+  const n = parseFloat(v), u = a.unit_of_measurement || '';
+  if (!Number.isFinite(n) || !/^-?[\d.]+(e[-+]?\d+)?$/i.test(v)) return v;
+  const t = String(Math.round(n * 100) / 100); return u === '%' ? `${t}%` : /°/.test(u) ? `${t}°` : u ? `${t} ${u}` : t; };
+function loadLive(cfg) {
+  const ents = ha.hass?.entities || {}, devices = ha.hass?.devices || {}, hide = new Set(ha.config.server?.skjul || []);
+  const byPlat = {}; Object.keys(ents).forEach(id => { const e = ents[id]; if (!ha.hass.states[id] || e.hidden || e.disabled_by || e.hidden_by) return; (byPlat[e.platform] = byPlat[e.platform] || []).push(id); });
+  const ints = [], devs = [], list = [], srcs = {};
+  GROUPS.forEach(([k, label, full, icon, col, plats]) => {
+    const over = ha.config.server?.integrasjoner?.[k];
+    const present = (over ? over.map(p => [p, p]) : plats).filter(([p]) => byPlat[p]);
+    if (!present.length) return;
+    srcs[k] = [...new Set(present.map(x => x[1]))];
+    const chosen = present.filter(x => x[1] === (cfg.src?.[k] || srcs[k][0]));
+    const use = chosen.length ? chosen : present.filter(x => x[1] === srcs[k][0]);
+    ints.push([k, label, use[0][1], icon, col]);
+    const devMap = {};
+    use.flatMap(([p]) => byPlat[p]).sort().forEach(id => { if (hide.has(id)) return; const e = ents[id], did = e.device_id || ('plat:' + e.platform);
+      const dn = devices[e.device_id]?.name_by_user || devices[e.device_id]?.name || use[0][1];
+      (devMap[did] = devMap[did] || { dn, ids: [] }).ids.push(id); });
+    Object.entries(devMap).forEach(([did, { dn, ids }], di) => {
+      const run = ids.find(id => id.startsWith('binary_sensor.') && (ha.attr(id, 'device_class') === 'running' || /status|running/i.test(id)));
+      const online = run ? ha.val(run) === 'on' : ids.some(id => !['unavailable', 'unknown'].includes(ha.state(id)?.state));
+      devs.push([k, did, dn, devIcon(dn + ' ' + (devices[did]?.model || '')), online]);
+      let graph = false;
+      ids.forEach(id => { const st = ha.state(id), dom = id.split('.')[0], ec = ents[id].entity_category;
+        const nmRaw = String(st.attributes.friendly_name || id).replace(new RegExp('^' + dn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*', 'i'), '') || dn;
+        const numeric = dom === 'sensor' && Number.isFinite(parseFloat(st.state)) && st.attributes.unit_of_measurement;
+        let role = dom === 'button' ? 'action' : ec === 'config' ? 'hide' : 'detail';
+        if (di === 0 && numeric && /cpu|processor|memory|minne|latency|ping/i.test(id) && list.filter(x => x[1] === k && x[6] === 'sum').length < 4) role = 'sum';
+        else if (!graph && numeric && /cpu|load|throughput|clients|tx|rx|traffic/i.test(id)) { role = 'graph'; graph = true; }
+        const icon = (ICONRULES.find(([r]) => r.test(id + ' ' + nmRaw)) || [0, dom === 'binary_sensor' ? (ha.val(id) === 'on' ? 'play_circle' : 'stop_circle') : dom === 'switch' ? 'toggle_on' : 'sensors'])[1];
+        list.push([id, k, did, nmRaw.charAt(0).toUpperCase() + nmRaw.slice(1), icon, fmtVal(id), role]); });
+    });
+  });
+  return ints.length ? { ints, devs, list, srcs } : null;
+}
 const CFG0 = { src: {}, on: { unifi: true, proxmox: true, unraid: true }, role: {}, name: {}, order: {} };
+// 24 t historikk → 60 punkter skalert til 10–90 (flat linje mens data lastes)
+const histWave = id => { const h = ha.history(id, 24) || [], cur = ha.num(id, 0); if (!h.length) return Array(60).fill(50);
+  const t0 = Date.now() - 24 * 3600e3, out = []; let j = 0, last = h[0].v;
+  for (let i = 0; i < 60; i++) { const t = t0 + i / 59 * 24 * 3600e3; while (j < h.length && h[j].t.getTime() <= t) last = h[j++].v; out.push(i === 59 ? cur : last); }
+  const lo = Math.min(...out), hi = Math.max(...out), r = hi - lo || 1; return out.map(v => 15 + (v - lo) / r * 65); };
 const wave = seed => Array.from({ length: 60 }, (_, i) => 50 + Math.sin(i * 0.9 + seed) * 18 + Math.sin(i * 2.3 + seed * 2) * 12 + Math.sin(i * 0.31) * 8);
 const TABORD = (comp, key, list) => {
   const LK = 'tab-order:' + key; let ord = null; try { ord = JSON.parse(localStorage.getItem(LK) || 'null'); } catch (e) {}
@@ -226,9 +290,12 @@ class Component extends DCLogic {
   renderVals() { return this.__tabWrap(this.__rv()); }
   __rv() {
     const s = this.state, c = s.cfg;
+    const L = this.L = ha.live ? loadLive(c) : null;
+    if (L) { INTS = L.ints; DEVS = L.devs; ENTS = L.list; SOURCES = L.srcs; } else { INTS = DEMO_INTS; DEVS = DEMO_DEVS; ENTS = DEMO_ENTS; SOURCES = DEMO_SOURCES; }
+    const isOn = k => c.on[k] !== false;
     const role = e => c.role[e[0]] || e[6], nm = e => c.name[e[0]] || e[3];
     const sorted = list => { const ids = list.map(e => e[0]); return [...list].sort((a, b) => (c.order[a[0]] ?? ids.indexOf(a[0])) - (c.order[b[0]] ?? ids.indexOf(b[0]))); };
-    const ints = INTS.filter(i => c.on[i[0]]);
+    const ints = INTS.filter(i => isOn(i[0]));
     const tab = ints.find(i => i[0] === s.tab) ? s.tab : ints[0]?.[0];
     const devs = DEVS.filter(d => d[0] === tab);
     const devId = devs.find(d => d[1] === s.dev[tab]) ? s.dev[tab] : devs[0]?.[1];
@@ -238,13 +305,13 @@ class Component extends DCLogic {
     const pill = (on, go, label, icon) => ({ label, icon, go, style: { flex: 'none', height: 32, padding: icon ? '0 14px 0 10px' : '0 14px', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: on ? PINK : 'transparent', color: on ? '#2a1720' : '#979797', boxShadow: on ? 'none' : 'inset 0 0 0 1px rgba(255,255,255,0.18)' } });
     const pts = arr => arr.map((v, i) => `${(i / 59 * 300).toFixed(1)},${(100 - v).toFixed(1)}`).join(' ');
     const detailPill = e => { const act = role(e) === 'action', off = /Stoppet|Av/.test(e[5]);
-      return { icon: e[4], v: act ? nm(e) : e[5], name: act ? 'Handling' : nm(e), go: () => {},
+      return { icon: e[4], v: act ? nm(e) : e[5], name: act ? 'Handling' : nm(e), go: () => { if (!ha.state(e[0])) return; const d = e[0].split('.')[0]; if (d === 'button') { if (/restart|reboot|shutdown|stop/i.test(e[0]) && !window.confirm(`${nm(e)}?`)) return; ha.press(e[0]); } else if (d === 'switch') ha.toggle(e[0]); else ha.moreInfo(e[0]); },
         style: { display: 'flex', alignItems: 'center', gap: 12, height: 64, padding: '0 12px 0 6px', borderRadius: 32, minWidth: 0, background: act ? ORANGE : '#2f2f2f', color: act ? '#2a1d0e' : '#fafafa' },
         iconWrap: { width: 52, height: 52, borderRadius: 26, flex: 'none', display: 'grid', placeItems: 'center', background: act ? 'rgba(0,0,0,0.1)' : '#3a3a3a' },
         iconStyle: { fontSize: 24, color: off ? RED : 'inherit' },
         lStyle: { fontSize: 12, color: act ? 'rgba(42,29,14,0.75)' : '#979797', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }; };
     const sw = on => ({ track: { position: 'relative', width: 44, height: 26, borderRadius: 13, flex: 'none', background: on ? GREEN : '#545454', transition: 'background .2s' }, knob: { position: 'absolute', top: 3, left: on ? 21 : 3, width: 20, height: 20, borderRadius: 10, background: on ? '#1f2a24' : '#c7c7c7', transition: 'left .2s' } });
-    const vis = ENTS.filter(e => c.on[e[1]] && role(e) !== 'hide').length;
+    const vis = ENTS.filter(e => isOn(e[1]) && role(e) !== 'hide').length;
     return {
       tabs: ints.map(([k, label]) => ({ label, go: () => this.setState({ tab: k }), style: { height: 34, padding: '0 14px', borderRadius: 17, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: k === tab ? PINK : 'transparent', color: k === tab ? '#2a1720' : '#afafaf' } })),
       srcLabel: tab ? `Henter fra ${c.src?.[tab] || SOURCES[tab][0]}` : '',
@@ -255,13 +322,13 @@ class Component extends DCLogic {
       dev: D ? { icon: D[3], title: `${D[2]}: ${D[4] ? 'Online' : 'Stoppet'}`, sub: devEnts.filter(e => role(e) !== 'hide' && role(e) !== 'action').slice(0, 2).map(e => `${nm(e)} ${e[5]}`).join(' • '),
         pill: { display: 'flex', alignItems: 'center', gap: 14, height: 66, padding: '0 16px 0 6px', borderRadius: 33, background: D[4] ? GREEN : '#3a3a3a', color: D[4] ? '#1f2a24' : '#fafafa' },
         iconWrap: { width: 56, height: 56, borderRadius: 28, flex: 'none', display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,0.1)' } } : {},
-      graphs: devEnts.filter(e => role(e) === 'graph').map((e, i) => { const l = pts(wave(e[0].length + i)); return { name: nm(e), v: e[5], line: l, area: `0,100 ${l} 300,100` }; }),
+      graphs: devEnts.filter(e => role(e) === 'graph').map((e, i) => { const l = pts(L ? histWave(e[0]) : wave(e[0].length + i)); return { name: nm(e), v: e[5], line: l, area: `0,100 ${l} 300,100` }; }),
       details: devEnts.filter(e => role(e) === 'detail' || role(e) === 'action').map(detailPill),
       ed: { open: s.edOpen, close: () => this.setState({ edOpen: false }), reset: () => this.save({ role: {}, name: {}, order: {} }),
-        summary: `${INTS.filter(i => c.on[i[0]]).length} integrasjoner · ${vis} entiteter vises`,
+        summary: `${INTS.filter(i => isOn(i[0])).length} integrasjoner · ${vis} entiteter vises`,
         scan: () => { this.setState({ scanning: true }); clearTimeout(this.st); this.st = setTimeout(() => this.setState({ scanning: false }), 1600); },
         scanLabel: s.scanning ? 'Skanner…' : 'Skann', scanIcon: { fontSize: 18, animation: s.scanning ? 'spin 1s linear infinite' : 'none' },
-        ints: INTS.map(([k, label, full, icon, col]) => { const on = !!c.on[k], open = !!s.exp[k], all = sorted(ENTS.filter(e => e[1] === k)), t = sw(on);
+        ints: INTS.map(([k, label, full, icon, col]) => { const on = isOn(k), open = !!s.exp[k], all = sorted(ENTS.filter(e => e[1] === k)), t = sw(on);
           const src = (c.src || {})[k] || SOURCES[k][0];
           return { name: full, label, icon, open, src, srcOpts: SOURCES[k], setSrc: ev => this.save({ src: { ...(c.src || {}), [k]: ev.target.value } }), meta: `${DEVS.filter(d => d[0] === k).length} enheter · ${all.length} entiteter · ${on ? 'aktiv' : 'av'}`,
             logo: { width: 44, height: 44, borderRadius: 14, flex: 'none', display: 'grid', placeItems: 'center', background: col.replace(')', ' / 0.3)'), color: col },

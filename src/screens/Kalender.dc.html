@@ -153,7 +153,8 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-top:4px">
           <div style="display:flex;gap:12px"><sc-for list="{{ hut.legend }}" as="l" hint-placeholder-count="3"><span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#afafaf"><span style="{{ l.dot }}"></span>{{ l.name }}</span></sc-for></div>
-          <span style="font-size:11px;color:#7f7f7f">stiplet = planlagt · lest 22:00</span>
+          <span style="font-size:11px;color:#7f7f7f">{{ hut.note }}</span>
+
         </div>
       </section>
     </sc-if>
@@ -300,7 +301,8 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 const C = { green: 'rgb(102 209 158)', yellow: 'rgb(242 210 111)', purple: 'rgb(173 153 230)', blue: 'rgb(115 185 242)', red: 'rgb(242 128 115)', pink: 'rgb(242 133 201)', amber: 'rgb(242 181 115)' };
 const a = (c, o) => c.replace(')', ` / ${o})`);
 const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
-const TODAY = new Date(2026, 8, 25);
+const TODAY0 = new Date(2026, 8, 25);
+let TODAY = TODAY0;
 const WHO = { Rune: C.blue, Cybele: C.pink, Sebastian: C.amber, Familie: C.green };
 const EVENTS = [
   ['2026-09-25', 'Hele dagen', 'Oslo', 'Rune'], ['2026-09-25', 'Hele dagen', 'Oslo', 'Sebastian'], ['2026-09-25', 'Hele dagen', 'Strømstad', 'Cybele'],
@@ -332,6 +334,7 @@ const ini = t => t.split(/[\s:.-]+/).filter(Boolean).slice(0, 2).map(w => w[0]).
 const pad = n => String(n).padStart(2, '0');
 const COURSES = [['MEK1300 Forelesning','08:30–10:15','Zoom · student.oslomet.no/zoom'],['ELI1300 Forelesning','12:30–14:15','Pilestredet park 35 U2005'],['DAT1100 Lab','10:30–12:15','P52 rom 407'],['TRE1300 Øving','14:30–16:00','Teams']];
 const dayEvents = d => {
+  if (LIVE.cal) return LIVE.cal.on(d).map(e => ({ time: e.allDay ? 'Hele dagen' : e.time, title: e.title, where: e.where, col: e.col }));
   const iso = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const fam = EVENTS.filter(e => e[0] === iso).map(([, time, title, who]) => ({ time, title, where: who, col: WHO[who] }));
   const wd = d.getDay(); if (wd === 0 || wd === 6) return fam;
@@ -339,6 +342,92 @@ const dayEvents = d => {
   const lec = Array.from({ length: n }, (_, k) => { const c = COURSES[(d.getDate() + k) % COURSES.length]; return { time: c[1], title: c[0], where: c[2], col: C.green }; }).sort((x, y) => x.time.localeCompare(y.time));
   return [...lec, ...fam];
 };
+// ─────────── Live (Home Assistant) ───────────
+const DEMO_TODAY = TODAY0;
+const PAL = [C.blue, C.pink, C.amber, C.green, C.purple, C.yellow, C.red];
+const CSSVAR = { 'var(--green)': C.green, 'var(--blue)': C.blue, 'var(--yellow)': C.yellow, 'var(--orange)': C.amber, 'var(--red)': C.red, 'var(--active-big)': C.pink, 'var(--purple)': C.purple, 'var(--pink)': C.pink };
+const colFix = (c, i) => CSSVAR[c] || (c && !String(c).startsWith('var(') ? c : PAL[i % PAL.length]);
+const d0 = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+const isoD = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const hm = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const MND = ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des'];
+const dmon = s => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || '')); return m ? `${+m[3]}. ${MND[m[2] - 1]}` : String(s || ''); };
+// HA calendar event → {start: Date, end: Date, allDay}
+function evTimes(e) {
+  const sd = e.start?.date || (typeof e.start === 'string' && e.start.length === 10 ? e.start : null);
+  const ed = e.end?.date || (typeof e.end === 'string' && e.end.length === 10 ? e.end : null);
+  if (sd) { const [y, m, d] = sd.split('-').map(Number), st = new Date(y, m - 1, d); let en = st; if (ed) { const [y2, m2, dd2] = ed.split('-').map(Number); en = new Date(y2, m2 - 1, dd2); } return { start: st, end: en > st ? en : new Date(st.getTime() + 864e5), allDay: true }; }
+  const st = new Date(e.start?.dateTime || e.start), en = new Date(e.end?.dateTime || e.end);
+  return isNaN(st) ? null : { start: st, end: isNaN(en) ? st : en, allDay: false };
+}
+// Calendars: card config `calendars: [id | {entity, name, color}]`, else every calendar.* except media/waste/mower feeds.
+function liveCal() {
+  if (!ha.live) return null;
+  const cfg = Array.isArray(ha.config.calendars) ? ha.config.calendars : null;
+  const skip = /sonarr|radarr|lidarr|plex|renovasjon|avfall|soppel|waste|robbie|automower|mower|klipper/;
+  const list = (cfg ? cfg.map(c => typeof c === 'string' ? { entity: c } : c) : ha.domain('calendar', (st, id) => !skip.test(id)).sort().map(entity => ({ entity })))
+    .filter(c => c && c.entity && ha.state(c.entity));
+  if (!list.length) return null;
+  const events = [];
+  list.forEach((c, i) => {
+    const who = c.name || ha.name(c.entity, c.entity.split('.')[1]), col = colFix(c.color || c.farge, i);
+    (ha.events(c.entity, 92) || []).forEach(e => { const t = evTimes(e); if (!t) return;
+      const time = t.allDay ? 'Hele dagen' : (t.end - t.start > 60e3 ? `${hm(t.start)}–${hm(t.end)}` : hm(t.start));
+      events.push({ ...t, time, title: e.summary || '(uten tittel)', where: e.location || who, who, col, uid: e.uid }); });
+  });
+  events.sort((p, q) => (p.allDay === q.allDay ? 0 : p.allDay ? -1 : 1) || p.start - q.start);
+  return { list, events, on: d => { const a = d0(d), b = new Date(a.getTime() + 864e5); return events.filter(e => e.start < b && e.end > a && !(e.allDay ? false : e.end.getTime() === a.getTime())); } };
+}
+// Hytta: ki_hyttebesok "Oversikt"-sensorer (én per sted).
+function liveHut() {
+  const ids = ha.ki('ki_hyttebesok', a => a.ki_type === 'oversikt');
+  if (!ids.length) return null;
+  const sites = ids.map(id => ({ id, a: ha.state(id).attributes || {} })).sort((p, q) => (p.a.rolle === 'hjem' ? -1 : 0) - (q.a.rolle === 'hjem' ? -1 : 0) || String(p.a.sted).localeCompare(String(q.a.sted)));
+  const HPx = {}, PERSx = {}, pByName = {};
+  const GRAD = ['linear-gradient(160deg, #1f3a44, #15252b)', 'linear-gradient(160deg, #2c5a45, #193428)', 'linear-gradient(160deg, #4a3a28, #2a2118)', 'linear-gradient(160deg, #3a2c4a, #211829)'];
+  const SITECOL = [C.green, C.yellow, C.amber, C.purple, C.blue];
+  const pcode = (navn, farge) => { const k = ha.norm(navn); if (!pByName[k]) { const c = 'q' + Object.keys(pByName).length; pByName[k] = c; PERSx[c] = { name: navn, col: colFix(farge, Object.keys(PERSx).length) }; } return pByName[k]; };
+  sites.forEach((x, i) => {
+    const a = x.a, code = 'p' + i, sist = a.siste || {};
+    HPx[code] = { name: a.sted || ha.name(x.id, 'Sted'), col: SITECOL[i % SITECOL.length], nights: Math.round(a.netter_i_aar || 0), visits: Math.round(a.besok_i_aar || 0), last: sist.slutt ? dmon(sist.slutt) : '—', here: (a.her_naa || []).map(p => pcode(p.navn, p.farge)), dager: a.dager || {}, opphold: a.opphold || [], kommende: a.kommende || [], per: a.per_maaned || [], lest: a.sist_lest, id: x.id, grad: GRAD[i % GRAD.length] };
+    (a.personer || []).forEach(p => pcode(p.navn, p.farge));
+  });
+  const codes = Object.keys(HPx);
+  const who1 = arr => arr.length ? arr : [];
+  const hereAll = [...new Set(codes.flatMap(c => HPx[c].here))];
+  const pages = [['alle', 'Alle steder', 'linear-gradient(160deg, #22324a, #18222f)', codes.reduce((n, c) => n + HPx[c].nights, 0), codes.reduce((n, c) => n + HPx[c].visits, 0), hereAll],
+    ...codes.map(c => [c, HPx[c].name, HPx[c].grad, HPx[c].nights, HPx[c].visits, who1(HPx[c].here)])];
+  const stays = codes.flatMap(c => [...HPx[c].opphold].map(o => ({ o, c }))).filter(({ o }) => o.tittel !== 'Hjemme' || true)
+    .sort((p, q) => String(q.o.start).localeCompare(String(p.o.start)))
+    .map(({ o, c }) => [pcode(o.person), c, o.start === o.slutt ? dmon(o.start) : `${dmon(o.start)} – ${dmon(o.slutt)}`, Math.max(1, Math.round(o.netter || 1))]);
+  const months = Array.from({ length: 12 }, (_, i) => [MND[i], ...codes.map(c => { const r = HPx[c].per.find(p => +p.maaned === i + 1); return r ? Math.round(r.netter || 0) : 0; })]);
+  const lest = codes.map(c => HPx[c].lest).filter(Boolean).sort().pop();
+  return { HP: HPx, PERS: PERSx, codes, pages, stays, months, lest: lest ? String(lest).slice(11, 16) : '',
+    codesOf: (d, pk) => { const iso = isoD(d);
+      if (pk === 'alle') return codes.filter(c => (HPx[c].dager[iso] || []).length);
+      return (HPx[pk]?.dager[iso] || []).map(n => pcode(n)); } };
+}
+// Framover: kalendere fra Sonarr/Radarr/Plex o.l. (config `upcoming: [id]`, ellers autodeteksjon på navn).
+function liveUp() {
+  if (!ha.live) return null;
+  const cfg = Array.isArray(ha.config.upcoming) ? ha.config.upcoming : null;
+  const ids = (cfg || ha.domain('calendar', (st, id) => /sonarr|radarr|lidarr|plex|kino|serier|filmer/.test(id))).filter(id => ha.state(id));
+  if (!ids.length) return null;
+  const out = [];
+  const UPCOL = ['rgb(242 181 115)', 'rgb(102 209 158)', 'rgb(242 128 115)', 'rgb(115 185 242)', 'rgb(184 230 116)', 'rgb(173 153 230)'];
+  ids.forEach(id => {
+    const kind = /radarr|film|kino/.test(id) ? 'film' : /plex/.test(id) ? 'plex' : 'serie', src = ha.name(id, id.split('.')[1]);
+    (ha.events(id, 14) || []).forEach(e => { const t = evTimes(e); if (!t || t.end < new Date()) return;
+      const parts = String(e.summary || '').split(/\s+-\s+/);
+      const title = parts[0] || '(uten tittel)', sub = [...parts.slice(1), kind === 'film' ? 'Film' : null, src].filter(Boolean).join(' · ');
+      const h = [...title].reduce((n, ch) => n + ch.charCodeAt(0), 0);
+      const wd = t.start.toLocaleDateString('nb-NO', { weekday: 'short' }).replace('.', '');
+      out.push({ at: t.start, row: [title, sub, kind, wd.charAt(0).toUpperCase() + wd.slice(1), t.allDay ? '' : hm(t.start), UPCOL[h % UPCOL.length], /download|hasfile|lastet ned/i.test(e.description || '')] });
+    });
+  });
+  return out.sort((p, q) => p.at - q.at).map(x => x.row);
+}
+let LIVE = { cal: null, hut: null, up: null };
 const TABORD = (comp, key, list) => {
   const LK = 'tab-order:' + key; let ord = null; try { ord = JSON.parse(localStorage.getItem(LK) || 'null'); } catch (e) {}
   const st = comp.state.__tdrag; let L = list.map((t, i) => ({ t, k: String(t.label ?? i) }));
@@ -365,11 +454,14 @@ const TABORD = (comp, key, list) => {
 class Component extends DCLogic {
   state = { tab: 'cal', view: 'list', month: [2026, 8], filter: 'alle', sel: '2026-8-25', hut: 0, hsub: 'cal', hplace: 'alle', search: false, q: '' };
   hutVals() {
-    const s = this.state, [y, m] = s.month, pk = HUT_PAGES[s.hut][0];
+    const s = this.state, [y, m] = this.mon(), LH = LIVE.hut;
+    const HP_ = LH ? LH.HP : HP, PERS_ = LH ? LH.PERS : PERS, PAGES = LH ? LH.pages : HUT_PAGES, SITES = LH ? LH.codes : ['o', 's', 't'];
+    const hutI = Math.min(s.hut, PAGES.length - 1), pk = PAGES[hutI][0];
     const f1 = new Date(y, m, 1), off = (f1.getDay() + 6) % 7;
     const cells = Array.from({ length: 42 }, (_, i) => new Date(y, m, 1 - off + i));
     const codesOf = d => {
       if (d.getMonth() !== m) return [];
+      if (LH) return LH.codesOf(d, pk);
       if (y === 2026 && m === 9 && d.getDate() >= 2 && d.getDate() <= 4) return pk === 'alle' ? ['s'] : pk === 's' ? ['c', 'r'] : [];
       if (d > TODAY) return [];
       const place = y === 2026 && m === 8 ? (SEP[d.getDate()] || '') : (() => { const r = Math.abs(Math.sin(d.getDate() * 3.1 + m)); return r > 0.85 ? 't' : r > 0.35 ? 's' : r > 0.2 ? 'o' : ''; })();
@@ -377,58 +469,62 @@ class Component extends DCLogic {
       if (!place.includes(pk)) return [];
       return (y === 2026 && m === 8 && WHO_SEP[pk] && WHO_SEP[pk][d.getDate()]) ? WHO_SEP[pk][d.getDate()].split('') : ['c'];
     };
-    const colOf = c => pk === 'alle' ? HP[c].col : PERS[c].col;
+    const colOf = c => (pk === 'alle' ? HP_[c] : PERS_[c])?.col || '#979797';
     const wk = (() => { const d = new Date(TODAY); d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7); const w1 = new Date(d.getFullYear(), 0, 4); return 1 + Math.round(((d - w1) / 864e5 - 3 + (w1.getDay() + 6) % 7) / 7); })();
     const sub = (k, l) => ({ label: l, go: () => this.setState({ hsub: k }), style: { height: 38, padding: '0 16px', borderRadius: 19, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: s.hsub === k ? PINK : 'transparent', color: s.hsub === k ? '#2a1720' : '#afafaf' } });
     const pf = s.hplace, q = s.q.trim().toLowerCase();
-    const stays = STAYS.filter(([who, p]) => (pf === 'alle' || p === pf) && (!q || PERS[who].name.toLowerCase().includes(q) || HP[p].name.toLowerCase().includes(q)));
+    const stays = (LH ? LH.stays : STAYS).filter(([who, p]) => (pf === 'alle' || p === pf) && (!q || PERS_[who].name.toLowerCase().includes(q) || HP_[p].name.toLowerCase().includes(q)));
     return {
-      onScroll: e => { const el = e.currentTarget, i = Math.round(el.scrollLeft / (el.firstElementChild ? el.firstElementChild.offsetWidth + 10 : 1)); if (i !== s.hut && i >= 0 && i < HUT_PAGES.length) this.setState({ hut: i }); },
-      heroes: HUT_PAGES.map(([k, title, bg, nights, visits, who]) => ({ title, nights, visits, here: who ? `${PERS[who].name} er her` : 'Ingen her nå',
-        who: who ? [{ i: PERS[who].name[0], style: { width: 28, height: 28, borderRadius: 14, display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700, background: k === 'alle' ? HP.s.col : PERS[who].col, color: '#232323', boxShadow: '0 0 0 2px rgba(255,255,255,0.25)' } }] : [],
+      onScroll: e => { const el = e.currentTarget, i = Math.round(el.scrollLeft / (el.firstElementChild ? el.firstElementChild.offsetWidth + 10 : 1)); if (i !== s.hut && i >= 0 && i < PAGES.length) this.setState({ hut: i }); },
+      heroes: PAGES.map(([k, title, bg, nights, visits, who0]) => { const ws = Array.isArray(who0) ? who0 : who0 ? [who0] : [], who = ws[0], names = ws.map(w => PERS_[w].name);
+        return { title, nights, visits, here: who ? `${names.length > 1 ? names.slice(0, -1).join(', ') + ' og ' + names[names.length - 1] : names[0]} er her` : 'Ingen her nå',
+        who: ws.map(w => ({ i: PERS_[w].name[0], style: { width: 28, height: 28, borderRadius: 14, display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700, background: k === 'alle' && !LH ? HP.s.col : PERS_[w].col, color: '#232323', boxShadow: '0 0 0 2px rgba(255,255,255,0.25)' } })),
         cal: () => this.setState({ hsub: 'cal' }),
-        chips: k === 'alle' ? ['o', 's', 't'].map(p => ({ label: `${HP[p].name} ${HP[p].nights}`, dot: { width: 8, height: 8, borderRadius: 4, background: HP[p].col } })) : [],
-        card: { position: 'relative', overflow: 'hidden', flex: 'none', width: '100%', scrollSnapAlign: 'center', boxSizing: 'border-box', minHeight: 190, padding: 18, borderRadius: 28, display: 'flex', flexDirection: 'column', gap: 6, background: bg, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)' } })),
-      dots: HUT_PAGES.map((_, i) => ({ go: e => { const el = e.currentTarget.parentElement.previousElementSibling; el && el.scrollTo({ left: i * (el.firstElementChild.offsetWidth + 10), behavior: 'smooth' }); this.setState({ hut: i }); },
-        style: { width: i === s.hut ? 18 : 7, height: 7, borderRadius: 4, background: i === s.hut ? '#fafafa' : '#48474a', transition: 'width .3s, background .3s' } })),
+        chips: k === 'alle' ? SITES.map(p => ({ label: `${HP_[p].name} ${HP_[p].nights}`, dot: { width: 8, height: 8, borderRadius: 4, background: HP_[p].col } })) : [],
+        card: { position: 'relative', overflow: 'hidden', flex: 'none', width: '100%', scrollSnapAlign: 'center', boxSizing: 'border-box', minHeight: 190, padding: 18, borderRadius: 28, display: 'flex', flexDirection: 'column', gap: 6, background: bg, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)' } }; }),
+      dots: PAGES.map((_, i) => ({ go: e => { const el = e.currentTarget.parentElement.previousElementSibling; el && el.scrollTo({ left: i * (el.firstElementChild.offsetWidth + 10), behavior: 'smooth' }); this.setState({ hut: i }); },
+        style: { width: i === hutI ? 18 : 7, height: 7, borderRadius: 4, background: i === hutI ? '#fafafa' : '#48474a', transition: 'width .3s, background .3s' } })),
       subs: [sub('cal', 'Kalender'), sub('stays', 'Opphold'), sub('stats', 'Statistikk')],
       isCal: s.hsub === 'cal', isStays: s.hsub === 'stays', isStats: s.hsub === 'stats',
       searching: s.search, q: s.q, setQ: e => this.setState({ q: e.target.value, hsub: 'stays' }),
       toggleSearch: () => this.setState({ search: !s.search, q: '', hsub: s.search ? s.hsub : 'stays' }),
       searchBtn: { width: 46, height: 46, borderRadius: 23, display: 'grid', placeItems: 'center', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.12)', background: s.search ? PINK : 'transparent', color: s.search ? '#2a1720' : '#fafafa' },
-      week: `Uke ${wk}`,
+      week: `Uke ${wk}`, note: LH ? (LH.lest ? `stiplet = planlagt · lest ${LH.lest}` : "stiplet = planlagt") : "stiplet = planlagt · lest 22:00",
       cells: cells.map(d => { const inM = d.getMonth() === m, cs = codesOf(d), planned = d > TODAY && cs.length, isT = d.toDateString() === TODAY.toDateString();
         const bg = !cs.length ? (inM ? '#232323' : 'transparent') : planned ? 'transparent' : cs.length === 1 ? colOf(cs[0]) : `linear-gradient(90deg, ${cs.map((c, i) => `${colOf(c)} ${i / cs.length * 100}% ${(i + 1) / cs.length * 100}%`).join(', ')})`;
         return { n: d.getDate(), style: { aspectRatio: '1', borderRadius: 12, display: 'grid', placeItems: 'center', background: bg, border: planned ? `2px dashed ${colOf(cs[0])}` : '2px solid transparent', boxSizing: 'border-box', boxShadow: isT ? 'inset 0 0 0 2px #fafafa' : 'none', opacity: inM ? (d < new Date(y, m, 1) ? 0.5 : 1) : 0.3 },
           num: { fontSize: 13, fontWeight: 600, color: cs.length && !planned ? '#232323' : inM ? '#c7c7c7' : '#696969', fontVariantNumeric: 'tabular-nums' } }; }),
-      legend: (pk === 'alle' ? ['o', 's', 't'].map(k => [HP[k].name, HP[k].col]) : ['c', 'r', 's'].map(k => [PERS[k].name, PERS[k].col])).map(([name, col]) => ({ name, dot: { width: 10, height: 10, borderRadius: 3, background: col } })),
-      placeFilters: [['alle', 'Alle'], ['o', 'Oslo'], ['s', 'Strømstad'], ['t', 'Toten']].map(([k, label]) => ({ label, go: () => this.setState({ hplace: k }),
+      legend: (pk === 'alle' ? SITES.map(k => [HP_[k].name, HP_[k].col]) : (LH ? Object.keys(PERS_) : ['c', 'r', 's']).map(k => [PERS_[k].name, PERS_[k].col])).map(([name, col]) => ({ name, dot: { width: 10, height: 10, borderRadius: 3, background: col } })),
+      placeFilters: (LH ? [['alle', 'Alle'], ...SITES.map(k => [k, HP_[k].name])] : [['alle', 'Alle'], ['o', 'Oslo'], ['s', 'Strømstad'], ['t', 'Toten']]).map(([k, label]) => ({ label, go: () => this.setState({ hplace: k }),
         style: { height: 36, padding: '0 12px', borderRadius: 18, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: pf === k ? PINK : 'transparent', color: pf === k ? '#2a1720' : '#afafaf' },
-        dot: { display: k === 'alle' ? 'none' : 'block', width: 7, height: 7, borderRadius: 4, background: k === 'alle' ? 'transparent' : HP[k].col } })),
+        dot: { display: k === 'alle' ? 'none' : 'block', width: 7, height: 7, borderRadius: 4, background: k === 'alle' ? 'transparent' : HP_[k].col } })),
       noStays: !stays.length,
-      stays: stays.map(([who, p, dates, n], i) => ({ i: PERS[who].name[0], name: PERS[who].name, place: HP[p].name, dates, nights: n === 1 ? '1 natt' : `${n} netter`,
+      stays: stays.map(([who, p, dates, n], i) => ({ i: PERS_[who].name[0], name: PERS_[who].name, place: HP_[p].name, dates, nights: n === 1 ? '1 natt' : `${n} netter`,
         row: { display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderTop: i ? '1px solid rgba(255,255,255,0.06)' : 'none' },
-        avatar: { width: 28, height: 28, borderRadius: 14, flex: 'none', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700, background: PERS[who].col, color: '#232323' },
-        tag: { fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 6, background: '#3a3a3a', color: HP[p].col } })),
-      months: MONTHS.map(([k, o, st, t]) => { const v = o + st + t; return { k, v: v || '', segs: [[o, HP.o.col], [st, HP.s.col], [t, HP.t.col]].filter(x => x[0]).map(([n, col]) => ({ width: `${n / 137 * 100}%`, height: '100%', background: col })) }; }),
-      placeCards: ['o', 's', 't'].map(k => ({ i: HP[k].name[0], name: HP[k].name, sub: `${HP[k].visits} besøk i år · sist ${HP[k].last}`, nights: HP[k].nights,
-        avatar: { width: 28, height: 28, borderRadius: 14, flex: 'none', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700, background: HP[k].col, color: '#232323' } })),
+        avatar: { width: 28, height: 28, borderRadius: 14, flex: 'none', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700, background: PERS_[who].col, color: '#232323' },
+        tag: { fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 6, background: '#3a3a3a', color: HP_[p].col } })),
+      months: (LH ? LH.months : MONTHS).map(([k, ...ns]) => { const v = ns.reduce((p, q) => p + q, 0); const max = LH ? Math.max(1, ...LH.months.map(r => r.slice(1).reduce((p, q) => p + q, 0))) : 137; return { k, v: v || '', segs: ns.map((n, j) => [n, HP_[SITES[j]].col]).filter(x => x[0]).map(([n, col]) => ({ width: `${n / max * 100}%`, height: '100%', background: col })) }; }),
+      placeCards: SITES.map(k => ({ i: HP_[k].name[0], name: HP_[k].name, sub: `${HP_[k].visits} besøk i år · sist ${HP_[k].last}`, nights: HP_[k].nights,
+        avatar: { width: 28, height: 28, borderRadius: 14, flex: 'none', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700, background: HP_[k].col, color: '#232323' } })),
     };
   }
+  // Live: month/selected day follow "now" until the user navigates.
+  mon() { const s = this.state; return this.L && !s.monthSet ? [TODAY.getFullYear(), TODAY.getMonth()] : s.month; }
+  selKey() { const s = this.state; return this.L && !s.selSet ? `${TODAY.getFullYear()}-${TODAY.getMonth()}-${TODAY.getDate()}` : s.sel; }
   monthVals() {
-    const s = this.state, [y, m] = s.month;
+    const s = this.state, [y, m] = this.mon(), selK = this.selKey();
     const f1 = new Date(y, m, 1), off = (f1.getDay() + 6) % 7;
     const cells = Array.from({ length: 42 }, (_, i) => new Date(y, m, 1 - off + i));
     const key = d => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-    const [sy, sm, sd] = s.sel.split('-').map(Number), sel = new Date(sy, sm, sd);
+    const [sy, sm, sd] = selK.split('-').map(Number), sel = new Date(sy, sm, sd);
     const items = dayEvents(sel);
     const isToday = sel.toDateString() === TODAY.toDateString();
     return {
       weekdaysM: ['M', 'T', 'O', 'T', 'F', 'L', 'S'],
-      goToday: () => this.setState({ month: [2026, 8], sel: '2026-8-25' }),
-      mcells: cells.map(d => { const inM = d.getMonth() === m, ev = inM ? dayEvents(d) : [], k = key(d), act = k === s.sel, today = d.toDateString() === TODAY.toDateString();
+      goToday: () => this.L ? this.setState({ monthSet: false, selSet: false }) : this.setState({ month: [2026, 8], sel: '2026-8-25' }),
+      mcells: cells.map(d => { const inM = d.getMonth() === m, ev = inM ? dayEvents(d) : [], k = key(d), act = k === selK, today = d.toDateString() === TODAY.toDateString();
         const hasFam = ev.some(e => e.col !== C.green);
-        return { n: d.getDate(), count: ev.length || '', pick: () => inM && this.setState({ sel: k }),
+        return { n: d.getDate(), count: ev.length || '', pick: () => inM && this.setState({ sel: k, selSet: true }),
           style: { position: 'relative', aspectRatio: '1', borderRadius: '50%', display: 'grid', placeItems: 'center', background: act ? PINK : inM ? '#2f2f2f' : 'transparent', boxShadow: today && !act ? 'inset 0 0 0 1.5px #fafafa' : 'none', opacity: inM ? 1 : 0.3, transition: 'background .2s' },
           num: { fontSize: 14, fontWeight: act || today ? 600 : 500, color: act ? '#2a1720' : '#fafafa', fontVariantNumeric: 'tabular-nums' },
           badge: { position: 'absolute', left: -2, top: -2, minWidth: 18, height: 18, borderRadius: 9, display: ev.length ? 'grid' : 'none', placeItems: 'center', fontSize: 10, fontWeight: 700, background: hasFam ? C.pink : C.green, color: '#232323', boxShadow: '0 0 0 2px #232323' } }; }),
@@ -442,11 +538,15 @@ class Component extends DCLogic {
   renderVals() { return this.__tabWrap(this.__rv()); }
   __rv() {
     const s = this.state;
+    LIVE = { cal: liveCal(), hut: liveHut(), up: liveUp() };
+    this.L = !!(LIVE.cal || LIVE.hut || LIVE.up);
+    TODAY = this.L ? d0(new Date()) : TODAY0;
     const tab = (k, l, icon) => ({ label: l, icon, go: () => this.setState({ tab: k }), style: { flex: 'none', height: 38, padding: '0 12px', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: s.tab === k ? PINK : 'transparent', color: s.tab === k ? '#2a1720' : '#979797' } });
     const dayNames = d => d.toLocaleDateString('nb-NO', { weekday: 'long' });
-    const byDay = [...new Set(EVENTS.map(e => e[0]))];
+    const byDay = LIVE.cal ? (() => { const out = []; for (let i = 0; i < 60 && out.length < 8; i++) { const d = new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate() + i); if (LIVE.cal.on(d).length) out.push(isoD(d)); } return out; })() : [...new Set(EVENTS.map(e => e[0]))];
+    const agendaItems = iso => LIVE.cal ? LIVE.cal.on(new Date(iso + 'T12:00')).map(e => [iso, e.time, e.title, e.who, e.col]) : EVENTS.filter(e => e[0] === iso);
     // cabin month
-    const [y, m] = s.month;
+    const [y, m] = this.mon();
     const f1 = new Date(y, m, 1), off = (f1.getDay() + 6) % 7;
     const cells = Array.from({ length: 42 }, (_, i) => new Date(y, m, 1 - off + i));
     const placeOf = d => { if (d > TODAY) return ''; if (y === 2026 && m === 8 && d.getMonth() === 8) return SEP[d.getDate()] || ''; if (d.getMonth() !== m) return ''; const r = Math.abs(Math.sin(d.getDate() * 3.1 + m)); return r > 0.8 ? 't' : r > 0.35 ? 's' : r > 0.15 ? 'o' : ''; };
@@ -458,7 +558,7 @@ class Component extends DCLogic {
     const postDays = Array.from({ length: 14 }, (_, i) => new Date(2026, 8, 28 + i));
     let flip = true; const deliv = postDays.map(d => { const wd = d.getDay(); if (wd === 0 || wd === 6) return false; const r = flip; flip = !flip; return r; });
     const firstDeliv = postDays[deliv.indexOf(true)];
-    const ups = UP.filter(u => s.filter === 'alle' || u[2] === s.filter);
+    const ups = (LIVE.up || UP).filter(u => s.filter === 'alle' || u[2] === s.filter);
     const F = ups[0];
     return {
       tabs: [['cal', 'Kalender'], ['cabin', 'Hytta'], ['up', 'Framover']].map(([k, label]) => ({ label, go: () => this.setState({ tab: k }), style: { height: 38, padding: '0 18px', borderRadius: 19, fontSize: 14, fontWeight: 500, whiteSpace: 'nowrap', background: s.tab === k ? PINK : 'transparent', color: s.tab === k ? '#2a1720' : '#afafaf' } })),
@@ -468,15 +568,15 @@ class Component extends DCLogic {
       isCalTab: s.tab === 'cal', isMonth: s.tab === 'cal' && s.view === 'month', calHead: s.view === 'month' ? 'Måned' : 'Kommende',
       calViews: [['list', 'Liste', 'view_agenda'], ['month', 'Måned', 'calendar_month']].map(([k, label, icon]) => ({ label, icon, go: () => this.setState({ view: k }), style: { height: 34, padding: '0 12px', borderRadius: 13, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 500, background: s.view === k ? PINK : 'transparent', color: s.view === k ? '#2a1720' : '#979797', transition: 'background .2s' } })),
       isCal: s.tab === 'cal' && s.view === 'list', isCabin: s.tab === 'cabin', isUp: s.tab === 'up', isBday: s.tab === 'bday', isPost: s.tab === 'post',
-      agenda: byDay.map((iso, i) => { const d = new Date(iso + 'T12:00'); const today = iso === '2026-09-25'; return {
+      agenda: byDay.map((iso, i) => { const d = new Date(iso + 'T12:00'); const today = iso === isoD(TODAY); return {
         wd: today ? 'I dag' : dayNames(d), date: d.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' }).replace('.', ''),
         dateStyle: { fontSize: i ? 28 : 40, fontWeight: 300, letterSpacing: '-0.03em', lineHeight: 1.1, whiteSpace: 'nowrap' },
         left: { width: i ? 110 : 150, flex: 'none', display: 'flex', flexDirection: 'column', gap: 2 },
         row: { display: 'flex', alignItems: 'center', gap: 12, padding: i ? '18px 22px' : '22px 22px', borderRadius: 30, background: '#2f2f2f', marginBottom: 10 },
-        items: EVENTS.filter(e => e[0] === iso).map(([, time, title, who]) => ({ title, meta: `${time} · ${who}`, dot: { width: 8, height: 8, borderRadius: 4, marginTop: 6, flex: 'none', background: WHO[who] } })) }; }),
+        items: agendaItems(iso).map(([, time, title, who, col]) => ({ title, meta: `${time} · ${who}`, dot: { width: 8, height: 8, borderRadius: 4, marginTop: 6, flex: 'none', background: col || WHO[who] } })) }; }),
       places: [['Oslo 64', 'o'], ['Strømstad 163', 's'], ['Toten 21', 't']].map(([label, k]) => ({ label, dot: { width: 8, height: 8, borderRadius: 4, background: PLACES[k] } })),
       monthLabel: `${f1.toLocaleDateString('nb-NO', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase())}`,
-      prevMonth: () => this.setState({ month: m === 0 ? [y - 1, 11] : [y, m - 1] }), nextMonth: () => this.setState({ month: m === 11 ? [y + 1, 0] : [y, m + 1] }),
+      prevMonth: () => this.setState({ monthSet: true, month: m === 0 ? [y - 1, 11] : [y, m - 1] }), nextMonth: () => this.setState({ monthSet: true, month: m === 11 ? [y + 1, 0] : [y, m + 1] }),
       weekdays: ['ma', 'ti', 'on', 'to', 'fr', 'lø', 'sø'],
       cells: cells.map(d => { const inM = d.getMonth() === m, p = inM ? placeOf(d) : '', isT = d.toDateString() === TODAY.toDateString();
         const bg = !p ? (inM ? '#3a3a3a' : 'transparent') : p.length === 2 ? `linear-gradient(90deg, ${PLACES[p[0]]} 50%, ${PLACES[p[1]]} 50%)` : PLACES[p];
@@ -484,7 +584,7 @@ class Component extends DCLogic {
           num: { fontSize: 13, fontWeight: 600, color: p ? '#232323' : '#afafaf', fontVariantNumeric: 'tabular-nums' } }; }),
       upFilters: [['alle', 'Alle'], ['serie', 'Serier'], ['film', 'Filmer'], ['plex', 'Plex']].map(([k, l]) => ({ label: l, go: () => this.setState({ filter: k }), style: { height: 34, padding: '0 14px', borderRadius: 17, fontSize: 13, fontWeight: 500, background: s.filter === k ? '#fafafa' : '#2f2f2f', color: s.filter === k ? '#232323' : '#afafaf' } })),
       hasFeatured: !!F,
-      featured: F ? { title: F[0], sub: F[1], when: `${F[3]} kl. ${F[4]}`, tag: F[2] === 'serie' ? 'Sonarr' : F[2] === 'film' ? 'Radarr' : 'Plex', initials: ini(F[0]),
+      featured: F ? { title: F[0], sub: F[1], when: F[4] ? `${F[3]} kl. ${F[4]}` : F[3], tag: F[2] === 'serie' ? 'Sonarr' : F[2] === 'film' ? 'Radarr' : 'Plex', initials: ini(F[0]),
         card: { display: 'flex', gap: 14, alignItems: 'center', padding: 14, borderRadius: 24, background: `linear-gradient(120deg, ${F[5]}, #2f2f2f 85%)` },
         poster: { width: 84, height: 120, borderRadius: 12, flex: 'none', display: 'grid', placeItems: 'center', padding: 8, boxSizing: 'border-box', background: `linear-gradient(160deg, ${F[5]}, #111)`, boxShadow: '0 8px 20px rgba(0,0,0,0.4)' } } : {},
       upcoming: ups.slice(1).map(([title, sub, kind, day, time, col, ok], i) => ({ title, sub, day, time, initials: ini(title),

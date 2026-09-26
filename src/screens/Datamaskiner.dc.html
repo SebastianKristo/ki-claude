@@ -96,6 +96,55 @@ const TABORD = (comp, key, list) => {
       style: d ? { ...t.style, position: 'relative', zIndex: 5, transform: `translateX(${st.dx}px) scale(1.06)`, boxShadow: '0 8px 20px rgba(0,0,0,0.45), inset 0 0 0 1.5px rgb(242 133 201)', transition: 'none', touchAction: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }
         : mine ? { ...t.style, opacity: 0.65, transition: 'opacity .2s' } : { ...t.style, WebkitTouchCallout: 'none', userSelect: 'none' } }; });
 };
+// ── Live-kobling: datamaskiner (HASS.Agent / IOT Link / macOS companion-app / System Bridge) ──
+// Liste i kortkonfig: `datamaskiner: [{ navn, type: mac|pc, prefiks, media_player, wol, entities: { <nøkkel>: entity_id } }]`.
+// Uten liste: Mac (prefiks `mac_mini`) og PC (prefiks `stasjonaer_pc`), eller autodetektert fra
+// sensor.*_cpuload (HASS.Agent) / sensor.*_cpu_usage. Alias: `pc_<n>_<nøkkel>` (n = 1, 2 …).
+const K = {
+  cpu: ['sensor:cpuload', 'sensor:cpu_usage', 'sensor:cpu', 'sensor:processor_use', 'sensor:cpu_load'],
+  gpu: ['sensor:gpuload', 'sensor:gpu_load', 'sensor:gpu_usage'], gputemp: ['sensor:gputemperature', 'sensor:gpu_temperature', 'sensor:gpu_temp'],
+  mem: ['sensor:memoryusage', 'sensor:memory_usage', 'sensor:memory_use_percent', 'sensor:ram_usage', 'sensor:memory_use'],
+  disk: ['sensor:storage', 'sensor:disk_usage', 'sensor:disk_use_percent', 'sensor:disk_use'], diskc: ['sensor:storage_c', 'sensor:disk_c_usage', 'sensor:drive_c_used', 'sensor:disk_c'], diskd: ['sensor:storage_d', 'sensor:disk_d_usage', 'sensor:drive_d_used', 'sensor:disk_d'],
+  awake: ['switch:keep_awake', 'switch:caffeinate', 'input_boolean:keep_awake'],
+  wake: ['button:monitorwake', 'button:wake_display', 'button:wake_screen', 'button:wake_displays'], dsleep: ['button:monitorsleep', 'button:sleep_display', 'button:sleep_displays', 'button:display_sleep'],
+  saver: ['button:screensaver', 'button:start_screensaver'], lock: ['button:lock', 'button:lock_pc', 'button:lock_screen'],
+  uptime: ['sensor:uptime', 'sensor:last_boot', 'sensor:lastboot', 'sensor:last_restart'], ip: ['sensor:public_ip', 'sensor:external_ip', 'sensor:ip_address'],
+  cam: ['binary_sensor:camera_in_use', 'binary_sensor:webcam_active', 'sensor:webcamprocesses', 'sensor:active_camera'], mic: ['binary_sensor:audio_input_in_use', 'binary_sensor:microphone_active', 'sensor:microphoneprocesses', 'sensor:active_audio_input'],
+  monitors: ['sensor:monitors', 'sensor:displays', 'sensor:monitor_count'], primary: ['sensor:primary_display', 'sensor:primary_monitor', 'sensor:primary_display_name'],
+  audio: ['sensor:audio_default_device', 'sensor:default_audio_device', 'sensor:audio_output'], muted: ['binary_sensor:audio_muted', 'sensor:audio_default_device_muted'],
+  micdev: ['sensor:audio_default_input_device', 'sensor:default_input_device', 'sensor:audio_input'], sessions: ['sensor:audio_sessions', 'sensor:active_audio_sessions', 'sensor:audio_session_count'],
+  eth: ['sensor:network_ethernet', 'sensor:ethernet', 'sensor:network_card_ethernet'], wifi: ['sensor:network_wifi', 'sensor:wifi', 'sensor:network_wi_fi_2', 'sensor:wi_fi'], vpn: ['sensor:vpn', 'binary_sensor:vpn', 'sensor:network_vpn'],
+  sleep: ['button:sleep', 'button:suspend', 'button:hibernate'], restart: ['button:restart', 'button:reboot'], shutdown: ['button:shutdown', 'button:power_off'],
+  media: ['media_player:', 'media_player:media', 'media_player:media_player'], state: ['binary_sensor:', 'binary_sensor:status', 'binary_sensor:online', 'sensor:status'],
+  wol: ['switch:wol', 'switch:wake_on_lan', 'button:wake_on_lan', 'button:wol', 'switch:'],
+};
+function computers() {
+  const list = ha.config.datamaskiner;
+  if (Array.isArray(list) && list.length) return list.map((c, i) => ({ type: /mac/i.test(c.type || c.navn || '') ? 'mac' : 'pc', ...c, i }));
+  const found = ha.domain('sensor', (st, id) => /_(cpuload|cpu_usage)$/.test(id)).map(id => id.split('.')[1].replace(/_(cpuload|cpu_usage)$/, ''));
+  const def = [{ navn: 'Mac mini', type: 'mac', prefiks: 'mac_mini' }, { navn: 'Stasjonær PC', type: 'pc', prefiks: 'stasjonaer_pc' }];
+  const pre = [...new Set([...def.map(d => d.prefiks).filter(p => ha.state(`sensor.${p}_cpuload`) || ha.state(`sensor.${p}_cpu_usage`) || ha.state(`media_player.${p}`)), ...found])];
+  return pre.map((p, i) => { const d = def.find(x => x.prefiks === p); const any = ha.state(`sensor.${p}_cpuload`) || ha.state(`sensor.${p}_cpu_usage`);
+    return { navn: d ? d.navn : (ha.device(any?.entity_id || '')?.name || p.replace(/_/g, ' ')), type: d ? d.type : /mac/i.test(p) ? 'mac' : 'pc', prefiks: p, i }; });
+}
+function resolve(c) {
+  const p = c.prefiks || ha.norm(c.navn || ''), E = {};
+  for (const k in K) E[k] = (c.entities || {})[k] || (k === 'media' && c.media_player) || (k === 'wol' && c.wol) || ha.first(`pc_${c.i + 1}_${k}`, ...K[k].map(r => { const [d, suf] = r.split(':'); return `${d}.${p}${suf ? '_' + suf : ''}`; }));
+  const anyOn = ['cpu', 'mem', 'media', 'state'].some(k => E[k] && !['unavailable', 'off', 'unknown'].includes(ha.state(E[k])?.state));
+  const online = E.state ? ha.on(E.state, anyOn) : anyOn;
+  return { c, E, online, found: Object.values(E).some(Boolean) };
+}
+const pctOf = id => { const v = ha.num(id, null); return v == null ? null : Math.round(v); };
+const upTxt = id => { const st = ha.state(id); if (!st || ['unknown', 'unavailable'].includes(st.state)) return '–';
+  let sec = null; if (st.attributes.device_class === 'timestamp' || /^\d{4}-/.test(st.state)) sec = (Date.now() - new Date(st.state)) / 1000;
+  else { const v = parseFloat(st.state), u = st.attributes.unit_of_measurement || 's'; if (Number.isFinite(v)) sec = u === 'd' ? v * 86400 : u === 'h' ? v * 3600 : u === 'min' ? v * 60 : v; }
+  if (sec == null) return st.state; const d = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600), m = Math.floor(sec % 3600 / 60);
+  return d ? `${d} d ${h} t` : h ? `${h} t ${m} min` : `${m} min`; };
+const onTxt = id => { const v = ha.val(id); if (v == null) return ['–']; if (/^\d+$/.test(v)) return +v > 0 ? ['På', AMBER] : ['Av']; const on = ha.on(id, false) || /in_use|active|på/i.test(v); return on ? ['På', AMBER] : ['Av']; };
+const netTxt = id => { const v = ha.val(id); if (v == null) return ['–']; const a = ha.state(id).attributes || {};
+  if (/^(up|connected|on|tilkoblet|true)$/i.test(v)) return [a.speed ? `${a.speed >= 1000 ? a.speed / 1000 + ' Gbit/s' : a.speed + ' Mbit/s'}` : 'Tilkoblet', GREEN];
+  if (/^(down|disconnected|off|frakoblet|false|unknown)$/i.test(v)) return ['Frakoblet']; return [v, GREEN]; };
+
 class Component extends DCLogic {
   state = { tab: 'mac', mac: { play: true, vol: 42, mute: false, awake: true }, pc: { play: false, vol: 65, mute: false }, msg: '' };
   set(k, f) { this.setState(s => ({ [k]: { ...s[k], ...f } })); }
@@ -103,30 +152,75 @@ class Component extends DCLogic {
   __tabWrap(v) { if (v && Array.isArray(v.tabs)) v.tabs = TABORD(this, 'datamaskiner', v.tabs); return v; }
   renderVals() { return this.__tabWrap(this.__rv()); }
   __rv() {
-    const s = this.state, mac = s.tab === 'mac', d = s[s.tab], k = s.tab;
+    const PCS = ha.live ? computers().map(resolve).filter(x => x.found) : [];
+    const live = PCS.length > 0;
+    const s = this.state;
+    const tabIds = live ? PCS.map((x, i) => 'c' + i) : ['mac', 'pc'];
+    const k = tabIds.includes(s.tab) ? s.tab : tabIds[0];
+    const X = live ? PCS[tabIds.indexOf(k)] : null;
+    const mac = live ? X.c.type === 'mac' : k === 'mac';
+    const E = X ? X.E : {};
+    const mp = E.media;
+    const d = live ? { play: ha.val(mp) === 'playing', vol: Math.round(ha.attr(mp, 'volume_level', 0) * 100), mute: !!ha.attr(mp, 'is_volume_muted', false), awake: ha.on(E.awake, false) } : s[k];
     const tr = on => ({ track: { position: 'relative', width: 44, height: 26, borderRadius: 13, flex: 'none', background: on ? 'rgb(242 133 201)' : '#545454', transition: 'background .2s' }, knob: { position: 'absolute', top: 3, left: on ? 21 : 3, width: 20, height: 20, borderRadius: 10, background: '#fafafa', transition: 'left .2s' } });
     const row = (icon, label, o = {}) => ({ icon, label, isVal: o.val != null, isToggle: o.on != null, isBtn: !!o.btn, val: o.val, go: o.go || (() => {}), valStyle: { fontSize: 13, color: o.col || '#afafaf', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }, ...(o.on != null ? tr(o.on) : {}),
       row: { display: 'flex', alignItems: 'center', gap: 12, minHeight: 50, borderTop: '1px solid rgba(255,255,255,0.05)', width: '100%' } });
     const bar = (v, c) => ({ display: 'block', height: '100%', width: `${v}%`, borderRadius: 2, background: v > 80 ? RED : v > 60 ? AMBER : c });
-    const stats = mac ? [['CPU', 18, BLUE], ['Minne', 64, BLUE], ['Disk', 71, BLUE]].map(([l, v, c]) => ({ label: l, val: `${v} %`, bar: bar(v, c) }))
-      : [['CPU', 23, BLUE], ['GPU', 41, BLUE], ['GPU temp', 58, GREEN, '°C'], ['Minne', 47, BLUE], ['Disk C:', 82, BLUE], ['Disk D:', 36, BLUE]].map(([l, v, c, u]) => ({ label: l, val: `${v}${u ? ' ' + u : ' %'}`, bar: bar(v, c) }));
-    const groups = mac ? [
-      { title: 'Skjerm', rows: [row('keep', 'Keep Awake', { on: d.awake, go: () => this.set(k, { awake: !d.awake }) }), row('light_mode', 'Vekk skjerm', { btn: true, go: () => this.run('Vekk skjerm') }), row('dark_mode', 'Sov skjerm', { btn: true, go: () => this.run('Sov skjerm') }), row('wallpaper', 'Screensaver', { btn: true, go: () => this.run('Screensaver') })] },
-      { title: 'System', rows: [row('schedule', 'Oppetid', { val: '6 d 4 t' }), row('public', 'Offentlig IP', { val: '84.212.41.9' })] },
-      { title: 'Sensorer', rows: [row('videocam', 'Kamera', { val: 'Av' }), row('mic', 'Mikrofon', { val: 'På', col: AMBER })] }]
-      : [
-      { title: 'Skjermer', rows: [row('desktop_windows', 'Antall skjermer', { val: '3' }), row('monitor', 'Primær skjerm', { val: 'DELL U2723QE' }), row('light_mode', 'Vekk skjermer', { btn: true, go: () => this.run('Vekk skjermer') }), row('dark_mode', 'Sov skjermer', { btn: true, go: () => this.run('Sov skjermer') }), row('lock', 'Lås', { btn: true, go: () => this.run('Lås PC') })] },
-      { title: 'Lyd', rows: [row('speaker', 'Standard enhet', { val: 'Sonos Arc' }), row('volume_off', 'Dempet', { val: d.mute ? 'Ja' : 'Nei' }), row('mic', 'Standard mikrofon', { val: 'Shure MV7' }), row('graphic_eq', 'Aktive lydøkter', { val: '3' })] },
-      { title: 'Nettverk', rows: [row('lan', 'Ethernet', { val: '1 Gbit/s', col: GREEN }), row('wifi', 'WiFi 2', { val: 'Frakoblet' }), row('vpn_lock', 'Surfshark VPN', { val: 'Tilkoblet', col: GREEN })] }];
-    const pw = (icon, label, danger) => ({ icon, label, go: () => this.run(label), style: { height: 80, borderRadius: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 13, fontWeight: 500, background: danger ? 'rgb(242 128 115 / 0.15)' : '#2f2f2f', color: danger ? 'rgb(242 128 115)' : '#fafafa' } });
+    // live-rader: [nøkkel, ikon, etikett, type] – rader uten entitet skjules
+    const press = (key, label) => () => { if (E[key]) { ha.press(E[key]); this.run(label); } };
+    const L = (key, icon, label, kind, extra) => {
+      const id = E[key]; if (!id) return null;
+      if (kind === 'btn') return row(icon, label, { btn: true, go: press(key, label) });
+      if (kind === 'toggle') return row(icon, label, { on: ha.on(id, false), go: () => ha.toggle(id) });
+      if (kind === 'up') return row(icon, label, { val: upTxt(id), go: () => ha.moreInfo(id) });
+      if (kind === 'onoff') { const [v, col] = onTxt(id); return row(icon, label, { val: v, col, go: () => ha.moreInfo(id) }); }
+      if (kind === 'net') { const [v, col] = netTxt(id); return row(icon, (extra && ha.attr(id, 'friendly_name', '').replace(/^.*?(ethernet|wi-?fi|vpn)/i, '$1')) || label, { val: v, col, go: () => ha.moreInfo(id) }); }
+      if (kind === 'yn') { const v = ha.val(id); return row(icon, label, { val: v == null ? '–' : ha.on(id, false) || v === 'true' ? 'Ja' : 'Nei', go: () => ha.moreInfo(id) }); }
+      return row(icon, label, { val: ha.val(id, '–'), go: () => ha.moreInfo(id) });
+    };
+    const G = (title, rows) => ({ title, rows: rows.filter(Boolean) });
+    let stats, groups;
+    if (!live) {
+      stats = mac ? [['CPU', 18, BLUE], ['Minne', 64, BLUE], ['Disk', 71, BLUE]].map(([l, v, c]) => ({ label: l, val: `${v} %`, bar: bar(v, c) }))
+        : [['CPU', 23, BLUE], ['GPU', 41, BLUE], ['GPU temp', 58, GREEN, '°C'], ['Minne', 47, BLUE], ['Disk C:', 82, BLUE], ['Disk D:', 36, BLUE]].map(([l, v, c, u]) => ({ label: l, val: `${v}${u ? ' ' + u : ' %'}`, bar: bar(v, c) }));
+      groups = mac ? [
+        { title: 'Skjerm', rows: [row('keep', 'Keep Awake', { on: d.awake, go: () => this.set(k, { awake: !d.awake }) }), row('light_mode', 'Vekk skjerm', { btn: true, go: () => this.run('Vekk skjerm') }), row('dark_mode', 'Sov skjerm', { btn: true, go: () => this.run('Sov skjerm') }), row('wallpaper', 'Screensaver', { btn: true, go: () => this.run('Screensaver') })] },
+        { title: 'System', rows: [row('schedule', 'Oppetid', { val: '6 d 4 t' }), row('public', 'Offentlig IP', { val: '84.212.41.9' })] },
+        { title: 'Sensorer', rows: [row('videocam', 'Kamera', { val: 'Av' }), row('mic', 'Mikrofon', { val: 'På', col: AMBER })] }]
+        : [
+        { title: 'Skjermer', rows: [row('desktop_windows', 'Antall skjermer', { val: '3' }), row('monitor', 'Primær skjerm', { val: 'DELL U2723QE' }), row('light_mode', 'Vekk skjermer', { btn: true, go: () => this.run('Vekk skjermer') }), row('dark_mode', 'Sov skjermer', { btn: true, go: () => this.run('Sov skjermer') }), row('lock', 'Lås', { btn: true, go: () => this.run('Lås PC') })] },
+        { title: 'Lyd', rows: [row('speaker', 'Standard enhet', { val: 'Sonos Arc' }), row('volume_off', 'Dempet', { val: d.mute ? 'Ja' : 'Nei' }), row('mic', 'Standard mikrofon', { val: 'Shure MV7' }), row('graphic_eq', 'Aktive lydøkter', { val: '3' })] },
+        { title: 'Nettverk', rows: [row('lan', 'Ethernet', { val: '1 Gbit/s', col: GREEN }), row('wifi', 'WiFi 2', { val: 'Frakoblet' }), row('vpn_lock', 'Surfshark VPN', { val: 'Tilkoblet', col: GREEN })] }];
+    } else {
+      const st = (key, l, c, u) => { const v = pctOf(E[key]); return v == null ? null : { label: l, val: `${v}${u ? ' ' + u : ' %'}`, bar: bar(Math.min(100, v), c) }; };
+      stats = (mac ? [st('cpu', 'CPU', BLUE), st('mem', 'Minne', BLUE), st('disk', 'Disk', BLUE)] : [st('cpu', 'CPU', BLUE), st('gpu', 'GPU', BLUE), st('gputemp', 'GPU temp', GREEN, '°C'), st('mem', 'Minne', BLUE), st('diskc', 'Disk C:', BLUE) || st('disk', 'Disk', BLUE), st('diskd', 'Disk D:', BLUE)]).filter(Boolean);
+      groups = (mac ? [
+        G('Skjerm', [L('awake', 'keep', 'Keep Awake', 'toggle'), L('wake', 'light_mode', 'Vekk skjerm', 'btn'), L('dsleep', 'dark_mode', 'Sov skjerm', 'btn'), L('saver', 'wallpaper', 'Screensaver', 'btn')]),
+        G('System', [L('uptime', 'schedule', 'Oppetid', 'up'), L('ip', 'public', 'Offentlig IP')]),
+        G('Sensorer', [L('cam', 'videocam', 'Kamera', 'onoff'), L('mic', 'mic', 'Mikrofon', 'onoff')])]
+        : [
+        G('Skjermer', [L('monitors', 'desktop_windows', 'Antall skjermer'), L('primary', 'monitor', 'Primær skjerm'), L('wake', 'light_mode', 'Vekk skjermer', 'btn'), L('dsleep', 'dark_mode', 'Sov skjermer', 'btn'), L('lock', 'lock', 'Lås', 'btn')]),
+        G('Lyd', [L('audio', 'speaker', 'Standard enhet'), E.muted ? L('muted', 'volume_off', 'Dempet', 'yn') : mp ? row('volume_off', 'Dempet', { val: d.mute ? 'Ja' : 'Nei' }) : null, L('micdev', 'mic', 'Standard mikrofon'), L('sessions', 'graphic_eq', 'Aktive lydøkter')]),
+        G('Nettverk', [L('eth', 'lan', 'Ethernet', 'net'), L('wifi', 'wifi', 'WiFi', 'net'), L('vpn', 'vpn_lock', 'VPN', 'net')])]).filter(g => g.rows.length);
+    }
+    const pw = (icon, label, danger, go) => ({ icon, label, go: go || (() => this.run(label)), style: { height: 80, borderRadius: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 13, fontWeight: 500, background: danger ? 'rgb(242 128 115 / 0.15)' : '#2f2f2f', color: danger ? 'rgb(242 128 115)' : '#fafafa' } });
+    const wake = () => { const id = E.wol; if (id) { id.startsWith('button.') ? ha.press(id) : ha.turn(id, true); } else if (X.c.mac) ha.call('wake_on_lan', 'send_magic_packet', { mac: X.c.mac }); this.run('Slå på'); };
+    const power = !live ? (mac ? [pw('bedtime', 'Sleep'), pw('power_settings_new', 'Shutdown', true)] : [pw('bedtime', 'Sleep'), pw('restart_alt', 'Restart'), pw('power_settings_new', 'Shutdown', true)])
+      : !X.online && (E.wol || X.c.mac) ? [pw('power_settings_new', 'Slå på', false, wake)]
+      : [E.sleep && pw('bedtime', 'Sleep', false, press('sleep', 'Sleep')), !mac && E.restart && pw('restart_alt', 'Restart', false, press('restart', 'Restart')), E.shutdown && pw('power_settings_new', 'Shutdown', true, () => window.confirm(`Slå av ${X.c.navn}?`) && press('shutdown', 'Shutdown')())].filter(Boolean);
+    const mTitle = live ? (d.play || ha.val(mp) === 'paused' ? [ha.attr(mp, 'media_artist', ''), ha.attr(mp, 'media_title', '')].filter(Boolean).join(' – ') || 'Spiller' : (mac ? 'Pauset' : 'Ingenting spilles')) : null;
+    const mcall = (svc, data) => mp && ha.call('media_player', svc, { entity_id: mp, ...(data || {}) });
     return {
-      tabs: [['mac', 'Mac mini', 'desktop_mac'], ['pc', 'Stasjonær PC', 'desktop_windows']].map(([id, label, icon]) => ({ label, icon, go: () => this.setState({ tab: id }), style: { height: 52, borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 15, fontWeight: 500, background: s.tab === id ? PINK : 'transparent', color: s.tab === id ? '#2a1720' : '#979797' } })),
-      m: { src: mac ? 'Spiller nå · Mac mini' : 'Sonos · Stasjonær PC', title: mac ? (d.play ? 'Fred again.. – Delilah (pull me out of this)' : 'Pauset') : (d.play ? 'Lo-fi beats' : 'Ingenting spilles'), artIcon: 'music_note', playIcon: d.play ? 'pause' : 'play_arrow',
+      tabs: (live ? PCS.map((x, i) => ['c' + i, x.c.navn, x.c.ikon || (x.c.type === 'mac' ? 'desktop_mac' : 'desktop_windows')]) : [['mac', 'Mac mini', 'desktop_mac'], ['pc', 'Stasjonær PC', 'desktop_windows']]).map(([id, label, icon]) => ({ label, icon, go: () => this.setState({ tab: id }), style: { height: 52, borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 15, fontWeight: 500, background: k === id ? PINK : 'transparent', color: k === id ? '#2a1720' : '#979797' } })),
+      m: live ? { src: `${mac ? 'Spiller nå' : ha.attr(mp, 'source', ha.attr(mp, 'app_name', 'Media'))} · ${X.c.navn}`, title: mp ? mTitle : 'Ingen mediespiller', artIcon: 'music_note', playIcon: d.play ? 'pause' : 'play_arrow',
+        art: { width: 52, height: 52, borderRadius: 14, flex: 'none', display: 'grid', placeItems: 'center', background: d.play ? PINK : '#3a3a3a', color: d.play ? '#2a1720' : '#7f7f7f' },
+        play: () => mcall('media_play_pause'), prev: () => mcall('media_previous_track'), next: () => mcall('media_next_track'), vol: d.mute ? 0 : d.vol, volIcon: d.mute ? 'volume_off' : 'volume_up',
+        mute: () => mcall('volume_mute', { is_volume_muted: !d.mute }), setVol: e => mcall('volume_set', { volume_level: +e.target.value / 100 }) }
+      : { src: mac ? 'Spiller nå · Mac mini' : 'Sonos · Stasjonær PC', title: mac ? (d.play ? 'Fred again.. – Delilah (pull me out of this)' : 'Pauset') : (d.play ? 'Lo-fi beats' : 'Ingenting spilles'), artIcon: 'music_note', playIcon: d.play ? 'pause' : 'play_arrow',
         art: { width: 52, height: 52, borderRadius: 14, flex: 'none', display: 'grid', placeItems: 'center', background: d.play ? PINK : '#3a3a3a', color: d.play ? '#2a1720' : '#7f7f7f' },
         play: () => this.set(k, { play: !d.play }), prev: () => this.run('Forrige'), next: () => this.run('Neste'), vol: d.mute ? 0 : d.vol, volIcon: d.mute ? 'volume_off' : 'volume_up',
         mute: () => this.set(k, { mute: !d.mute }), setVol: e => this.set(k, { vol: +e.target.value, mute: false }) },
-      stats, groups,
-      power: mac ? [pw('bedtime', 'Sleep'), pw('power_settings_new', 'Shutdown', true)] : [pw('bedtime', 'Sleep'), pw('restart_alt', 'Restart'), pw('power_settings_new', 'Shutdown', true)],
+      stats, groups, power,
       hasMsg: !!s.msg, msg: s.msg,
     };
   }

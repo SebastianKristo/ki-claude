@@ -154,29 +154,94 @@ const BDAYS = [['Mormor','1941-10-03'],['Cybele','1972-11-14'],['Onkel Lars','19
 const PARCELS = [['Zalando','package_2','Til hentested · Coop Extra',3,'I dag',0],['Komplett · USB-hub','local_shipping','Under transport',2,'Man',3],['Apotek 1','inventory_2','Sendingen er registrert',1,'Tir–ons',4]];
 const same = (x, y) => x.getFullYear() === y.getFullYear() && x.getMonth() === y.getMonth() && x.getDate() === y.getDate();
 const isPost = d => { const wd = d.getDay(); if (!wd || wd === 6) return false; const days = Math.round((d - REF) / 864e5), weeks = Math.floor(days / 7), wdays = weeks * 5 + (((days % 7) + 7) % 7); return ((wdays % 2) + 2) % 2 === 0; };
+
+// ── Live-kobling ────────────────────────────────────────────────────────────
+// Bursdager: kalender (alias `bursdager`, standard calendar.birthdays) – heldagshendelser «Navn (1969)» / «Navns bursdag».
+// Post: sensor med neste leveringsdato (alias `post`, standard sensor.nar_kommer_posten_posten_sensor_next;
+//   attributtene delivery_dates/next_delivery_dates/dates brukes om de finnes) eller en post-kalender.
+// Pakker: Norwegian Parcel Tracker (sensor.*_status) eller `pakker: [sensor…]` i kortkonfig.
+const day0 = x => { const d = new Date(x); d.setHours(0, 0, 0, 0); return d; };
+const isoD = x => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+const nameFrom = t => String(t || '').replace(/\(\s*\d{4}\s*\)/g, '').replace(/[_-]+/g, ' ').replace(/\b(bursdag|birthday|fodselsdag|fødselsdag|har)\b/gi, '').replace(/\bfyller\s+\d+(\s*år)?/gi, '').replace(/\b\d+\s*år\b/gi, '')
+  .replace(/[’']\s*s\b/gi, '').replace(/\s{2,}/g, ' ').replace(/^[\s.,·-]+|[\s.,·-]+$/g, '').replace(/^./, c => c.toUpperCase());
+function loadLive(self) {
+  const T = day0(new Date());
+  const cal = ha.first('bursdager', 'calendar.birthdays', 'calendar.bursdager', 'calendar.fodselsdager');
+  const postId = ha.first('post', 'sensor.nar_kommer_posten_posten_sensor_next', 'sensor.posten_neste_levering');
+  const conf = ha.config.pakker;
+  const parcelIds = Array.isArray(conf) ? conf : conf === false ? [] : ha.all('norwegian_parcel_tracker', 'sensor').filter(id => /_status$/.test(id));
+  const cfgB = Array.isArray(ha.config.bursdager) ? ha.config.bursdager : [];
+  if (!cal && !postId && !parcelIds.length && !cfgB.length) return null;
+  ha.state(cal); ha.state(postId); // avhengigheter: kalenderdata som kommer asynkront tegner skjermen på nytt
+  // bursdager
+  const seen = new Map();
+  const addB = (name, d, by) => { if (!name || isNaN(d)) return; const k = `${ha.norm(name)}|${d.getMonth()}|${d.getDate()}`; if (!seen.has(k)) seen.set(k, { name, bm: d.getMonth() + 1, bd: d.getDate(), by }); };
+  (cal ? ha.events(cal, 370) || [] : []).forEach(e => { const st = e.start && (e.start.date || e.start.dateTime || e.start); const d = day0(st && st.length === 10 ? st + 'T12:00:00' : st);
+    const txt = `${e.description || ''} ${e.summary || ''}`, full = txt.match(/(\d{4})-(\d{2})-(\d{2})/), bare = txt.match(/(?:f\.?|født|fodt|\()\s*(\d{4})/i), turns = txt.match(/(?:fyller\s+|\b)(\d{1,3})\s*år/i);
+    addB(nameFrom(e.summary), d, full ? +full[1] : bare ? +bare[1] : turns ? d.getFullYear() - +turns[1] : null); });
+  cfgB.forEach(x => { const iso = x.dato || x.date, nm = x.navn || x.name; if (!iso || !nm) return; const [y, m, dd] = String(iso).split('-').map(Number); addB(nm, new Date(T.getFullYear(), m - 1, dd), y > 1800 ? y : null); });
+  (self.state.added || []).forEach(([nm, iso]) => { const [y, m, dd] = iso.split('-').map(Number); addB(nm, new Date(T.getFullYear(), m - 1, dd), y); });
+  const bl = [...seen.values()].map(b => { let n = new Date(T.getFullYear(), b.bm - 1, b.bd); if (n < T) n = new Date(T.getFullYear() + 1, b.bm - 1, b.bd); return { ...b, date: n, age: b.by ? n.getFullYear() - b.by : null, days: Math.round((n - T) / 864e5) }; }).sort((p, q) => p.days - q.days);
+  // post
+  let isP = () => false, postDates = null;
+  if (postId && postId.startsWith('calendar.')) postDates = (ha.events(postId, 60) || []).map(e => day0((e.start?.date ? e.start.date + 'T12:00:00' : e.start?.dateTime) || e.start));
+  else if (postId) { const l = ha.attr(postId, 'delivery_dates', null) || ha.attr(postId, 'next_delivery_dates', null) || ha.attr(postId, 'dates', null); if (Array.isArray(l) && l.length) postDates = l.map(x => day0(String(x).length === 10 ? x + 'T12:00:00' : x)); }
+  const fixed = Array.isArray(ha.config.postdager) && ha.config.postdager.length ? ha.config.postdager.map(Number) : null;
+  const nextRaw = postId && !postId.startsWith('calendar.') ? ha.val(postId) : null, next = nextRaw ? day0(/^\d{4}-\d{2}-\d{2}$/.test(nextRaw) ? nextRaw + 'T12:00:00' : nextRaw) : null;
+  if (fixed) isP = d => { const wd = d.getDay(); return !!wd && wd !== 6 && fixed.includes(wd); };
+  else if (postDates) isP = d => postDates.some(x => same(x, d));
+  else if (next && !isNaN(next)) isP = d => { const wd = d.getDay(); if (!wd || wd === 6) return false; const n = Math.round((day0(d) - next) / 864e5), w = Math.floor(n / 7); let wdays = w * 5; const rest = ((n % 7) + 7) % 7;
+    for (let i = 1; i <= rest; i++) { const x = new Date(next); x.setDate(x.getDate() + w * 7 + i); if (x.getDay() && x.getDay() !== 6) wdays++; } return ((wdays % 2) + 2) % 2 === 0; };
+  const pn = [ha.config.postnummer || ha.attr(postId, 'postal_code', '') || ha.attr(postId, 'postnummer', ''), ha.config.sted || ha.attr(postId, 'city', '') || ha.attr(postId, 'sted', '')].filter(Boolean).join(' ');
+  // pakker
+  const parcels = parcelIds.filter(id => ha.state(id)).map(id => { const st = ha.state(id), at = st.attributes || {}, t = String(st.state || '').toLowerCase();
+    if (/levert|delivered|utlevert/.test(t) && !/hentes|klar/.test(t)) return null;
+    const ready = /hentes|ready|klar|pickup|utleveringssted/.test(t), moving = /transport|underveis|in transit|sortert|på vei|pa vei|sortering/.test(t), step = ready ? 3 : moving ? 2 : 1;
+    const e = at.estimated_delivery || at.forventet_levering || '', ed = e ? day0(e) : null, eta = ed && !isNaN(ed) ? ed : null, diff = eta ? Math.round((eta - T) / 864e5) : null;
+    const etaTxt = ready ? 'Klar' : diff == null ? '' : diff <= 0 ? 'I dag' : diff === 1 ? 'I morgen' : diff < 7 ? eta.toLocaleDateString('nb-NO', { weekday: 'short' }).replace('.', '').replace(/^./, c => c.toUpperCase()) : eta.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' }).replace(/\.$/, '');
+    return { row: [String(at.friendly_name || id.slice(7)).replace(/\s*status\s*$/i, '').trim() || 'Pakke', ready ? 'package_2' : moving ? 'local_shipping' : 'inventory_2', ready && (at.pickup_point || at.hentested) ? `Til hentested · ${at.pickup_point || at.hentested}` : at.latest_event || at.siste_hendelse || st.state, step, etaTxt], date: eta, id };
+  }).filter(Boolean).sort((p, q) => q.row[3] - p.row[3]);
+  return { T, cal, postId, bl, isP, pn, parcels };
+}
 class Component extends DCLogic {
   state = { view: 'list', month: [2026, 8], sel: [2026, 8, 25], extra: (() => { try { return JSON.parse(localStorage.getItem('bdays-extra') || '[]'); } catch (e) { return []; } })(), adding: false, fName: '', fDate: '' };
+  // Live: ny bursdag som årlig heldagshendelse i kalenderen (fødselsåret i tittelen); uten gjentakelse legges ti år inn.
+  async saveLive(LV, name, iso) {
+    const [fy, fm, fd] = iso.split('-').map(Number); let yr = LV.T.getFullYear(); if (new Date(yr, fm - 1, fd) < LV.T) yr += 1;
+    const mk = (y, rrule) => { const d = new Date(y, fm - 1, fd), e = new Date(d); e.setDate(e.getDate() + 1); const data = { entity_id: LV.cal, summary: `${name} (${fy})`, description: `Født ${iso}`, start_date: isoD(d), end_date: isoD(e) }; if (rrule) data.rrule = rrule; return ha.hass.callService('calendar', 'create_event', data); };
+    this.setState(st => ({ added: [...(st.added || []), [name, iso]], adding: false, fName: '', fDate: '' }));
+    try { try { await mk(yr, 'FREQ=YEARLY'); } catch (e) { for (let i = 0; i < 10; i++) await mk(yr + i); } }
+    catch (e) { ha.toast(`Fikk ikke lagret bursdagen: ${e?.message || e}`); this.setState(st => ({ added: (st.added || []).filter(x => x[0] !== name || x[1] !== iso) })); }
+  }
   renderVals() {
+    const LV = loadLive(this);
+    if (LV && !this.liveInit) { this.liveInit = true; Object.assign(this.state, { month: [LV.T.getFullYear(), LV.T.getMonth()], sel: [LV.T.getFullYear(), LV.T.getMonth(), LV.T.getDate()] }); }
+    const T = LV ? LV.T : TODAY, isP = LV ? LV.isP : isPost;
     const s = this.state, ALL = [...BDAYS, ...s.extra];
     const ok = s.fName.trim() && /^\d{4}-\d{2}-\d{2}$/.test(s.fDate);
-    const nextOf = iso => { const [by, bm, bd] = iso.split('-').map(Number); let n = new Date(2026, bm - 1, bd); if (n < TODAY) n = new Date(2027, bm - 1, bd); return { date: n, age: n.getFullYear() - by, bm, bd, by }; };
-    const bl = ALL.map(([name, iso]) => ({ name, ...nextOf(iso) })).map(b => ({ ...b, days: Math.round((b.date - TODAY) / 864e5) })).sort((p, q) => p.days - q.days);
+    const nextOf = iso => { const [by, bm, bd] = iso.split('-').map(Number); let n = new Date(T.getFullYear(), bm - 1, bd); if (n < T) n = new Date(T.getFullYear() + 1, bm - 1, bd); return { date: n, age: n.getFullYear() - by, bm, bd, by }; };
+    const bl = LV ? LV.bl : ALL.map(([name, iso]) => ({ name, ...nextOf(iso) })).map(b => ({ ...b, days: Math.round((b.date - T) / 864e5) })).sort((p, q) => p.days - q.days);
     const nb = bl[0];
-    const postDays = Array.from({ length: 14 }, (_, i) => new Date(2026, 8, 28 + i));
-    const firstDeliv = Array.from({ length: 10 }, (_, i) => new Date(2026, 8, 26 + i)).find(isPost);
+    const mon = LV ? new Date(T.getFullYear(), T.getMonth(), T.getDate() + (T.getDay() === 6 ? 2 : T.getDay() === 0 ? 1 : -(T.getDay() - 1))) : new Date(2026, 8, 28);
+    const postDays = Array.from({ length: 14 }, (_, i) => new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i));
+    const firstDeliv = LV ? Array.from({ length: 21 }, (_, i) => new Date(T.getFullYear(), T.getMonth(), T.getDate() + i)).find(isP) : Array.from({ length: 10 }, (_, i) => new Date(2026, 8, 26 + i)).find(isPost);
+    const PARC = LV ? LV.parcels.map(p => p.row) : PARCELS, parcDate = i => LV ? LV.parcels[i].date : new Date(2026, 8, 25 + PARCELS[i][5]);
+    const dShort = d => d ? d.toLocaleDateString('nb-NO', { weekday: 'short' }).replace('.', '').replace(/^./, c => c.toUpperCase()) : '–';
+    const dDate = d => d ? d.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' }).replace(/\.$/, '') : '';
+    const bdSub = b => !b ? 'Ingen bursdager' : b.age != null ? `${b.name} fyller ${b.age}` : `${b.name} har bursdag`;
     const [y, m] = s.month, f1 = new Date(y, m, 1), off = (f1.getDay() + 6) % 7;
     const cells = Array.from({ length: 42 }, (_, i) => new Date(y, m, 1 - off + i));
     const bdOn = d => bl.filter(b => b.bm - 1 === d.getMonth() && b.bd === d.getDate());
-    const pkOn = d => PARCELS.filter(p => same(new Date(2026, 8, 25 + p[5]), d));
+    const pkOn = d => PARC.filter((p, i) => parcDate(i) && same(parcDate(i), d));
     const sel = new Date(...s.sel);
     const dot = (on, c) => ({ width: 6, height: 6, borderRadius: 3, background: c, display: on ? 'block' : 'none' });
     const selItems = [
-      ...bdOn(sel).map(b => ({ icon: 'cake', title: b.name, sub: `Fyller ${sel.getFullYear() - b.by}`, c: C.pink, ink: '#2a1720' })),
-      ...(isPost(sel) ? [{ icon: 'mail', title: 'Posten leverer', sub: 'Brev i postkassen', c: C.red, ink: '#2a1512' }] : []),
+      ...bdOn(sel).map(b => ({ icon: 'cake', title: b.name, sub: b.by ? `Fyller ${sel.getFullYear() - b.by}` : 'Bursdag', c: C.pink, ink: '#2a1720' })),
+      ...(isP(sel) ? [{ icon: 'mail', title: 'Posten leverer', sub: 'Brev i postkassen', c: C.red, ink: '#2a1512' }] : []),
       ...pkOn(sel).map(p => ({ icon: p[1], title: p[0], sub: p[2], c: C.amber, ink: '#2a2010' })),
     ].map(e => ({ ...e, row: { display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px 14px 14px', borderRadius: 30, background: `linear-gradient(100deg, ${a(e.c, 0.2)}, ${a(e.c, 0.05)} 70%), #2f2f2f` },
       iconWrap: { width: 44, height: 44, borderRadius: 22, flex: 'none', display: 'grid', placeItems: 'center', background: e.c, color: e.ink } }));
-    const isT = same(sel, TODAY);
+    const isT = same(sel, T);
     return {
       views: [['list', 'Liste', 'view_agenda'], ['cal', 'Kalender', 'calendar_month']].map(([k, label, icon]) => ({ label, icon, go: () => this.setState({ view: k }),
         style: { height: 40, padding: '0 18px 0 14px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 500, whiteSpace: 'nowrap', background: s.view === k ? PINK : 'transparent', color: s.view === k ? '#2a1720' : '#afafaf', transition: 'background .25s' } })),
@@ -185,11 +250,11 @@ class Component extends DCLogic {
       ...(() => { const isB = s.mode === 'bday';
         return {
           flip: () => this.setState({ mode: isB ? 'post' : 'bday' }),
-          top: isB ? { icon: 'cake', sub: `${nb.name} fyller ${nb.age}`, main: nb.days, unit: nb.days === 1 ? 'dag' : 'dager' }
-            : { icon: 'mail', sub: 'Neste post', main: firstDeliv.toLocaleDateString('nb-NO', { weekday: 'short' }).replace('.', '').replace(/^./, c => c.toUpperCase()), unit: firstDeliv.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' }).replace(/\.$/, '') },
+          top: isB ? { icon: 'cake', sub: bdSub(nb), main: nb ? nb.days : '–', unit: !nb ? '' : nb.days === 1 ? 'dag' : 'dager' }
+            : { icon: 'mail', sub: 'Neste post', main: dShort(firstDeliv), unit: dDate(firstDeliv) },
           topCards: [
-            { k: 'post', icon: 'mail', sub: 'Neste post', main: firstDeliv.toLocaleDateString('nb-NO', { weekday: 'short' }).replace('.', '').replace(/^./, c => c.toUpperCase()), unit: firstDeliv.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' }).replace(/\.$/, ''), pink: false },
-            { k: 'bday', icon: 'cake', sub: `${nb.name} fyller ${nb.age}`, main: nb.days, unit: nb.days === 1 ? 'dag' : 'dager', pink: true },
+            { k: 'post', icon: 'mail', sub: 'Neste post', main: LV && firstDeliv && same(firstDeliv, T) ? 'I dag' : dShort(firstDeliv), unit: LV && firstDeliv && same(firstDeliv, T) ? '' : dDate(firstDeliv), pink: false },
+            { k: 'bday', icon: 'cake', sub: bdSub(nb), main: !nb ? '–' : LV && nb.days === 0 ? 'I dag' : nb.days, unit: !nb || (LV && nb.days === 0) ? '' : nb.days === 1 ? 'dag' : 'dager', pink: true },
           ].map(t => ({ ...t, go: () => this.setState({ mode: t.k }),
             card: { height: 190, boxSizing: 'border-box', padding: 12, borderRadius: 32, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, textAlign: 'left', minWidth: 0, background: t.pink ? PINK : '#3a3a3a', color: t.pink ? '#2a1720' : '#fafafa', transition: 'transform .2s' },
             iconWrap: { width: 60, height: 60, borderRadius: 30, display: 'grid', placeItems: 'center', background: t.pink ? 'rgba(42,23,32,0.12)' : 'rgba(255,255,255,0.1)' },
@@ -198,7 +263,7 @@ class Component extends DCLogic {
           topIconWrap: { width: 64, height: 64, borderRadius: 32, display: 'grid', placeItems: 'center', background: isB ? 'rgba(42,23,32,0.12)' : 'rgba(255,255,255,0.1)' },
           topSub: { fontSize: 16, color: isB ? '#2a1720' : '#afafaf', whiteSpace: 'nowrap', paddingTop: 4 },
           topDots: ['post', 'bday'].map(k => ({ go: () => this.setState({ mode: k }), style: { width: 8, height: 8, borderRadius: 4, background: (s.mode || 'post') === k ? '#979797' : '#3a3a3a', transition: 'background .25s' } })),
-          secTitle: isB ? 'Bursdager' : 'Posten · 1670 Strømstad',
+          secTitle: isB ? 'Bursdager' : LV ? `Posten${LV.pn ? ' · ' + LV.pn : ''}` : 'Posten · 1670 Strømstad',
           toggleCal: () => this.setState({ view: s.view === 'cal' ? 'list' : 'cal' }),
           calIcon: s.view === 'cal' ? 'view_agenda' : 'calendar_month',
           calBtn: { width: 40, height: 40, borderRadius: 20, display: 'grid', placeItems: 'center', background: s.view === 'cal' ? PINK : '#2f2f2f', color: s.view === 'cal' ? '#2a1720' : '#fafafa', transition: 'background .25s' },
@@ -208,29 +273,29 @@ class Component extends DCLogic {
       adding: s.adding, fName: s.fName, fDate: s.fDate,
       openAdd: () => this.setState({ adding: true }), closeAdd: () => this.setState({ adding: false, fName: '', fDate: '' }),
       setName: e => this.setState({ fName: e.target.value }), setDate: e => this.setState({ fDate: e.target.value }),
-      save: () => { if (!ok) return; const extra = [...s.extra, [s.fName.trim(), s.fDate]]; try { localStorage.setItem('bdays-extra', JSON.stringify(extra)); } catch (e) {} this.setState({ extra, adding: false, fName: '', fDate: '' }); },
+      save: () => { if (!ok) return; if (LV) { if (LV.cal) this.saveLive(LV, s.fName.trim(), s.fDate); else ha.toast('Velg en bursdagskalender (entities: bursdager)'); return; } const extra = [...s.extra, [s.fName.trim(), s.fDate]]; try { localStorage.setItem('bdays-extra', JSON.stringify(extra)); } catch (e) {} this.setState({ extra, adding: false, fName: '', fDate: '' }); },
       saveStyle: { height: 48, borderRadius: 24, fontSize: 15, fontWeight: 600, background: ok ? PINK : '#3a3a3a', color: ok ? '#2a1720' : '#696969', transition: 'background .2s' },
-      nextBday: { days: nb.days, unit: nb.days === 1 ? 'dag' : 'dager', name: `${nb.name} fyller ${nb.age}`, when: nb.days === 0 ? 'I dag' : nb.days === 1 ? 'I morgen' : `Om ${nb.days} dager`, short: `Fyller ${nb.age} · ${nb.date.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' }).replace(/\.$/, '')}` },
-      postNext: { short: firstDeliv.toLocaleDateString('nb-NO', { weekday: 'short' }).replace('.', '').replace(/^./, c => c.toUpperCase()), day: firstDeliv.toLocaleDateString('nb-NO', { weekday: 'long' }).replace(/^./, c => c.toUpperCase()), date: firstDeliv.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' }).replace(/\.$/, '') },
-      bdays: bl.slice(1).map(b => { const soon = b.days < 60; return { name: b.name, initial: b.name[0], sub: `Fyller ${b.age} · ${b.date.toLocaleDateString('nb-NO', { day: 'numeric', month: 'long' })}`, days: `${b.days} d`,
+      nextBday: nb ? { days: nb.days, unit: nb.days === 1 ? 'dag' : 'dager', name: bdSub(nb), when: nb.days === 0 ? 'I dag' : nb.days === 1 ? 'I morgen' : `Om ${nb.days} dager`, short: `${nb.age != null ? `Fyller ${nb.age} · ` : ''}${dDate(nb.date)}` } : {},
+      postNext: firstDeliv ? { short: dShort(firstDeliv), day: firstDeliv.toLocaleDateString('nb-NO', { weekday: 'long' }).replace(/^./, c => c.toUpperCase()), date: dDate(firstDeliv) } : {},
+      bdays: bl.slice(1).map(b => { const soon = b.days < 60; return { name: b.name, initial: b.name[0], sub: `${b.age != null ? `Fyller ${b.age} · ` : ''}${b.date.toLocaleDateString('nb-NO', { day: 'numeric', month: 'long' })}`, days: `${b.days} d`,
         row: { display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px 14px 14px', borderRadius: 30, background: soon ? `linear-gradient(100deg, ${a(C.pink, 0.18)}, ${a(C.pink, 0.04)} 70%), #2f2f2f` : '#2f2f2f' },
         avatar: { width: 44, height: 44, borderRadius: 22, flex: 'none', display: 'grid', placeItems: 'center', fontSize: 17, fontWeight: 600, background: soon ? C.pink : '#3a3a3a', color: soon ? '#2a1720' : '#afafaf' },
         daysStyle: { fontSize: 13, fontWeight: 500, padding: '5px 11px', borderRadius: 12, background: soon ? a(C.pink, 0.22) : '#3a3a3a', color: soon ? '#fafafa' : '#7f7f7f', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' } }; }),
-      postDays: postDays.map(d => { const on = isPost(d), we = d.getDay() === 0 || d.getDay() === 6; return { n: d.getDate(), wd: d.toLocaleDateString('nb-NO', { weekday: 'short' }).replace('.', ''),
+      postDays: postDays.map(d => { const on = isP(d), we = d.getDay() === 0 || d.getDay() === 6; return { n: d.getDate(), wd: d.toLocaleDateString('nb-NO', { weekday: 'short' }).replace('.', ''),
         cell: { height: 70, borderRadius: 18, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, background: on ? a(C.red, 0.18) : '#3a3a3a', boxShadow: on ? `inset 0 0 0 1px ${a(C.red, 0.45)}` : 'none', opacity: we ? 0.4 : 1 },
         icon: { fontSize: 14, color: C.red, fontVariationSettings: "'FILL' 1", opacity: on ? 1 : 0 } }; }),
-      parcels: PARCELS.map(([name, icon, status, step, eta]) => ({ name, icon, status, eta,
+      parcels: PARC.map(([name, icon, status, step, eta]) => ({ name, icon, status, eta,
         iconWrap: { width: 44, height: 44, borderRadius: 22, flex: 'none', display: 'grid', placeItems: 'center', background: step >= 3 ? C.amber : a(C.amber, 0.18), color: step >= 3 ? '#2a2010' : C.amber },
         steps: [1, 2, 3, 4].map(k => ({ flex: 1, height: 4, borderRadius: 2, background: k <= step ? C.amber : '#444446' })) })),
       monthLabel: f1.toLocaleDateString('nb-NO', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase()),
       prevMonth: () => this.setState({ month: m === 0 ? [y - 1, 11] : [y, m - 1] }), nextMonth: () => this.setState({ month: m === 11 ? [y + 1, 0] : [y, m + 1] }),
-      goToday: () => this.setState({ month: [2026, 8], sel: [2026, 8, 25] }),
+      goToday: () => this.setState({ month: [T.getFullYear(), T.getMonth()], sel: [T.getFullYear(), T.getMonth(), T.getDate()] }),
       weekdays: ['M', 'T', 'O', 'T', 'F', 'L', 'S'],
-      cells: cells.map(d => { const inM = d.getMonth() === m, act = same(d, sel), today = same(d, TODAY), hb = inM && bdOn(d).length > 0;
+      cells: cells.map(d => { const inM = d.getMonth() === m, act = same(d, sel), today = same(d, T), hb = inM && bdOn(d).length > 0;
         return { n: d.getDate(), pick: () => inM && this.setState({ sel: [d.getFullYear(), d.getMonth(), d.getDate()] }),
           style: { height: 50, borderRadius: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, background: act ? PINK : hb ? a(C.pink, 0.16) : inM ? '#3a3a3a' : 'transparent', boxShadow: today && !act ? 'inset 0 0 0 1.5px #fafafa' : 'none', opacity: inM ? 1 : 0.25, transition: 'background .2s' },
           num: { fontSize: 14, fontWeight: act || today ? 600 : 500, color: act ? '#2a1720' : '#fafafa', fontVariantNumeric: 'tabular-nums' },
-          dBday: dot(hb, act ? '#2a1720' : C.pink), dPost: dot(inM && isPost(d), act ? '#6a2a20' : C.red), dPkg: dot(inM && pkOn(d).length > 0, act ? '#6a5020' : C.amber) }; }),
+          dBday: dot(hb, act ? '#2a1720' : C.pink), dPost: dot(inM && isP(d), act ? '#6a2a20' : C.red), dPkg: dot(inM && pkOn(d).length > 0, act ? '#6a5020' : C.amber) }; }),
       selTitle: (isT ? 'I dag · ' : '') + sel.toLocaleDateString('nb-NO', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, c => c.toUpperCase()),
       selItems, selEmpty: !selItems.length,
     };

@@ -24,11 +24,11 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
   </header>
   <section style="position:relative;border-radius:30px;padding:18px;background:linear-gradient(160deg, #3a2622, #2e2a2a 60%, #2f2f2f);display:flex;flex-direction:column;gap:14px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
-      <span style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#d8c9c4">NIBE S1255 · hus</span><span style="{{ chip }}"><span class="ms" style="font-size:14px;font-variation-settings:'FILL' 1">{{ chipIcon }}</span>{{ mode }}</span></span>
+      <span style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#d8c9c4">{{ model }}</span><span style="{{ chip }}"><span class="ms" style="font-size:14px;font-variation-settings:'FILL' 1">{{ chipIcon }}</span>{{ mode }}</span></span>
       <span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><span style="font-size:12px;color:#d8c9c4">Ute</span><span style="font-size:20px">{{ outdoor }}°</span></span>
     </div>
     <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px">
-      <span style="display:flex;flex-direction:column;gap:4px"><span style="font-size:48px;font-weight:300;letter-spacing:-0.04em;line-height:1">{{ indoor }}°</span><span style="font-size:13px;color:#d8c9c4">Inne · tur {{ supply }}° · retur {{ ret }}°</span></span>
+      <span style="display:flex;flex-direction:column;gap:4px"><span style="font-size:48px;font-weight:300;letter-spacing:-0.04em;line-height:1">{{ indoor }}°</span><span style="font-size:13px;color:#d8c9c4">{{ indoorSub }}</span></span>
       <div style="display:flex;align-items:center;height:44px;border-radius:22px;background:rgba(0,0,0,0.25)">
         <button onClick="{{ dec }}" style="width:40px;height:44px;display:grid;place-items:center"><span class="ms" style="font-size:20px">remove</span></button>
         <span style="font-size:15px;min-width:40px;text-align:center">{{ target }}°</span>
@@ -38,35 +38,88 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
   </section>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
     <sc-for list="{{ stats }}" as="p" hint-placeholder-count="6">
-      <div style="display:flex;align-items:center;gap:12px;height:64px;padding:0 12px 0 6px;border-radius:32px;background:#2f2f2f;min-width:0">
+      <div onClick="{{ p.go }}" style="display:flex;align-items:center;gap:12px;height:64px;padding:0 12px 0 6px;border-radius:32px;background:#2f2f2f;min-width:0">
         <span style="width:52px;height:52px;border-radius:26px;background:#3a3a3a;display:grid;place-items:center;flex:none"><span class="ms" style="{{ p.iconStyle }}">{{ p.icon }}</span></span>
         <span style="display:flex;flex-direction:column;gap:1px;min-width:0"><span style="font-size:15px;font-weight:500;white-space:nowrap">{{ p.v }}</span><span style="font-size:12px;color:#979797;white-space:nowrap">{{ p.l }}</span></span>
       </div>
     </sc-for>
   </div>
+  <sc-if value="{{ hasHw }}" hint-placeholder-val="{{ true }}">
   <div style="display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:28px;background:#2f2f2f">
     <div style="display:flex;justify-content:space-between"><span style="font-size:14px;font-weight:500">Varmtvann</span><span style="font-size:12px;color:#979797">{{ hwText }}</span></div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:24px;background:#232323"><sc-for list="{{ hw }}" as="h" hint-placeholder-count="3"><button onClick="{{ h.go }}" style="{{ h.style }}">{{ h.l }}</button></sc-for></div>
+    <div style="{{ hwGrid }}"><sc-for list="{{ hw }}" as="h" hint-placeholder-count="3"><button onClick="{{ h.go }}" style="{{ h.style }}">{{ h.l }}</button></sc-for></div>
   </div>
+  </sc-if>
+  <sc-if value="{{ hasAux }}" hint-placeholder-val="{{ true }}">
   <button onClick="{{ toggleAux }}" style="display:flex;align-items:center;gap:14px;height:66px;padding:0 18px 0 6px;border-radius:33px;background:#2f2f2f;text-align:left">
     <span style="width:56px;height:56px;border-radius:28px;background:#3a3a3a;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:24px">electric_bolt</span></span>
-    <span style="flex:1;display:flex;flex-direction:column;gap:1px"><span style="font-size:15px;font-weight:500">Tilleggsvarme</span><span style="font-size:12px;color:#979797">Elkolbe · maks 6 kW</span></span>
+    <span style="flex:1;display:flex;flex-direction:column;gap:1px"><span style="font-size:15px;font-weight:500">Tilleggsvarme</span><span style="font-size:12px;color:#979797">{{ auxSub }}</span></span>
     <span style="{{ auxTrack }}"><span style="{{ auxKnob }}"></span></span>
   </button>
+  </sc-if>
+  <sc-if value="{{ hasWeek }}" hint-placeholder-val="{{ true }}">
   <div style="display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:28px;background:#2f2f2f">
-    <div style="display:flex;justify-content:space-between"><span style="font-size:14px;font-weight:500">Energi siste 7 dager</span><span style="font-size:12px;color:#979797">kWh · COP 3,9</span></div>
+    <div style="display:flex;justify-content:space-between"><span style="font-size:14px;font-weight:500">Energi siste 7 dager</span><span style="font-size:12px;color:#979797">{{ weekSub }}</span></div>
     <div style="display:flex;gap:8px;height:100px;align-items:flex-end"><sc-for list="{{ week }}" as="w" hint-placeholder-count="7"><div style="flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px"><div style="flex:1;width:100%;display:flex;align-items:flex-end"><span style="{{ w.bar }}"></span></div><span style="font-size:11px;color:#979797">{{ w.l }}</span></div></sc-for></div>
   </div>
+  </sc-if>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:440,&quot;height&quot;:900}}">
 const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)', AMBER = 'rgb(242 181 115)', RED = 'rgb(242 128 115)', BLUE = 'rgb(115 185 242)';
+// ── Live-kobling: climate-entitet (varmepumpe) ──────────────────────────────
+// alias `varmepumpe` (ellers første climate med både heat og cool i hvac_modes, ellers første climate).
+// Valgfrie alias: ute, tur, retur, effekt, energi, cop, varmtvann (water_heater), tilleggsvarme (switch).
+const MODE = { heat: ['Varme', 'local_fire_department'], cool: ['Kjøling', 'ac_unit'], heat_cool: ['Auto', 'thermostat_auto'], auto: ['Auto', 'thermostat_auto'], dry: ['Tørk', 'water_drop'], fan_only: ['Vifte', 'mode_fan'], off: ['Av', 'power_settings_new'] };
+const WORD = { auto: 'Auto', low: 'Lav', medium: 'Middels', mid: 'Middels', high: 'Høy', quiet: 'Stille', silent: 'Stille', turbo: 'Turbo', off: 'Av', on: 'På', vertical: 'Vertikal', horizontal: 'Horisontal', both: 'Begge', eco: 'Økonomi', comfort: 'Komfort', boost: 'Boost', away: 'Borte', home: 'Hjemme', sleep: 'Natt', none: 'Ingen', electric: 'Elektrisk', performance: 'Ytelse', heat_pump: 'Varmepumpe', high_demand: 'Høyt behov', gas: 'Gass', normal: 'Normal', luxury: 'Luksus' };
+const word = w => w == null ? '–' : WORD[String(w).toLowerCase()] || (String(w).charAt(0).toUpperCase() + String(w).slice(1)).replace(/_/g, ' ');
+const nf1 = n => n.toLocaleString('nb-NO', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const nfT = n => nf1(n);
+const cycle = (list, cur) => { const l = list || []; if (!l.length) return null; const i = l.indexOf(cur); return l[(i + 1) % l.length]; };
+function loadLive() {
+  const cl = ha.domain('climate');
+  const id = ha.first('varmepumpe') || cl.find(c => { const m = ha.attr(c, 'hvac_modes', []) || []; return m.includes('heat') && m.includes('cool'); }) || cl[0];
+  const st = id && ha.state(id);
+  if (!st) return null;
+  const A = st.attributes || {};
+  const outId = ha.first('ute');
+  const wx = ha.domain('weather')[0];
+  const outdoor = outId ? ha.num(outId, null) : A.outdoor_temperature ?? A.outside_temperature ?? A.current_outdoor_temperature ?? (wx ? ha.attr(wx, 'temperature', null) : null);
+  const hwId = ha.first('varmtvann') || ha.domain('water_heater')[0];
+  const dev = ha.device(id), area = ha.area(id);
+  return { id, st, A, outdoor: typeof outdoor === 'number' ? outdoor : parseFloat(outdoor), hwId, dev, area,
+    tur: ha.num(ha.first('tur'), null), retur: ha.num(ha.first('retur'), null), effekt: ha.first('effekt'), energi: ha.first('energi'), cop: ha.num(ha.first('cop'), null), aux: ha.first('tilleggsvarme') };
+}
+function weekFromHistory(eid) {
+  const h = ha.history(eid, 24 * 8);
+  if (!h) return null;
+  const pad2 = n => String(n).padStart(2, '0'), key = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  const days = [];
+  for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); days.push({ k: key(d), d, v: 0 }); }
+  for (let i = 1; i < h.length; i++) { const dv = h[i].v - h[i - 1].v, day = days.find(x => x.k === key(h[i].t)); if (day && dv > 0) day.v += dv; }
+  return days;
+}
 class Component extends DCLogic {
   state = { target: 21.5, hw: 'normal', aux: false };
+  pend = null;
+  setTarget(L, v) {
+    const A = L.A, lo = A.min_temp ?? 7, hi = A.max_temp ?? 35;
+    v = Math.max(lo, Math.min(hi, Math.round(v * 10) / 10));
+    this.pend = { v, at: Date.now() };
+    if (A.temperature == null && A.target_temp_low != null && A.target_temp_high != null) {
+      const d = v - A.target_temp_low;
+      ha.call('climate', 'set_temperature', { entity_id: L.id, target_temp_low: v, target_temp_high: A.target_temp_high + d });
+    } else ha.call('climate', 'set_temperature', { entity_id: L.id, temperature: v });
+    this.forceUpdate();
+  }
   renderVals() {
+    const L = loadLive();
+    if (L) return this.__live(L);
     const s = this.state, indoor = 21.4, heating = s.target > indoor, nf = n => n.toLocaleString('nb-NO', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
     const W = [38, 42, 35, 47, 51, 44, 29], mx = Math.max(...W);
     return {
+      model: 'NIBE S1255 · hus', indoorSub: 'Inne · tur 34° · retur 29°', hasHw: true, hasAux: true, hasWeek: true, auxSub: 'Elkolbe · maks 6 kW', weekSub: 'kWh · COP 3,9',
+      hwGrid: 'display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:24px;background:#232323',
       indoor: nf(indoor), outdoor: '8,2', supply: '34', ret: '29', target: nf(s.target),
       dec: () => this.setState({ target: Math.max(16, s.target - 0.5) }), inc: () => this.setState({ target: Math.min(26, s.target + 0.5) }),
       mode: heating ? 'Varmer' : 'Holder', chipIcon: heating ? 'local_fire_department' : 'check',
@@ -78,6 +131,56 @@ class Component extends DCLogic {
       auxTrack: { position: 'relative', width: 44, height: 26, borderRadius: 13, flex: 'none', background: s.aux ? AMBER : '#545454', transition: 'background .2s' },
       auxKnob: { position: 'absolute', top: 3, left: s.aux ? 21 : 3, width: 20, height: 20, borderRadius: 10, background: s.aux ? '#2a1d0e' : '#c7c7c7', transition: 'left .2s' },
       week: W.map((w, i) => ({ l: ['Ma', 'Ti', 'On', 'To', 'Fr', 'Lø', 'I dag'][i], bar: { width: '100%', height: `${w / mx * 100}%`, borderRadius: 8, background: i === 6 ? AMBER : '#545454' } })),
+    };
+  }
+  __live(L) {
+    const A = L.A, id = L.id, hv = L.st.state;
+    const cur = typeof A.current_temperature === 'number' ? A.current_temperature : null;
+    const tgtRaw = A.temperature ?? A.target_temp_low ?? null;
+    const tgt = this.pend && Date.now() - this.pend.at < 4000 ? this.pend.v : tgtRaw;
+    const step = A.target_temp_step || 0.5;
+    const act = A.hvac_action || (hv === 'off' ? 'off' : cur != null && tgt != null ? (hv === 'cool' ? (cur > tgt ? 'cooling' : 'idle') : (tgt > cur ? 'heating' : 'idle')) : 'idle');
+    const ACT = { heating: ['Varmer', 'local_fire_department', AMBER], cooling: ['Kjøler', 'ac_unit', BLUE], drying: ['Tørker', 'water_drop', BLUE], fan: ['Vifte', 'mode_fan', '#d8c9c4'], defrosting: ['Avriser', 'ac_unit', BLUE], preheating: ['Forvarmer', 'local_fire_department', AMBER], off: ['Av', 'power_settings_new', '#d8c9c4'], idle: ['Holder', 'check', '#d8c9c4'] };
+    const [mode, chipIcon, chipCol] = ACT[act] || ACT.idle;
+    const [mLabel, mIcon] = MODE[hv] || [word(hv), 'thermostat'];
+    const tile = (icon, v, l, col, go) => ({ icon, v, l, go, iconStyle: { fontSize: 24, color: col } });
+    const set = (svc, key, list, cur2) => () => { const n = cycle(list, cur2); if (n != null) ha.call('climate', svc, { entity_id: id, [key]: n }); };
+    const stats = [tile(mIcon, mLabel, 'Modus', hv === 'cool' ? BLUE : hv === 'off' ? '#979797' : AMBER, set('set_hvac_mode', 'hvac_mode', A.hvac_modes, hv))];
+    if (A.fan_modes?.length || A.fan_mode) stats.push(tile('mode_fan', word(A.fan_mode), 'Vifte', '#fafafa', set('set_fan_mode', 'fan_mode', A.fan_modes, A.fan_mode)));
+    if (A.swing_modes?.length || A.swing_mode) stats.push(tile('swap_vert', word(A.swing_mode), 'Swing', '#fafafa', set('set_swing_mode', 'swing_mode', A.swing_modes, A.swing_mode)));
+    if (A.preset_modes?.length) stats.push(tile('tune', word(A.preset_mode), 'Forvalg', '#fafafa', set('set_preset_mode', 'preset_mode', A.preset_modes, A.preset_mode)));
+    if (L.effekt) { let v = ha.num(L.effekt, null); const u = ha.unit(L.effekt, 'W'); if (v != null) { if (u === 'W') v /= 1000; stats.push(tile('bolt', `${nf1(v)} kW`, 'Effekt nå', AMBER, () => ha.moreInfo(L.effekt))); } }
+    if (typeof A.current_humidity === 'number') stats.push(tile('humidity_percentage', `${Math.round(A.current_humidity)} %`, 'Luftfukt', BLUE));
+    if (L.hwId && ha.attr(L.hwId, 'current_temperature', null) != null) stats.push(tile('water_heater', `${Math.round(ha.attr(L.hwId, 'current_temperature'))}°`, 'Varmtvann', RED, () => ha.moreInfo(L.hwId)));
+    if (L.cop != null) stats.push(tile('eco', nf1(L.cop), 'COP', 'rgb(102 209 158)'));
+    // varmtvann
+    const hwSt = L.hwId && ha.state(L.hwId), hwA = hwSt?.attributes || {};
+    const ops = (hwA.operation_list || []).slice(0, 4), curOp = hwA.current_operation ?? hwSt?.state;
+    // tilleggsvarme
+    const auxOn = L.aux ? ha.on(L.aux, false) : false;
+    // energi
+    const days = L.energi ? weekFromHistory(L.energi) : null;
+    const mx = days ? Math.max(0.001, ...days.map(d => d.v)) : 1;
+    const WD = ['Sø', 'Ma', 'Ti', 'On', 'To', 'Fr', 'Lø'];
+    const name = A.friendly_name || id;
+    const model = [L.dev?.model || name, L.area?.name].filter(Boolean).join(' · ');
+    const sub = ['Inne', L.tur != null ? `tur ${Math.round(L.tur)}°` : null, L.retur != null ? `retur ${Math.round(L.retur)}°` : null];
+    if (L.tur == null && L.retur == null) sub.push(mLabel.toLowerCase());
+    return {
+      model, indoorSub: sub.filter(Boolean).join(' · '), hasHw: !!(hwSt && ops.length), hasAux: !!L.aux, hasWeek: !!L.energi,
+      auxSub: L.aux ? `${ha.name(L.aux, 'Elkolbe')} · ${auxOn ? 'på' : 'av'}` : '', weekSub: `kWh${L.cop != null ? ' · COP ' + nf1(L.cop) : ''}`,
+      hwGrid: { display: 'grid', gridTemplateColumns: `repeat(${Math.max(1, ops.length)},1fr)`, gap: 4, padding: 4, borderRadius: 24, background: '#232323' },
+      indoor: cur != null ? nf1(cur) : '–', outdoor: Number.isFinite(L.outdoor) ? nf1(L.outdoor) : '–', target: tgt != null ? nfT(tgt) : '–',
+      dec: () => tgt != null && this.setTarget(L, tgt - step), inc: () => tgt != null && this.setTarget(L, tgt + step),
+      mode, chipIcon,
+      chip: { height: 26, padding: '0 10px 0 8px', borderRadius: 13, display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, alignSelf: 'flex-start', background: 'rgba(0,0,0,0.25)', color: chipCol },
+      stats: stats.slice(0, 6).map(t => ({ ...t, go: t.go || (() => ha.moreInfo(id)) })),
+      hwText: hwSt ? `${word(curOp)}${hwA.temperature != null ? ' · ' + Math.round(hwA.temperature) + '°' : ''}` : '',
+      hw: ops.map(k => ({ l: word(k), go: () => ha.call('water_heater', 'set_operation_mode', { entity_id: L.hwId, operation_mode: k }), style: { height: 40, borderRadius: 20, fontSize: 14, fontWeight: 500, background: curOp === k ? PINK : 'transparent', color: curOp === k ? '#2a1720' : '#afafaf' } })),
+      toggleAux: () => L.aux && ha.toggle(L.aux),
+      auxTrack: { position: 'relative', width: 44, height: 26, borderRadius: 13, flex: 'none', background: auxOn ? AMBER : '#545454', transition: 'background .2s' },
+      auxKnob: { position: 'absolute', top: 3, left: auxOn ? 21 : 3, width: 20, height: 20, borderRadius: 10, background: auxOn ? '#2a1d0e' : '#c7c7c7', transition: 'left .2s' },
+      week: (days || []).map((d, i) => ({ l: i === 6 ? 'I dag' : WD[d.d.getDay()], bar: { width: '100%', height: `${Math.max(2, d.v / mx * 100)}%`, borderRadius: 8, background: i === 6 ? AMBER : '#545454' } })),
     };
   }
 }

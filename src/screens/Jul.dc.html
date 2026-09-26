@@ -24,8 +24,8 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
   </header>
   <section style="display:flex;align-items:center;gap:16px;padding:18px;border-radius:26px;background:#2f2f2f">
     <div style="flex:1;display:flex;flex-direction:column;gap:4px">
-      <span style="font-size:12px;color:#7f7f7f">Til julaften</span>
-      <span style="font-size:48px;font-weight:500;letter-spacing:-0.03em;line-height:1.05;font-variant-numeric:tabular-nums">{{ days }}<span style="font-size:16px;color:#7f7f7f;font-weight:400"> dager</span></span>
+      <span style="font-size:12px;color:#7f7f7f">{{ headLabel }}</span>
+      <span style="font-size:48px;font-weight:500;letter-spacing:-0.03em;line-height:1.05;font-variant-numeric:tabular-nums">{{ days }}<span style="font-size:16px;color:#7f7f7f;font-weight:400">{{ dayWord }}</span></span>
       <span style="font-size:13px;color:#979797">{{ sub }}</span>
     </div>
     <button onClick="{{ allToggle }}" style="{{ allBtn }}"><span class="ms" style="font-size:28px;font-variation-settings:'FILL' 1">{{ allIcon }}</span><span style="font-size:12px;font-weight:600">{{ allLabel }}</span></button>
@@ -84,25 +84,65 @@ const TABORD = (comp, key, list) => {
       style: d ? { ...t.style, position: 'relative', zIndex: 5, transform: `translateX(${st.dx}px) scale(1.06)`, boxShadow: '0 8px 20px rgba(0,0,0,0.45), inset 0 0 0 1.5px rgb(242 133 201)', transition: 'none', touchAction: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }
         : mine ? { ...t.style, opacity: 0.65, transition: 'opacity .2s' } : { ...t.style, WebkitTouchCallout: 'none', userSelect: 'none' } }; });
 };
+// ── Live-kobling: KI Lys / KI Rom (julelys) ─────────────────────────────────
+// sensor.ki_jul_nedtelling (dager, fase, grupper med lys), sensor.ki_jul_tent,
+// switch.ki_jul_sesong, button.ki_jul_alle_pa/av, binary_sensor.ki_jul_i_sesong.
+// Automasjon-fanen viser automation.* med «jul» i id/navn (eller ha.config.jul_automasjoner).
+const GRP = { stjerner: ['star', WARM], staker: ['candle', WARM], ute: ['deck', RED], annet: ['emoji_objects', WARM] };
+const litIcon = (g, n) => /tre\b|juletre|gran/i.test(n) ? ['park', GREEN] : /nisse/i.test(n) ? ['toys', RED] : /slynge|rekkverk/i.test(n) ? ['emoji_objects', WARM] : GRP[g] || GRP.annet;
+const fmtD = d => d.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' });
+const ago = t => { const m = Math.round((Date.now() - t) / 6e4); return m < 1 ? 'nå nettopp' : m < 60 ? `${m} min siden` : m < 1440 ? `${Math.round(m / 60)} t siden` : `${Math.round(m / 1440)} d siden`; };
+function adventTxt(now) {
+  const y = now.getFullYear(), d24 = new Date(y, 11, 24), a4 = new Date(y, 11, 24 - d24.getDay()), t0 = new Date(y, now.getMonth(), now.getDate());
+  for (let i = 1; i <= 4; i++) { const d = new Date(a4.getTime() - (4 - i) * 7 * 864e5); if (d >= t0) return `${i}. søndag i advent ${fmtD(d)}`; }
+  return t0 <= d24 ? `julaften ${fmtD(d24)}` : `1. søndag i advent ${fmtD(new Date(y + 1, 11, 24 - new Date(y + 1, 11, 24).getDay() - 21))}`;
+}
+function loadLive() {
+  const nid = ha.first('nedtelling', 'sensor.ki_jul_nedtelling') || ha.ki('ki_lys', a => a.ki_type === 'jul')[0];
+  const st = nid && ha.state(nid);
+  if (!st) return null;
+  const A = st.attributes || {};
+  const lights = [];
+  (A.grupper || []).forEach(g => (g.lys || []).forEach(l => { if (!l || !l.entity) return; const nm = ha.name(l.entity, l.navn || l.entity), [icon, col] = litIcon(g.id, (l.navn || '') + ' ' + nm); lights.push({ ent: l.entity, name: nm, icon, col, on: ha.val(l.entity) !== undefined ? ha.on(l.entity) : !!l.paa }); }));
+  if (!lights.length) (A.lys || []).forEach(id => { const nm = ha.name(id, id), [icon, col] = litIcon('', nm); lights.push({ ent: id, name: nm, icon, col, on: ha.on(id, false) }); });
+  const cfgA = ha.config.jul_automasjoner;
+  const autoIds = Array.isArray(cfgA) ? cfgA.filter(id => ha.state(id)) : ha.domain('automation', (s, id) => /jul|advent/i.test(id + ' ' + (s.attributes.friendly_name || '')));
+  const autos = autoIds.map(id => { const lt = ha.attr(id, 'last_triggered'); return { ent: id, name: ha.name(id, id), icon: /slukk|av\b|natt/i.test(ha.name(id, id)) ? 'bedtime' : /borte|hjemme/i.test(ha.name(id, id)) ? 'logout' : /morgen/i.test(ha.name(id, id)) ? 'light_mode' : 'wb_twilight', when: lt ? `Sist kjørt ${ago(new Date(lt))}` : 'Ikke kjørt ennå', on: ha.on(id, false) }; });
+  const sesId = ha.first('i_sesong', 'binary_sensor.ki_jul_i_sesong') || ha.ki('ki_lys', a => a.ki_type === 'jul_i_sesong')[0];
+  if (!autos.length && sesId) autos.push({ ent: sesId, name: 'Julesesong', icon: 'event', when: `${A.fra_tekst || ha.attr(sesId, 'fra', '')} – ${A.til_tekst || ha.attr(sesId, 'til', '')}`, on: ha.on(sesId, false), info: true });
+  const days = parseInt(st.state, 10);
+  return {
+    days: Number.isFinite(days) ? days : A.dager ?? null,
+    head: A.overskrift === 'Julesesongen varer til' ? 'Til julesesongen slutter' : A.overskrift === 'Julesesongen' ? 'Til julesesongen' : 'Til julaften',
+    lights, autos, total: A.antall ?? lights.length,
+    tent: ha.num(ha.first('tent', 'sensor.ki_jul_tent'), A.tent ?? lights.filter(l => l.on).length),
+    pa: ha.first('alle_pa', 'button.ki_jul_alle_pa'), av: ha.first('alle_av', 'button.ki_jul_alle_av'), sesong: ha.first('sesong', 'switch.ki_jul_sesong'),
+  };
+}
 class Component extends DCLogic {
   state = { tab: 'lys', lights: L0.map(x => x[2]), autos: A0.map(x => x[3]) };
   __tabWrap(v) { if (v && Array.isArray(v.tabs)) v.tabs = TABORD(this, 'jul', v.tabs); return v; }
   renderVals() { return this.__tabWrap(this.__rv()); }
   __rv() {
+    const L = loadLive();
     const s = this.state, now = new Date(), y = now.getMonth() === 11 && now.getDate() > 24 ? now.getFullYear() + 1 : now.getFullYear();
-    const days = Math.ceil((new Date(y, 11, 24) - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 864e5), on = s.lights.filter(Boolean).length, any = on > 0;
+    const days = L && L.days != null ? L.days : Math.ceil((new Date(y, 11, 24) - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 864e5), on = L ? L.tent : s.lights.filter(Boolean).length, any = on > 0;
     const tr = v => ({ track: { position: 'relative', width: 44, height: 26, borderRadius: 13, flex: 'none', background: v ? 'rgb(242 133 201)' : '#545454', transition: 'background .2s' }, knob: { position: 'absolute', top: 3, left: v ? 21 : 3, width: 20, height: 20, borderRadius: 10, background: '#fafafa', transition: 'left .2s' } });
+    const LL = L ? L.lights : L0.map(([name, icon, , col], i) => ({ name, icon, col, on: s.lights[i] }));
+    const AA = L ? L.autos : A0.map(([name, icon, when], i) => ({ name, icon, when, on: s.autos[i] }));
+    const allLive = () => { if (L.pa && L.av) return ha.press(any ? L.av : L.pa); if (L.sesong) return ha.turn(L.sesong, !any); const ids = L.lights.map(l => l.ent); return ids.length && ha.call('homeassistant', any ? 'turn_off' : 'turn_on', { entity_id: ids }); };
     return {
-      days, sub: `${on} av ${L0.length} julelys på · 1. søndag i advent 29. nov.`,
-      allIcon: any ? 'lightbulb' : 'light_off', allLabel: any ? 'Alle av' : 'Alle på', allToggle: () => this.setState({ lights: L0.map(() => !any) }),
+      days, dayWord: L && days === 1 ? ' dag' : ' dager', headLabel: L ? L.head : 'Til julaften',
+      sub: `${on} av ${L ? Math.max(L.total, on) : L0.length} julelys på · ${L ? adventTxt(now) : '1. søndag i advent 29. nov.'}`,
+      allIcon: any ? 'lightbulb' : 'light_off', allLabel: any ? 'Alle av' : 'Alle på', allToggle: () => L ? allLive() : this.setState({ lights: L0.map(() => !any) }),
       allBtn: { width: 76, height: 76, borderRadius: 38, flex: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, background: any ? WARM : '#3a3a3a', color: any ? '#2a2210' : '#afafaf' },
       tabs: [['lys', 'Lys', 'lightbulb'], ['auto', 'Automasjon', 'schedule']].map(([id, label, icon]) => ({ label, icon, go: () => this.setState({ tab: id }), style: { height: 52, borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 15, fontWeight: 500, background: s.tab === id ? PINK : 'transparent', color: s.tab === id ? '#2a1720' : '#979797' } })),
       isLys: s.tab === 'lys', isAuto: s.tab === 'auto',
-      lights: L0.map(([name, icon, , col], i) => { const v = s.lights[i]; return { name, icon, sub: v ? 'På' : 'Av', go: () => this.setState({ lights: s.lights.map((x, j) => j === i ? !x : x) }),
+      lights: LL.map(({ name, icon, col, on: v, ent }, i) => ({ name, icon, sub: v ? 'På' : 'Av', go: () => L ? ha.toggle(ent) : this.setState({ lights: s.lights.map((x, j) => j === i ? !x : x) }),
         card: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 14, padding: 14, borderRadius: 24, background: v ? col.replace(')', ' / 0.14)') : '#2f2f2f', boxShadow: v ? `inset 0 0 0 1px ${col.replace(')', ' / 0.4)')}` : 'none', transition: 'background .25s' },
         iconWrap: { width: 44, height: 44, borderRadius: 22, display: 'grid', placeItems: 'center', background: v ? col : '#3a3a3a', color: v ? '#232323' : '#7f7f7f', boxShadow: v ? `0 0 18px ${col.replace(')', ' / 0.5)')}` : 'none' },
-        subStyle: { fontSize: 12, color: v ? col : '#7f7f7f' } }; }),
-      autos: A0.map(([name, icon, when], i) => ({ name, icon, when, go: () => this.setState({ autos: s.autos.map((x, j) => j === i ? !x : x) }), ...tr(s.autos[i]),
+        subStyle: { fontSize: 12, color: v ? col : '#7f7f7f' } })),
+      autos: AA.map(({ name, icon, when, on: v, ent, info }, i) => ({ name, icon, when, go: () => L ? (info ? ha.moreInfo(ent) : ha.toggle(ent)) : this.setState({ autos: s.autos.map((x, j) => j === i ? !x : x) }), ...tr(v),
         row: { display: 'flex', alignItems: 'center', gap: 12, minHeight: 64, borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none', width: '100%' } })),
     };
   }

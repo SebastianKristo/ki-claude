@@ -52,7 +52,7 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
       <div style="{{ gridStyle }}">
         <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="6">
           <div onClick="{{ t.open }}" style="{{ t.box }}">
-            <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="{{ t.slot }}" shape="rect" placeholder="{{ t.ph }}" style="position:absolute;inset:0;width:100%;height:100%" hint-size="100%,100%"></x-import>
+            <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="{{ t.slot }}" src="{{ t.src }}" shape="rect" placeholder="{{ t.ph }}" style="position:absolute;inset:0;width:100%;height:100%" hint-size="100%,100%"></x-import>
             <span style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(0,0,0,0.25), transparent 30%, transparent 65%, rgba(0,0,0,0.55));pointer-events:none"></span>
             <span style="position:absolute;left:12px;top:12px;height:26px;padding:0 10px 0 8px;border-radius:13px;background:rgba(20,20,20,0.6);display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;letter-spacing:0.04em;pointer-events:none"><span style="width:7px;height:7px;border-radius:4px;background:rgb(242 128 115)"></span>OPPTAK</span>
             <button onClick="{{ t.open }}" style="position:absolute;right:10px;top:10px;width:36px;height:36px;border-radius:18px;background:rgba(20,20,20,0.55);display:grid;place-items:center"><span class="ms" style="font-size:20px">open_in_full</span></button>
@@ -64,8 +64,8 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
     </sc-if>
 
     <sc-if value="{{ isSingle }}" hint-placeholder-val="{{ false }}">
-      <div style="position:relative;height:300px;border-radius:30px;overflow:hidden;background:#2f2f2f">
-        <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="{{ one.slot }}" shape="rect" placeholder="{{ one.ph }}" style="position:absolute;inset:0;width:100%;height:100%" hint-size="100%,100%"></x-import>
+      <div onClick="{{ one.open }}" style="position:relative;height:300px;border-radius:30px;overflow:hidden;background:#2f2f2f">
+        <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="{{ one.slot }}" src="{{ one.src }}" shape="rect" placeholder="{{ one.ph }}" style="position:absolute;inset:0;width:100%;height:100%" hint-size="100%,100%"></x-import>
         <span style="position:absolute;inset:0;background:linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.55));pointer-events:none"></span>
         <span style="position:absolute;left:14px;top:14px;height:28px;padding:0 12px 0 10px;border-radius:14px;background:rgb(242 128 115);display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;pointer-events:none"><span style="width:8px;height:8px;border-radius:4px;background:#fff"></span>OPPTAK</span>
         <span style="position:absolute;left:16px;bottom:14px;font-size:18px;font-weight:600;pointer-events:none">{{ one.name }}</span>
@@ -88,7 +88,7 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
     <sc-if value="{{ isEvents }}" hint-placeholder-val="{{ false }}">
       <sc-for list="{{ events }}" as="e" hint-placeholder-count="4">
         <button onClick="{{ e.go }}" style="display:flex;align-items:center;gap:12px;height:72px;padding:0 16px 0 6px;border-radius:36px;background:#2f2f2f;text-align:left">
-          <span style="position:relative;width:88px;height:60px;border-radius:30px;overflow:hidden;flex:none;background:#3a3a3a"><x-import component-from-global-scope="image-slot" from="./image-slot.js" id="{{ e.slot }}" shape="rect" placeholder="{{ e.cam }}" style="position:absolute;inset:0;width:100%;height:100%" hint-size="100%,100%"></x-import></span>
+          <span style="position:relative;width:88px;height:60px;border-radius:30px;overflow:hidden;flex:none;background:#3a3a3a"><x-import component-from-global-scope="image-slot" from="./image-slot.js" id="{{ e.slot }}" src="{{ e.src }}" shape="rect" placeholder="{{ e.cam }}" style="position:absolute;inset:0;width:100%;height:100%" hint-size="100%,100%"></x-import></span>
           <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:500">{{ e.label }}</span><span style="font-size:12px;color:#979797">{{ e.cam }} · {{ e.time }}</span></span>
           <span class="ms" style="font-size:22px;color:#979797">play_circle</span>
         </button>
@@ -102,7 +102,7 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
     </div>
     <sc-for list="{{ fEvents }}" as="e" hint-placeholder-count="5">
       <div style="display:flex;align-items:center;gap:12px;height:72px;padding:0 16px 0 6px;border-radius:36px;background:#2f2f2f">
-        <span style="position:relative;width:88px;height:60px;border-radius:30px;overflow:hidden;flex:none;background:#3a3a3a"><x-import component-from-global-scope="image-slot" from="./image-slot.js" id="{{ e.slot }}" shape="rect" placeholder="{{ e.cam }}" style="position:absolute;inset:0;width:100%;height:100%" hint-size="100%,100%"></x-import></span>
+        <span style="position:relative;width:88px;height:60px;border-radius:30px;overflow:hidden;flex:none;background:#3a3a3a"><x-import component-from-global-scope="image-slot" from="./image-slot.js" id="{{ e.slot }}" src="{{ e.src }}" shape="rect" placeholder="{{ e.cam }}" style="position:absolute;inset:0;width:100%;height:100%" hint-size="100%,100%"></x-import></span>
         <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="display:flex;align-items:center;gap:6px;font-size:15px;font-weight:500"><span class="ms" style="font-size:18px">{{ e.icon }}</span>{{ e.label }}</span><span style="font-size:12px;color:#979797">{{ e.cam }} · {{ e.time }} · {{ e.score }}</span></span>
       </div>
     </sc-for>
@@ -113,7 +113,7 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
     <div style="position:fixed;left:50%;bottom:0;transform:translateX(-50%);z-index:61;width:100%;max-width:440px;max-height:calc(100vh - 40px);overflow-y:auto;scrollbar-width:none;box-sizing:border-box;padding:16px 8px 24px;border-radius:34px 34px 0 0;background:#232323;box-shadow:0 -20px 50px rgba(0,0,0,0.5);display:flex;flex-direction:column;gap:10px">
       <div style="display:flex;align-items:center;gap:12px;padding:0 4px">
         <span style="width:48px;height:48px;border-radius:24px;background:#2f2f2f;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:24px">tune</span></span>
-        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:18px;font-weight:500">Tilpass kameraer</span><span style="font-size:13px;color:#979797;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">For Sebastian · følger brukeren</span></span>
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:18px;font-weight:500">Tilpass kameraer</span><span style="font-size:13px;color:#979797;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">For {{ userName }} · følger brukeren</span></span>
         <button onClick="{{ ed.close }}" style="width:48px;height:48px;border-radius:24px;background:#2f2f2f;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:22px">close</span></button>
       </div>
       <div style="display:flex;flex-direction:column;gap:10px;padding:14px 12px;border-radius:28px;background:#2f2f2f">
@@ -126,7 +126,7 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
         <div style="display:flex;justify-content:space-between;padding:0 4px 4px"><span style="font-size:16px;font-weight:500">Kameraer som vises</span><span style="font-size:14px;color:#979797">{{ ed.shown }}</span></div>
         <sc-for list="{{ ed.cams }}" as="c" hint-placeholder-count="7">
           <div style="{{ c.row }}">
-            <span style="position:relative;width:76px;height:48px;border-radius:14px;overflow:hidden;flex:none;background:#3a3a3a"><x-import component-from-global-scope="image-slot" from="./image-slot.js" id="{{ c.slot }}" shape="rect" placeholder="" style="position:absolute;inset:0;width:100%;height:100%" hint-size="100%,100%"></x-import></span>
+            <span style="position:relative;width:76px;height:48px;border-radius:14px;overflow:hidden;flex:none;background:#3a3a3a"><x-import component-from-global-scope="image-slot" from="./image-slot.js" id="{{ c.slot }}" src="{{ c.src }}" shape="rect" placeholder="" style="position:absolute;inset:0;width:100%;height:100%" hint-size="100%,100%"></x-import></span>
             <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:500">{{ c.name }}</span><span style="font-size:11px;color:#979797;font-family:ui-monospace,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.entity }}</span></span>
             <button onClick="{{ c.eye }}" style="width:40px;height:40px;border-radius:20px;background:#3a3a3a;display:grid;place-items:center;flex:none"><span class="ms" style="{{ c.eyeStyle }}">{{ c.eyeIcon }}</span></button>
             <button onClick="{{ c.up }}" style="{{ c.upStyle }}"><span class="ms" style="font-size:20px">arrow_upward</span></button>
@@ -145,7 +145,7 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:440,&quot;height&quot;:1200}}">
 const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
-const CAMS = [
+const DEMO_CAMS = [
   ['inngang', 'Inngang', 'door_front', 'G4 Doorbell Pro', 'camera.ringeklokke_g4_pro_doorbell_high_resolution'],
   ['veranda', 'Veranda', 'deck', 'G3 Flex', 'camera.veranda_plen_high_resolution_channel'],
   ['plen', 'Plen Sør', 'grass', 'G3 Flex', 'camera.plen_sor_g3_flex_high_resolution'],
@@ -155,13 +155,93 @@ const CAMS = [
   ['pakke', 'Pakke', 'package_2', 'G4 Doorbell Pro', 'camera.ringeklokke_g4_pro_doorbell_package'],
 ];
 const LAYOUTS = [['mosaic', 'Mosaikk', 'dashboard'], ['main', 'Hovedkamera', 'space_dashboard'], ['grid', 'Rutenett', 'grid_view'], ['list', 'Liste', 'view_agenda'], ['masonry', 'Masonry', 'view_quilt'], ['overview', 'Oversikt', 'view_compact'], ['focus', 'Fokus', 'fullscreen'], ['2x2', '2×2', 'border_all'], ['3col', '3 kolonner', 'view_week']];
-const EVENTS = [['person', 'Person', 'inngang', '15:12', '92 %'], ['directions_car', 'Bil', 'garasje', '14:48', '88 %'], ['pets', 'Katt', 'hage', '13:05', '76 %'], ['person', 'Person', 'veranda', '11:40', '90 %'], ['package_2', 'Pakke levert', 'pakke', '10:22', '84 %']];
+const DEMO_EVENTS = [['person', 'Person', 'inngang', '15:12', '92 %'], ['directions_car', 'Bil', 'garasje', '14:48', '88 %'], ['pets', 'Katt', 'hage', '13:05', '76 %'], ['person', 'Person', 'veranda', '11:40', '90 %'], ['package_2', 'Pakke levert', 'pakke', '10:22', '84 %']];
+let CAMS = DEMO_CAMS, EVENTS = DEMO_EVENTS;
+
+// ── Live-kobling: camera.* (UniFi Protect, Frigate, …) ────────────────────────
+// Kameraer: `cameras: [camera.x, {entity, name, icon}]` i kortkonfig, ellers alle camera.* (én per enhet,
+// høy oppløsning foretrekkes). Stillbilder: entity_picture (/api/camera_proxy/<id>?token=…), oppdateres hvert 10. s.
+// Hendelser: deteksjonssensorene til kameraet (binary_sensor.<enhet>_person_detected / _person_occupancy …) fra historikken i dag.
+const LOW = /_(medium|low)(_resolution_channel|_resolution|_res)?$|_insecure$/;
+const devKey = obj => obj.replace(/_(ultra_)?(high|medium|low)(_resolution_channel|_resolution|_res)?$/, '').replace(/_insecure$/, '').replace(/_package(_camera)?$/, '');
+const DET = { person: ['_person_detected', '_person_occupancy'], car: ['_vehicle_detected', '_car_occupancy'], animal: ['_animal_detected', '_cat_occupancy', '_dog_occupancy'], package: ['_package_detected', '_package_occupancy'], motion: ['_motion'], ring: ['_doorbell'] };
+const DET_UI = { person: ['person', 'Person'], car: ['directions_car', 'Bil'], animal: ['pets', 'Dyr'], package: ['package_2', 'Pakke levert'], motion: ['motion_sensor_active', 'Bevegelse'], ring: ['doorbell', 'Ringeklokke'] };
+const camIcon = n => /pakke|package/.test(n) ? 'package_2' : /inngang|ringeklokke|doorbell|entry|dor\b|dor_/.test(n) ? 'door_front' : /veranda|terrasse|deck|balkong|patio/.test(n) ? 'deck'
+  : /plen|gress|lawn/.test(n) ? 'grass' : /hage|yard|garden/.test(n) ? 'yard' : /garasje|garage|gardsplass|innkjorsel/.test(n) ? 'garage' : /mellomgang|trapp|gang|hall/.test(n) ? 'stairs' : /stue|living/.test(n) ? 'chair' : 'videocam';
+const hhmm = d => d.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' });
+const mmss = sec => sec >= 3600 ? `${Math.round(sec / 3600)} t` : `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
+function liveCams() {
+  const conf = ha.config.cameras || ha.config.kameraer;
+  let list;
+  if (Array.isArray(conf) && conf.length) list = conf.map(x => typeof x === 'string' ? { entity: x } : { ...x, entity: x.entity || x.entity_id });
+  else {
+    const seen = new Set();
+    list = ha.domain('camera').filter(id => !LOW.test(id)).sort((a, b) => /_high/.test(b) - /_high/.test(a) || a.localeCompare(b))
+      .filter(id => { const o = id.split('.')[1], k = devKey(o) + (/_package/.test(o) ? '#p' : ''); if (seen.has(k)) return false; seen.add(k); return true; })
+      .sort().map(entity => ({ entity }));
+  }
+  return list.filter(x => x.entity && ha.state(x.entity)).map(x => {
+    const id = x.entity, obj = id.split('.')[1], pkg = /_package(_camera)?$/.test(obj), dev = ha.device(id);
+    const fn = String(ha.name(id, '') || '');
+    const name = x.name || x.navn || (pkg ? 'Pakke' : fn.replace(/\s*(high|medium|low)( resolution( channel)?)?$/i, '').replace(/\s+G\d\b.*$/i, '').trim() || obj.replace(/_/g, ' ').replace(/^./, m => m.toUpperCase()));
+    const model = x.model || ha.attr(id, 'model_name', '') || dev?.model || ha.attr(id, 'brand', '') || '';
+    return [id, name, x.icon || camIcon(ha.norm(name + ' ' + obj)), model, id, devKey(obj), pkg, x];
+  });
+}
+const detOf = cam => { const [id, , , , , dev, pkg, x] = cam, out = [], obj = id.split('.')[1];
+  // prefiks-kandidater: «mellomgang_g5_turret_ultra» og «mellomgang_g5_turret» (+ sensorer på samme enhet)
+  const pre = [...new Set([obj.replace(/_(high|medium|low)(_resolution_channel|_resolution|_res)?$/, '').replace(/_insecure$/, '').replace(/_package(_camera)?$/, ''), dev])];
+  const ents = ha.hass?.entities || {}, did = ents[id]?.device_id;
+  const sameDev = did ? Object.keys(ents).filter(e => e.startsWith('binary_sensor.') && ents[e].device_id === did) : [];
+  Object.entries(DET).forEach(([k, sufs]) => { if (pkg && k !== 'package') return; if ((x.sensors || []).length) return;
+    const hit = pre.flatMap(p => sufs.map(sf => `binary_sensor.${p}${sf}`)).find(e => ha.state(e)) || sameDev.find(e => sufs.some(sf => e.endsWith(sf)));
+    if (hit) out.push([k, hit]); });
+  (x.sensors || []).forEach(e => { const k = Object.keys(DET).find(q => DET[q].some(sf => e.endsWith(sf))) || 'motion'; out.push([k, e]); });
+  return out; };
+const imgOf = (id, tick) => { const st = ha.state(id); const p = st && st.state !== 'unavailable' && st.attributes?.entity_picture; if (!p) return undefined; const u = ha.hass?.hassUrl ? ha.hass.hassUrl(p) : p; return /^data:/.test(u) ? u : u + (u.includes('?') ? '&' : '?') + 'ki=' + tick; };
 class Component extends DCLogic {
   state = { mode: 'live', view: 'alle', edOpen: false, cfg: this.load() };
+  componentDidMount() { this.timer = setInterval(() => { if (this._L) this.setState({ tick: Math.floor(Date.now() / 10000) }); }, 10000); }
+  componentWillUnmount() { this._dead = true; clearInterval(this.timer); }
+  // Deteksjonshendelser i dag fra historikken (on-perioder per sensor).
+  loadEvents(pairs) {
+    const ids = pairs.map(p => p[2]), sig = ids.map(id => ha.state(id)?.last_changed || '').join('|'), now = Date.now(), R = this._evReq;
+    if (!ids.length) return [];
+    if (R && (R.pending || (R.sig === sig && now - R.at < 5 * 60e3))) return this._ev || null;
+    if (!ha.hass?.callWS) return null;
+    const req = this._evReq = { sig, at: now, pending: true }, start = new Date(); start.setHours(0, 0, 0, 0);
+    ha.hass.callWS({ type: 'history/history_during_period', start_time: start.toISOString(), end_time: new Date().toISOString(), entity_ids: ids, minimal_response: true, no_attributes: true, significant_changes_only: false })
+      .then(r => {
+        const out = [];
+        pairs.forEach(([cam, k, id]) => { let on = null; const tt = p => p.lu != null ? p.lu * 1000 : p.lc != null ? p.lc * 1000 : new Date(p.last_updated || p.last_changed).getTime();
+          ((r && r[id]) || []).forEach(p => { const v = p.s != null ? p.s : p.state, t = tt(p); if (v === 'on' && on == null) on = t; else if (v !== 'on' && on != null) { out.push({ cam, k, t: on, dur: (t - on) / 1000 }); on = null; } });
+          if (on != null) out.push({ cam, k, t: on, dur: (Date.now() - on) / 1000 }); });
+        this._ev = out.filter(e => e.t >= start.getTime()).sort((a, b) => b.t - a.t);
+      }, () => { this._ev = this._ev || []; })
+      .then(() => { req.pending = false; if (!this._dead) this.setState({ evV: Date.now() }); });
+    return this._ev || null;
+  }
+  loadLive() {
+    const cams = liveCams();
+    if (!cams.length) return null;
+    CAMS = cams;
+    const dets = cams.map(c => [c, detOf(c)]);
+    const pkgCam = new Set(dets.filter(([c]) => c[6]).flatMap(([, d]) => d.map(p => p[1])));
+    const pairs = dets.flatMap(([c, d]) => d.filter(([k, id]) => c[6] || !(k === 'package' && pkgCam.has(id))).map(([k, id]) => [c[0], k, id]));
+    // bevegelse bare når kameraet ikke har smartdeteksjon
+    const useful = pairs.filter(([cam, k]) => k !== 'motion' || !pairs.some(p => p[0] === cam && p[1] !== 'motion' && p[1] !== 'ring'));
+    const ev = this.loadEvents(useful) || [];
+    EVENTS = ev.slice(0, 12).map(e => [DET_UI[e.k][0], DET_UI[e.k][1], e.cam, hhmm(new Date(e.t)), mmss(e.dur)]);
+    const devOf = id => ha.hass?.entities?.[id]?.device_id;
+    const same = (dom, c) => { const d = devOf(c[4]); return (d && ha.domain(dom, (st, id) => devOf(id) === d)[0]) || null; };
+    return { cams, ev, same, tick: this.state.tick || Math.floor(Date.now() / 10000) };
+  }
   load() { try { return JSON.parse(localStorage.getItem('kamera-cfg') || 'null') || { layout: 'mosaic', order: CAMS.map(c => c[0]), hidden: {} }; } catch (e) { return { layout: 'mosaic', order: CAMS.map(c => c[0]), hidden: {} }; } }
   save(p) { const c = { ...this.state.cfg, ...p }; try { localStorage.setItem('kamera-cfg', JSON.stringify(c)); } catch (e) {} this.setState({ cfg: c }); }
   renderVals() {
-    const s = this.state, c = s.cfg, byId = id => CAMS.find(x => x[0] === id);
+    const LV = this._L = this.loadLive();
+    if (!LV) { CAMS = DEMO_CAMS; EVENTS = DEMO_EVENTS; }
+    const s = this.state, c = s.cfg, byId = id => CAMS.find(x => x[0] === id), src = id => LV ? imgOf(byId(id)?.[4], LV.tick) : undefined;
     const order = [...c.order.filter(byId), ...CAMS.map(x => x[0]).filter(id => !c.order.includes(id))];
     const vis = order.filter(id => !c.hidden[id]);
     const L = c.layout;
@@ -188,20 +268,24 @@ class Component extends DCLogic {
       chips: [chip('alle', 'Alle', 'grid_view'), chip('events', 'Hendelser', 'motion_play'), ...vis.map(id => { const x = byId(id); return chip(id, x[1], x[2]); })],
       isGrid: s.view === 'alle', isSingle: !!one, isEvents: s.view === 'events',
       gridStyle: { display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))`, gridAutoRows: rowH, gridAutoFlow: 'dense', gap: 8 },
-      tiles: list.map((id, i) => { const x = byId(id), [cs, rs] = span(i); return { name: x[1], model: cs > 1 || cols === 1 ? x[3] : '', slot: 'cam-' + id, ph: `Stillbilde: ${x[1]}`, open: () => this.setState({ view: id }),
+      tiles: list.map((id, i) => { const x = byId(id), [cs, rs] = span(i); return { name: x[1], model: cs > 1 || cols === 1 ? x[3] : '', slot: 'cam-' + id, src: src(id), ph: `Stillbilde: ${x[1]}`, open: () => this.setState({ view: id }),
         box: { position: 'relative', gridColumn: `span ${Math.min(cs, cols)}`, gridRow: `span ${rs}`, borderRadius: 26, overflow: 'hidden', background: '#2f2f2f', cursor: 'pointer' } }; }),
-      one: one ? { name: one[1], model: one[3], slot: 'cam-' + one[0], ph: `Stillbilde: ${one[1]}` } : {},
-      actions: [['mic', 'Snakk', true], ['flashlight_on', 'Lys', false], ['campaign', 'Sirene', false], ['photo_camera', 'Bilde', true]].map(([icon, label, on]) => ({ icon, label, go: () => {}, style: { height: 96, borderRadius: 26, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 14, fontWeight: 500, background: '#2f2f2f', color: on ? '#fafafa' : '#696969' } })),
+      one: one ? { name: one[1], model: one[3], slot: 'cam-' + one[0], src: src(one[0]), ph: `Stillbilde: ${one[1]}`, open: () => LV && ha.moreInfo(one[4]) } : {},
+      actions: (LV && one ? (() => { const lys = one[7].lys || one[7].light || ha.first('lys_' + one[5], `light.${one[5]}_flood_light`, `light.${one[5]}_floodlight`) || LV.same('light', one), sir = one[7].sirene || one[7].siren || LV.same('siren', one) || ha.first('sirene', ha.domain('siren')[0]);
+        return [['mic', 'Snakk', true, () => ha.moreInfo(one[4])], ['flashlight_on', 'Lys', !!lys, () => lys && ha.toggle(lys)], ['campaign', 'Sirene', !!sir, () => sir && ha.toggle(sir)], ['photo_camera', 'Bilde', true, () => ha.moreInfo(one[4])]]; })()
+        : [['mic', 'Snakk', true], ['flashlight_on', 'Lys', false], ['campaign', 'Sirene', false], ['photo_camera', 'Bilde', true]]).map(([icon, label, on, go]) => ({ icon, label, go: go || (() => {}), style: { height: 96, borderRadius: 26, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 14, fontWeight: 500, background: '#2f2f2f', color: on ? '#fafafa' : '#696969' } })),
       oneEvents: one ? EVENTS.filter(e => e[2] === one[0]).map(([icon, label, , time]) => ({ icon, label, time })) : [], oneEmpty: !!one && !EVENTS.some(e => e[2] === one[0]),
-      events: EVENTS.map(([icon, label, cam, time], i) => ({ icon, label, time, cam: byId(cam)[1], slot: 'ev-' + i, go: () => this.setState({ view: cam }) })),
-      fStats: [['12', 'Hendelser i dag'], ['5', 'Personer'], ['3', 'Biler']].map(([v, l]) => ({ v, l })),
-      fEvents: EVENTS.map(([icon, label, cam, time, score], i) => ({ icon, label, time, score, cam: byId(cam)[1], slot: 'ev-' + i })),
+      events: EVENTS.filter(e => byId(e[2])).map(([icon, label, cam, time], i) => ({ icon, label, time, cam: byId(cam)[1], slot: 'ev-' + i, src: src(cam), go: () => this.setState({ view: cam }) })),
+      fStats: (LV ? [[String(LV.ev.filter(e => e.k !== 'motion').length || LV.ev.length), 'Hendelser i dag'], [String(LV.ev.filter(e => e.k === 'person').length), 'Personer'], [String(LV.ev.filter(e => e.k === 'car').length), 'Biler']]
+        : [['12', 'Hendelser i dag'], ['5', 'Personer'], ['3', 'Biler']]).map(([v, l]) => ({ v, l })),
+      fEvents: EVENTS.filter(e => byId(e[2])).map(([icon, label, cam, time, score], i) => ({ icon, label, time, score, cam: byId(cam)[1], slot: 'ev-' + i, src: src(cam) })),
+      userName: LV ? String(ha.hass?.user?.name || 'deg').split(' ')[0] : 'Sebastian',
       ed: { open: s.edOpen, close: () => this.setState({ edOpen: false }), reset: () => { try { localStorage.removeItem('kamera-cfg'); } catch (e) {} this.setState({ cfg: this.load() }); },
         layoutName: (LAYOUTS.find(l => l[0] === L) || [])[1], shown: `${vis.length} av ${CAMS.length}`,
         layouts: LAYOUTS.map(([k, label, icon]) => ({ label, icon, go: () => this.save({ layout: k }), style: { height: 88, borderRadius: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 14, fontWeight: 500, background: L === k ? PINK : '#3a3a3a', color: L === k ? '#2a1720' : '#fafafa' } })),
         cams: order.map((id, i) => { const x = byId(id), hid = !!c.hidden[id];
           const move = d => { const o = [...order], j = i + d; if (j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]]; this.save({ order: o }); };
-          return { name: x[1], entity: x[4], slot: 'cam-' + id, eye: () => this.save({ hidden: { ...c.hidden, [id]: !hid } }), eyeIcon: hid ? 'visibility_off' : 'visibility', eyeStyle: { fontSize: 22, color: hid ? '#696969' : '#fafafa' },
+          return { name: x[1], entity: x[4], slot: 'cam-' + id, src: src(id), eye: () => this.save({ hidden: { ...c.hidden, [id]: !hid } }), eyeIcon: hid ? 'visibility_off' : 'visibility', eyeStyle: { fontSize: 22, color: hid ? '#696969' : '#fafafa' },
             up: () => move(-1), down: () => move(1), upStyle: btn(i > 0), downStyle: btn(i < order.length - 1),
             row: { display: 'flex', alignItems: 'center', gap: 10, padding: 8, borderRadius: 24, background: '#2c2c2c', opacity: hid ? 0.55 : 1 } }; }) },
     };

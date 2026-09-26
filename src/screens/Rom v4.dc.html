@@ -205,10 +205,10 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
                 <span style="position:absolute;right:8px;top:8px;width:60px;height:60px;border-radius:30px;background:#3a3a3a;display:grid;place-items:center"><span class="ms" style="font-size:28px;font-variation-settings:'FILL' 1">speaker</span></span>
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-top:28px">
                   <button onClick="{{ m.power }}" style="width:44px;height:44px;display:grid;place-items:center"><span class="ms" style="font-size:22px">power_settings_new</span></button>
-                  <button style="width:44px;height:44px;display:grid;place-items:center"><span class="ms" style="font-size:24px;font-variation-settings:'FILL' 1">skip_previous</span></button>
+                  <button onClick="{{ m.prev }}" style="width:44px;height:44px;display:grid;place-items:center"><span class="ms" style="font-size:24px;font-variation-settings:'FILL' 1">skip_previous</span></button>
                   <button onClick="{{ m.play }}" style="width:64px;height:64px;border-radius:32px;background:#3a3a3a;display:grid;place-items:center" style-active="transform:scale(0.94)"><span class="ms" style="font-size:32px;font-variation-settings:'FILL' 1">{{ m.playIcon }}</span></button>
-                  <button style="width:44px;height:44px;display:grid;place-items:center"><span class="ms" style="font-size:24px;font-variation-settings:'FILL' 1">skip_next</span></button>
-                  <button style="width:44px;height:44px;display:grid;place-items:center"><span class="ms" style="font-size:24px">more_horiz</span></button>
+                  <button onClick="{{ m.next }}" style="width:44px;height:44px;display:grid;place-items:center"><span class="ms" style="font-size:24px;font-variation-settings:'FILL' 1">skip_next</span></button>
+                  <button onClick="{{ m.more }}" style="width:44px;height:44px;display:grid;place-items:center"><span class="ms" style="font-size:24px">more_horiz</span></button>
                 </div>
               </div>
               <div style="display:flex;align-items:center;gap:16px;padding:16px 12px 6px 20px">
@@ -436,27 +436,109 @@ const LT_NAMES = [['', 'Auto'], ['dim', 'Dimbar'], ['ct', 'Dimbar + temperatur']
 const SCENES = [['max','Maks lys','light_mode'],['komfort','Komfort','weekend'],['middag','Middag','restaurant'],['tv','TV-kveld','tv'],['dim','Dempet','brightness_4'],['av','Alt av','dark_mode']];
 const sceneLevel = (k, i, name) => ({ max: 100, komfort: [60, 45, 0, 50, 40, 70, 0, 55, 30][i % 9], middag: /spise/i.test(name) ? 85 : i % 2 ? 25 : 0, tv: i % 3 === 0 ? 15 : 0, dim: 30, av: 0 })[k];
 const quiet = st => /Stille|Lukket|lx|%/.test(st);
+const qz = z => z[4] != null ? !z[4] : quiet(z[2]);
 const MIN = 15, MAX = 28;
 const SECS = [['hero', 'Toppkort · temperatur', 'thermostat_auto'], ['curtain', 'Rullegardin', 'blinds'], ['scenes', 'Scener', 'auto_awesome'], ['lys', 'Lys', 'floor_lamp'], ['dev', 'Enheter', 'radio'], ['klima', 'Klima', 'thermostat'], ['media', 'Media', 'speaker'], ['sens', 'Sensorer', 'directions_walk']];
-const THERMO = [['', 'Standard fra rommet'], ['climate.oljefyr_stue', 'Oljefyr stue'], ['climate.varmepumpe', 'Varmepumpe'], ['climate.gulvvarme_kjokken', 'Gulvvarme kjøkken'], ['climate.panelovn_sov', 'Panelovn soverom']];
-const HA_ENTS = (() => { const R = [['stue','Stue'],['kjokken','Kjøkken'],['gang','Gang'],['bad','Bad'],['bad_2','Bad 2. et'],['soverom','Soverom'],['cybele','Cybele soverom'],['rune','Rune soverom'],['kontor','Rune kontor'],['allrom','Allrom'],['vaskerom','Vaskerom'],['kjeller','Kjeller'],['garasje','Garasje'],['ute','Ute']], out = [];
+let THERMO = [['', 'Standard fra rommet'], ['climate.oljefyr_stue', 'Oljefyr stue'], ['climate.varmepumpe', 'Varmepumpe'], ['climate.gulvvarme_kjokken', 'Gulvvarme kjøkken'], ['climate.panelovn_sov', 'Panelovn soverom']];
+let HA_ENTS = (() => { const R = [['stue','Stue'],['kjokken','Kjøkken'],['gang','Gang'],['bad','Bad'],['bad_2','Bad 2. et'],['soverom','Soverom'],['cybele','Cybele soverom'],['rune','Rune soverom'],['kontor','Rune kontor'],['allrom','Allrom'],['vaskerom','Vaskerom'],['kjeller','Kjeller'],['garasje','Garasje'],['ute','Ute']], out = [];
   R.forEach(([id, n], i) => { out.push(['sensor.' + id + '_temperature', n + ' temperatur', 'thermometer', (19 + (i * 7) % 6 + 0.4).toFixed(1).replace('.', ',') + ' °C']); out.push(['sensor.' + id + '_humidity', n + ' luftfuktighet', 'humidity_percentage', (38 + (i * 11) % 30) + ' %']); if (i < 10) out.push(['climate.' + id, n + ' termostat', 'thermostat', 'heat · ' + (18 + i % 5) + '°']); });
   return [...out, ['climate.oljefyr_stue','Oljefyr stue','heat','heat · 21°'], ['climate.varmepumpe','Varmepumpe NIBE','heat_pump','heat · 22°'], ['climate.gulvvarme_kjokken','Gulvvarme kjøkken','heat','heat · 22°'], ['climate.panelovn_soverom','Panelovn soverom','heat','off'], ['sensor.aqara_temp','Aqara temperatur','thermometer','22,4 °C'], ['sensor.aqara_humidity','Aqara luftfuktighet','humidity_percentage','47 %'], ['sensor.tilstede_temp','Tilstedesensor temp','sensor_occupied','22,9 °C'], ['sensor.nibe_bt50_room_temp','NIBE BT50 romtemp','heat_pump','21,6 °C'], ['sensor.netatmo_indoor_temperature','Netatmo inne temperatur','thermometer','22,1 °C'], ['sensor.netatmo_indoor_humidity','Netatmo inne fukt','humidity_percentage','44 %'], ['sensor.netatmo_co2','Netatmo CO₂','co2','612 ppm'], ['weather.hjem','Vær hjemme','partly_cloudy_day','overskyet'], ['fan.ventilasjon','Ventilasjon','mode_fan','on'], ['switch.varmekabel_bad','Varmekabel bad','heat','on'], ['input_number.stue_maltemp','Stue måltemperatur','tune','21']]; })();
-const TSENS = [['', 'Standard fra rommet'], ['sensor.aqara_temp', 'Aqara temperatur'], ['sensor.tilstede_temp', 'Tilstedesensor temp'], ['sensor.termostat_temp', 'Termostatens sensor']];
-const HSENS = [['', 'Standard fra rommet'], ['sensor.aqara_fukt', 'Aqara fukt'], ['sensor.luftrenser_fukt', 'Luftrenser fukt']];
+let TSENS = [['', 'Standard fra rommet'], ['sensor.aqara_temp', 'Aqara temperatur'], ['sensor.tilstede_temp', 'Tilstedesensor temp'], ['sensor.termostat_temp', 'Termostatens sensor']];
+let HSENS = [['', 'Standard fra rommet'], ['sensor.aqara_fukt', 'Aqara fukt'], ['sensor.luftrenser_fukt', 'Luftrenser fukt']];
+
+// ── Live-kobling: HA-område + KI Rom (sensor.<rom>_oversikt) + KI Lys (scener) ──
+// props.roomId = HA area_id, områdenavn eller slug (props.name brukes som reserve).
+// Uten treff i hass.areas vises designets demo-rom uendret.
+const DEMO = { HA_ENTS, THERMO, TSENS, HSENS };
+const MS_ROOM = [[/stue|sofa|living/, 'weekend'], [/kj(ø|o)kken|kitchen|countertop|stove/, 'kitchen'], [/gang|entr(e|é)|hall|door/, 'door_front'], [/bad|wc|toalett|shower|bath/, 'bathtub'], [/vask|laundry|washing/, 'local_laundry_service'], [/sov|bed/, 'bed'], [/kontor|pult|office|desk/, 'desk'], [/garasje|garage|carport/, 'garage'], [/ute|hage|terrasse|veranda|garden|tree|yard/, 'yard'], [/kjeller|loft|stairs/, 'stairs'], [/spise|dining/, 'dining'], [/barn|gutte|jente|child|teddy/, 'child_care']];
+const roomIcon = (name, mdi) => { const n = (String(name || '') + ' ' + String(mdi || '')).toLowerCase(); const m = MS_ROOM.find(([r]) => r.test(n)); return m ? m[1] : 'meeting_room'; };
+const MDI_SC = [[/lightbulb-on-(10|20|30|40|50)|brightness|dim|mindre/, 'brightness_4'], [/lightbulb-on|sunny|maks/, 'light_mode'], [/sofa|couch|komfort/, 'weekend'], [/silverware|food|restaurant|middag/, 'restaurant'], [/television|tv/, 'tv'], [/night|moon|sleep|natt/, 'bedtime'], [/lightbulb-off|\bav\b/, 'dark_mode'], [/movie|film|kino/, 'movie'], [/book|les/, 'menu_book'], [/party|music|fest/, 'celebration']];
+const scIcon = (mdi, name) => { const n = (String(mdi || '') + ' ' + String(name || '')).toLowerCase(); const m = MDI_SC.find(([r]) => r.test(n)); return m ? m[1] : 'auto_awesome'; };
+const SENS_CL = { motion: ['directions_walk', 'Bevegelse', 'Stille'], moving: ['directions_walk', 'Bevegelse', 'Stille'], occupancy: ['sensor_occupied', 'Noen her', 'Stille'], presence: ['sensor_occupied', 'Noen her', 'Stille'], door: ['door_front', 'Åpen', 'Lukket'], window: ['window', 'Åpent', 'Lukket'], opening: ['sensor_door', 'Åpen', 'Lukket'], garage_door: ['garage', 'Åpen', 'Lukket'], moisture: ['water_damage', 'Lekkasje', 'Tørt'], sound: ['graphic_eq', 'Lyd', 'Stille'], vibration: ['vibration', 'Vibrasjon', 'Stille'], smoke: ['detector_smoke', 'Røyk', 'Stille'] };
+const strip = (n, room) => { const t = String(n || ''), r = String(room || ''); return r && t.toLowerCase().startsWith(r.toLowerCase() + ' ') && t.length > r.length + 1 ? t.charAt(r.length + 1).toUpperCase() + t.slice(r.length + 2) : t; };
+const devIcon = (id, n) => id.startsWith('fan.') ? 'mode_fan' : /\btv\b|tv-/i.test(n) ? 'tv' : /pc|data|mac/i.test(n) ? 'desktop_windows' : /skjerm|monitor/i.test(n) ? 'monitor' : /server|rack|nas/i.test(n) ? 'dns' : /stikk|plug|outlet/i.test(n) ? 'outlet' : 'power';
+function findArea(p) {
+  const AR = (ha.hass && ha.hass.areas) || {}, id = p.roomId || 'stue', all = Object.values(AR);
+  if (AR[id]) return AR[id];
+  const n1 = ha.norm(id), n2 = p.name ? ha.norm(p.name) : null;
+  return all.find(a => ha.norm(a.name) === n1 || ha.norm(a.area_id) === n1) || (n2 && all.find(a => ha.norm(a.name) === n2 || ha.norm(a.area_id) === n2)) || null;
+}
+const hourly = (rows, cur) => { if (!rows || rows.length < 2) return null; const now = Date.now(); return Array.from({ length: 25 }, (_, i) => { const t = now - (24 - i) * 36e5; let v = rows[0].v; for (const r of rows) { if (r.t.getTime() <= t) v = r.v; else break; } return i === 24 && cur != null ? cur : v; }); };
+function loadLive(p, c, pv) {
+  if (!ha.live) return null;
+  const area = findArea(p);
+  if (!area) return null;
+  const aid = area.area_id, rn = area.name || p.name || aid, E = ha.hass.entities || {};
+  const ov = ha.ki('ki_rom', a => a.area_id === aid)[0] || ha.first('oversikt_' + aid, 'sensor.' + ha.norm(rn) + '_oversikt');
+  const O = ov && ha.attr(ov, 'integrasjon') === 'ki_rom' ? ha.state(ov).attributes : null;
+  const lov = ha.ki('ki_lys', a => a.ki_type === 'oversikt' && (a.area_id === aid || (a.area_ids || []).includes(aid)))[0];
+  const K = lov ? ha.state(lov).attributes : null;
+  const ents = (d, f) => ha.domain(d, (st, id) => { const e = E[id]; if (e && (e.hidden || e.hidden_by || e.entity_category || e.disabled_by)) return false; const ar = ha.area(id); return !!ar && ar.area_id === aid && (!f || f(st, id)); });
+  const dc = (d, cls) => (st) => st.attributes && st.attributes.device_class === cls;
+  const arr = v => Array.isArray(v) ? v : [];
+  const P = (k, fb) => { const x = pv[k]; return x && Date.now() - x.t < 4000 ? x.v : fb; };
+  const lys = O ? arr(O.lys) : K ? arr(K.lys) : ents('light', (st, id) => !Array.isArray(st.attributes && st.attributes.entity_id));
+  const lights = lys.filter(id => ha.state(id)).map(id => { const A = ha.state(id).attributes || {}, on = ha.on(id, false), modes = arr(A.supported_color_modes);
+    const auto = !id.startsWith('light.') || (modes.length ? modes.every(m => m === 'onoff') : A.brightness == null && !on) ? 'onoff' : modes.some(m => /hs|rgb|xy/.test(m)) ? 'color' : modes.includes('color_temp') ? 'ct' : 'dim';
+    return { ent: id, name: strip(ha.name(id, id), rn), auto, v: P(id, on ? (A.brightness != null ? Math.max(1, Math.round(A.brightness / 2.55)) : 100) : 0), ct: P(id + '|ct', A.color_temp_kelvin ?? 3500), hue: P(id + '|hue', A.hs_color ? Math.round(A.hs_color[0]) : 30) }; });
+  const effOf = id => { const o = id.split('.')[1]; return ['sensor.' + o + '_effekt', 'sensor.' + o + '_power'].find(x => ha.state(x)) || null; };
+  const brytere = O ? arr(O.brytere).concat(arr(O.vifter)) : ents('switch').concat(ents('fan')).map(e => ({ entity: e, effekt: effOf(e) }));
+  const devices = brytere.filter(b => b && b.entity && ha.state(b.entity)).map(({ entity, effekt }) => { const nm = strip(ha.name(entity, entity), rn); return { ent: entity, name: nm, icon: devIcon(entity, nm), on: ha.on(entity, false), w: Math.round(ha.num(effekt, 0)) }; });
+  const tId = c.tsens && ha.state(c.tsens) ? c.tsens : O ? arr(O.temperatur)[0] : ents('sensor', dc(0, 'temperature'))[0];
+  const hId = c.hsens && ha.state(c.hsens) ? c.hsens : O ? arr(O.fuktighet)[0] : ents('sensor', dc(0, 'humidity'))[0];
+  let klima = O ? arr(O.klima).map(k => k.entity) : ents('climate');
+  if (c.thermo && ha.state(c.thermo)) klima = [c.thermo, ...klima.filter(x => x !== c.thermo)];
+  klima = klima.concat(arr(c.extra).filter(x => x && x.startsWith('climate.') && ha.state(x) && !klima.includes(x)));
+  const effK = id => { const k = O && arr(O.klima).find(x => x.entity === id); return (k && k.effekt) || effOf(id); };
+  const climate = klima.filter(id => ha.state(id)).map(id => { const A = ha.state(id).attributes || {}; return { ent: id, name: strip(ha.name(id, id), rn), w: Math.round(ha.num(effK(id), 0)), set: A.temperature ?? null, t: A.current_temperature ?? null, h: A.current_humidity ?? null, step: A.target_temp_step || 0.5, lo: A.min_temp ?? MIN, hi: A.max_temp ?? MAX, mode: ha.val(id, 'off') }; });
+  let temp = ha.num(tId, null), hum = ha.num(hId, null);
+  if (temp == null && climate[0]) temp = climate[0].t; if (hum == null && climate[0]) hum = climate[0].h;
+  climate.forEach(k => { if (k.t == null) k.t = temp; if (k.h == null) k.h = hum; });
+  const media = (O ? arr(O.media) : ents('media_player')).filter(id => ha.state(id)).map(id => { const A = ha.state(id).attributes || {}, st = ha.val(id, 'unavailable'); return { ent: id, name: strip(ha.name(id, id), rn), playing: st === 'playing', st, title: A.media_title || A.app_name || '', vol: P(id, Math.round((A.volume_level ?? 0) * 100)) }; });
+  const sens = (O ? arr(O.sensorer) : ents('binary_sensor', st => SENS_CL[st.attributes && st.attributes.device_class]).map(e => ({ entity: e, klasse: ha.attr(e, 'device_class') }))).filter(x => x && x.entity && ha.state(x.entity));
+  const lux = O ? arr(O.lysniva) : ents('sensor', dc(0, 'illuminance'));
+  const sensors = sens.map(({ entity, klasse }) => { const d = SENS_CL[klasse] || ['sensors', 'På', 'Av'], v = ha.val(entity), on = ha.on(entity, false);
+    return [strip(ha.name(entity, entity), rn), d[0], v === undefined ? 'Utilgjengelig' : on ? d[1] : d[2], entity, v !== undefined && on]; })
+    .concat(lux.filter(id => ha.state(id)).map(id => [strip(ha.name(id, 'Lysnivå'), rn), 'light_mode', `${nf(ha.num(id, 0), 1)} lx`, id, false]));
+  const covers = (O ? arr(O.gardiner) : ents('cover')).filter(id => ha.state(id)).map(id => ({ ent: id, name: strip(ha.name(id, id), rn), pos: ha.attr(id, 'current_position', null) != null, v: P(id, ha.attr(id, 'current_position', null) ?? (ha.on(id, false) ? 100 : 0)) }));
+  const scenes = arr(K && K.scener).filter(x => x && x.entity).map(x => ({ key: x.id, label: x.navn, icon: scIcon(x.ikon, x.id), ent: x.entity }))
+    .concat((O ? arr(O.scener) : ents('scene')).filter(id => ha.state(id)).map(id => ({ key: id, label: ha.name(id, id), icon: scIcon('', ha.name(id, id)) === 'auto_awesome' ? 'palette' : scIcon('', ha.name(id, id)), ent: id })));
+  const effId = 'sensor.' + ha.norm(rn) + '_effekt', eff = ha.attr(effId, 'rom') ? ha.num(effId, null) : null;
+  const tS = hourly(ha.history(tId, 24), temp), hS = hourly(ha.history(hId, 24), hum);
+  // entitetsvelgeren i «Tilpass» søker i ekte HA-entiteter
+  const nmOf = id => ha.name(id, id), fmtS = id => { const s = ha.state(id); return s ? `${s.state}${s.attributes.unit_of_measurement ? ' ' + s.attributes.unit_of_measurement : ''}` : ''; };
+  const pick = (d, cls) => ha.domain(d, st => !cls || (st.attributes && st.attributes.device_class === cls));
+  const clim = pick('climate'), ts = pick('sensor', 'temperature'), hs = pick('sensor', 'humidity');
+  return { area, aid, name: rn, icon: p.icon || roomIcon(rn, area.icon), temp, hum, tS, hS, eff, scenes, tId, hId,
+    lists: { HA_ENTS: [...clim.map(id => [id, nmOf(id), 'thermostat', `${ha.val(id, '–')} · ${ha.attr(id, 'temperature', '–')}°`]), ...ts.map(id => [id, nmOf(id), 'thermometer', fmtS(id)]), ...hs.map(id => [id, nmOf(id), 'humidity_percentage', fmtS(id)])],
+      THERMO: [['', 'Standard fra rommet'], ...clim.map(id => [id, nmOf(id)])], TSENS: [['', 'Standard fra rommet'], ...ts.map(id => [id, nmOf(id)])], HSENS: [['', 'Standard fra rommet'], ...hs.map(id => [id, nmOf(id)])] },
+    over: { lights, devices, climate, media, sensors, covers, curtain: covers.length ? covers[0].v : null } };
+}
+const HVAC = { heat: 'Varme', cool: 'Kjøling', auto: 'Auto', heat_cool: 'Auto', dry: 'Tørking', fan_only: 'Vifte', off: 'Av' };
+const mState = x => x.playing ? (x.title ? `Spiller · ${x.title}` : 'Spiller') : x.st === 'paused' ? 'Pauset' : x.st === 'idle' ? 'Klar' : x.st === 'unavailable' ? 'Utilgjengelig' : 'Av';
 const CFG0 = { order: SECS.map(x => x[0]), hidden: {}, hideEnt: {}, thermo: '', tsens: '', hsens: '', extra: [] };
 class Component extends DCLogic {
   state = this.init();
   init() {
     const id = this.props?.roomId || 'stue', d = DATA[id] || DATA.stue;
     return { id, scene: null, curtain: d.curtain ?? null, lights: d.lights.map(n => ({ name: n, v: 0, ct: 3500, hue: 30 })), devices: d.devices.map(([name, icon, on, w]) => ({ name, icon, on, w })),
-      climate: d.climate.map(([name, w, set], i) => ({ name, w, set, t: (this.props?.temp ?? 22.8) + (i ? -0.6 : 0), h: (this.props?.hum ?? 50) + (i ? 3 : 0) })), media: d.media.map(name => ({ name, playing: false, vol: 20 })), sensors: d.sensors, cfg: this.loadCfg(id), edOpen: false,
+      climate: d.climate.map(([name, w, set], i) => ({ name, w, set, t: (this.props?.temp ?? 22.8) + (i ? -0.6 : 0), h: (this.props?.hum ?? 50) + (i ? 3 : 0) })), media: d.media.map(name => ({ name, playing: false, vol: 20 })), sensors: d.sensors, cfg: this.loadCfg(id), edOpen: false, pv: {},
       covers: d.curtain == null ? [] : id === 'sov' ? [{ name: 'Seng rullegardin', v: 0 }, { name: 'Rullegardin', v: 0 }] : [{ name: 'Gardiner', v: d.curtain }, { name: 'Gardin vindu', v: d.curtain }], coverOpen: false };
   }
   componentDidUpdate(pp) { if (pp.roomId !== this.props.roomId) this.setState(this.init()); }
   loadCfg(id) { try { const c = JSON.parse(localStorage.getItem('rom-cfg-' + id) || 'null'); if (c) return { ...CFG0, ...c, order: (() => { const o = (c.order || []).filter(k => CFG0.order.includes(k)); CFG0.order.forEach((k, i) => { if (!o.includes(k)) o.splice(Math.min(i, o.length), 0, k); }); return o; })() }; } catch (e) {} return { ...CFG0 }; }
   setCfg(p) { const c = { ...this.state.cfg, ...p }; try { localStorage.setItem('rom-cfg-' + this.state.id, JSON.stringify(c)); } catch (e) {} this.setState({ cfg: c }); }
   renderVals() {
+    const L = this.L = loadLive(this.props || {}, this.state.cfg || CFG0, this.state.pv || {}), LS = L ? L.lists : DEMO;
+    HA_ENTS = LS.HA_ENTS; THERMO = LS.THERMO; TSENS = LS.TSENS; HSENS = LS.HSENS;
+    const saved = this.state;
+    if (L) this.state = { ...saved, ...L.over };
+    try { return this.renderVals1(); } finally { this.state = saved; }
+  }
+  prev(k, v) { this.setState(st => ({ pv: { ...(st.pv || {}), [k]: { v, t: Date.now() } } })); }
+  lightSet(ent, v) { if (ent.startsWith('light.') && v > 0) return ha.call('light', 'turn_on', { entity_id: ent, brightness_pct: v }); return ha.turn(ent, v > 0); }
+  coverSet(x, v) { return x.pos ? ha.call('cover', 'set_cover_position', { entity_id: x.ent, position: v }) : ha.call('cover', v > 0 ? 'open_cover' : 'close_cover', { entity_id: x.ent }); }
+  renderVals1() {
     const o = this.renderVals0(), s = this.state, c = s.cfg, H = c.hidden;
     const gap = c.gap ?? 18, pT = c.padT ?? 20, pB = c.padB ?? 40;
     o.rootStyle = { boxSizing: 'border-box', width: '100%', maxWidth: 420, minHeight: '100vh', margin: '0 auto', background: '#232323', padding: `${pT}px 14px ${pB}px`, display: 'flex', flexDirection: 'column', gap };
@@ -465,10 +547,10 @@ class Component extends DCLogic {
       presets: pr.map(([l, v]) => ({ label: l, go: () => this.setCfg({ [key]: v }), style: { height: 30, padding: '0 12px', borderRadius: 15, fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', background: val === v ? 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)' : '#545454', color: val === v ? '#2a1720' : '#fafafa' } })) }));
     const sw = on => ({ track: { position: 'relative', width: 44, height: 26, borderRadius: 13, flex: 'none', background: on ? 'rgb(102 209 158)' : '#545454', transition: 'background .2s' }, knob: { position: 'absolute', top: 3, left: on ? 21 : 3, width: 20, height: 20, borderRadius: 10, background: on ? '#1f2a24' : '#c7c7c7', transition: 'left .2s' } });
     const swp = (key, n) => ({ onScroll: e => { const el = e.currentTarget, i = Math.round(el.scrollLeft / el.clientWidth); if (i !== (this.state[key] || 0)) this.setState({ [key]: i }); }, dots: n > 1 ? Array.from({ length: n }, (_, i) => ({ width: (i === Math.min(s[key] || 0, n - 1)) ? 12 : 10, height: (i === Math.min(s[key] || 0, n - 1)) ? 12 : 10, borderRadius: 6, background: (i === Math.min(s[key] || 0, n - 1)) ? '#8a8a8a' : '#454545', transition: 'background .2s' })) : [] });
-    const updC = (i, dv) => this.setState(st => ({ climate: st.climate.map((x, j) => j === i ? { ...x, set: Math.max(MIN, Math.min(MAX, x.set + dv)) } : x) }));
+    const updC = (i, dv) => this.L ? (() => { const k = s.climate[i]; if (!k) return; const base = k.set ?? Math.round((k.t ?? 21) * 2) / 2; return ha.call('climate', 'set_temperature', { entity_id: k.ent, temperature: Math.max(k.lo, Math.min(k.hi, base + Math.sign(dv) * k.step)) }); })() : this.setState(st => ({ climate: st.climate.map((x, j) => j === i ? { ...x, set: Math.max(MIN, Math.min(MAX, x.set + dv)) } : x) }));
     const nfx = (v, d) => v.toLocaleString('nb-NO', { minimumFractionDigits: d, maximumFractionDigits: d });
-    o.climCards = [...s.climate.map((k, i) => ({ name: k.name, sub: `${k.w} W`, temp: nfx(k.t, 0), hum: nfx(k.h, 0), set: nfx(k.set, Number.isInteger(k.set) ? 0 : 1), up: () => updC(i, 0.5), down: () => updC(i, -0.5) })),
-      ...c.extra.map(v => { const sv = (s.extraSet || {})[v] ?? 21, nm = (THERMO.find(t => t[0] === v) || HA_ENTS.find(t => t[0] === v) || [v, v])[1], set = d => this.setState(st => ({ extraSet: { ...(st.extraSet || {}), [v]: Math.max(MIN, Math.min(MAX, sv + d)) } }));
+    o.climCards = [...s.climate.map((k, i) => ({ name: k.name, sub: this.L && !k.w ? (HVAC[k.mode] || k.mode) : `${k.w} W`, temp: k.t == null ? '–' : nfx(k.t, 0), hum: k.h == null ? '–' : nfx(k.h, 0), set: k.set == null ? '–' : nfx(k.set, Number.isInteger(k.set) ? 0 : 1), up: () => updC(i, 0.5), down: () => updC(i, -0.5) })),
+      ...(this.L ? [] : c.extra).map(v => { const sv = (s.extraSet || {})[v] ?? 21, nm = (THERMO.find(t => t[0] === v) || HA_ENTS.find(t => t[0] === v) || [v, v])[1], set = d => this.setState(st => ({ extraSet: { ...(st.extraSet || {}), [v]: Math.max(MIN, Math.min(MAX, sv + d)) } }));
         return { name: nm, sub: v, temp: nfx(o.temp ? parseFloat(String(o.temp).replace(',', '.')) : 22, 0), hum: o.hum, set: nfx(sv, Number.isInteger(sv) ? 0 : 1), up: () => set(0.5), down: () => set(-0.5) }; })];
     { const K = { bg: '#2a2a2a', ring: 'rgba(255,255,255,0.22)', btn: 'outline', mode: false, ...(c.klimaLook || {}) }, DEFR = 'rgba(255,255,255,0.22)', num = v => parseFloat(String(v).replace(',', '.'));
       o.climCards = o.climCards.map(k => { const t = num(k.temp), sp = num(k.set), mc = sp > t + 0.2 ? 'rgb(242 128 115)' : sp < t - 0.2 ? 'rgb(115 185 242)' : null, fill = K.btn === 'fill';
@@ -497,14 +579,15 @@ class Component extends DCLogic {
         if (bg) n.pill = { ...it.pill, background: bg }; if (cell || icc) n.iconWrap = { ...it.iconWrap, ...(cell ? { background: cell } : {}), ...(icc ? { color: icc } : {}) }; return n; };
       o.devices = o.devices.map(d => { const src = s.devices.find(x => x.name === d.name) || {}; return apply(d, 'd:' + d.name, { state: src.on ? 'på' : 'av', on: !!src.on, w: src.w || 0, name: d.name }, 'sub'); });
       o.sensors = (o.sensors || []).map(z => apply(z, 's:' + z.name, { state: z.state, name: z.name, w: 0 }, 'state')); }
-    o.lights = o.lights.map((l, i) => { const L = s.lights[i] || {}, T = (c.ltype || {})[L.name] || LT_AUTO(L.name), on = L.v > 0, open = !!(s.lxOpen || {})[L.name] && (T === 'ct' || T === 'color');
+    o.lights = o.lights.map((l, i) => { const L = s.lights[i] || {}, T = (c.ltype || {})[L.name] || L.auto || LT_AUTO(L.name), on = L.v > 0, open = !!(s.lxOpen || {})[L.name] && (T === 'ct' || T === 'color');
       const upd = f => this.setState(st => ({ scene: null, lights: st.lights.map((x, j) => j === i ? { ...x, ...f } : x) }));
-      const xd = this.drag(v => upd(T === 'ct' ? { ct: Math.round(2200 + v * 43) } : { hue: Math.round(v * 3.6) }), () => {});
+      const xd = this.L ? this.drag(v => this.prev(L.ent + (T === 'ct' ? '|ct' : '|hue'), T === 'ct' ? Math.round(2200 + v * 43) : Math.round(v * 3.6)), () => {}, v => ha.call('light', 'turn_on', T === 'ct' ? { entity_id: L.ent, color_temp_kelvin: Math.round(2200 + v * 43) } : { entity_id: L.ent, hs_color: [Math.round(v * 3.6), 85] }))
+        : this.drag(v => upd(T === 'ct' ? { ct: Math.round(2200 + v * 43) } : { hue: Math.round(v * 3.6) }), () => {});
       const xv = T === 'ct' ? ((L.ct ?? 3500) - 2200) / 43 : (L.hue ?? 30) / 3.6, hc = T === 'color' ? `hsl(${L.hue ?? 30} 90% 65%)` : '#ffcf9e';
       return { ...l, isDim: T !== 'onoff', isOnOff: T === 'onoff', canX: T === 'ct' || T === 'color', xOpen: open, pct: T === 'onoff' ? (on ? 'På' : 'Av') : l.pct,
         xToggle: () => this.setState(st => ({ lxOpen: { ...(st.lxOpen || {}), [L.name]: !open } })), chev: { fontSize: 22, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s' },
         barFill: T === 'color' && on ? { ...l.barFill, background: `linear-gradient(90deg, hsl(${L.hue ?? 30} 55% 40%), hsl(${L.hue ?? 30} 85% 62%))` } : T === 'ct' && on ? { ...l.barFill, background: `linear-gradient(90deg, #a07c5c, ${(L.ct ?? 3500) > 4500 ? '#e9e4dc' : '#f0c08a'})` } : l.barFill,
-        onoff: () => upd({ v: on ? 0 : 100 }),
+        onoff: () => this.L ? ha.toggle(L.ent) : upd({ v: on ? 0 : 100 }),
         sl: { flex: 1, minWidth: 0, height: 40, display: 'flex', alignItems: 'center', gap: 6, touchAction: 'none', cursor: 'pointer', userSelect: 'none' },
         slFill: { flex: `${L.v} 1 0`, height: 34, borderRadius: '14px 5px 5px 14px', display: L.v > 0 ? 'block' : 'none', background: T === 'color' ? `hsl(${L.hue ?? 30} 85% 72%)` : T === 'ct' && (L.ct ?? 3500) > 4500 ? '#f3ebe0' : '#ffc896', transition: this.d?.moved ? 'none' : 'flex-grow .3s' },
         slHandle: { width: 4, height: 40, borderRadius: 2, flex: 'none', background: '#b08a68' },
@@ -518,13 +601,13 @@ class Component extends DCLogic {
         xBar: { position: 'relative', height: 28, borderRadius: 14, touchAction: 'none', cursor: 'pointer', background: T === 'ct' ? 'linear-gradient(90deg, #ff9f45, #ffd9a8, #fff6ea, #d6e6ff)' : 'linear-gradient(90deg, hsl(0 85% 60%), hsl(60 85% 60%), hsl(120 70% 55%), hsl(180 70% 55%), hsl(240 75% 65%), hsl(300 75% 62%), hsl(360 85% 60%))' },
         xKnob: { position: 'absolute', top: -3, left: `calc(${Math.max(0, Math.min(100, xv))}% - 17px)`, width: 34, height: 34, borderRadius: 17, background: hc, boxShadow: '0 0 0 3px #fafafa, 0 2px 8px rgba(0,0,0,0.4)', pointerEvents: 'none' } }; });
     o.lights = o.lights.filter(l => !c.hideEnt['l:' + l.name]); o.devices = o.devices.filter(d => !c.hideEnt['d:' + d.name]);
-    o.hasScenes = !H.scenes; o.hasHero = !H.hero; o.hasLights = o.hasLights && !H.lys && o.lights.length > 0; o.hasDevices = o.hasDevices && !H.dev && o.devices.length > 0;
+    o.hasScenes = !H.scenes && o.scenes.length > 0; o.hasHero = !H.hero && (!this.L || this.L.temp != null); o.hasLights = o.hasLights && !H.lys && o.lights.length > 0; o.hasDevices = o.hasDevices && !H.dev && o.devices.length > 0;
     o.hasSet = (o.hasSet || !!c.thermo) && !H.klima; o.hasMedia = o.hasMedia && !H.media; o.hasSensors = o.hasSensors && !H.sens;
     if (c.thermo) { o.setLabel = (THERMO.find(t => t[0] === c.thermo) || HA_ENTS.find(t => t[0] === c.thermo) || [0, c.thermo])[1]; if (o.setVal === '') o.setVal = 21; }
     if (c.extra.length) o.modeShort = `${o.modeShort ? o.modeShort + ' · ' : ''}+${c.extra.length}`;
     const cvs = s.covers || [];
     const setCv = (i, v) => this.setState(st => ({ covers: st.covers.map((x, j) => j === i ? { ...x, v } : x) }));
-    const cRow = i => { const x = cvs[i], dd = this.drag(v => setCv(i, v), () => setCv(i, x.v > 0 ? 0 : 100)), mv = this.d?.moved;
+    const cRow = i => { const x = cvs[i], dd = this.L ? this.drag(v => this.prev(x.ent, v), () => ha.call('cover', x.v > 0 ? 'close_cover' : 'open_cover', { entity_id: x.ent }), v => this.coverSet(x, v)) : this.drag(v => setCv(i, v), () => setCv(i, x.v > 0 ? 0 : 100)), mv = this.d?.moved;
       return { name: x.name, pct: x.v, down: dd.down, move: dd.move, up: dd.up,
         fill: { position: 'absolute', left: 0, height: 8, borderRadius: 4, width: `${x.v}%`, background: 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)', transition: mv ? 'none' : 'width .3s' },
         knob: { position: 'absolute', left: `calc(${x.v}% - 11px)`, width: 22, height: 22, borderRadius: 11, background: '#fafafa', boxShadow: '0 2px 6px rgba(0,0,0,0.4)', transition: mv ? 'none' : 'left .3s' } }; };
@@ -533,7 +616,7 @@ class Component extends DCLogic {
     o.coverMulti = cvs.length > 1; o.coverOpen = cvs.length > 1 && !!s.coverOpen;
     o.toggleCovers = () => this.setState({ coverOpen: !s.coverOpen });
     o.coverChev = { fontSize: 24, transform: s.coverOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s' };
-    o.coverPresets = [0, 25, 50, 75, 100].map(v => ({ label: `${v}%`, go: () => this.setState(st => ({ covers: st.covers.map(x => ({ ...x, v })) })) }));
+    o.coverPresets = [0, 25, 50, 75, 100].map(v => ({ label: `${v}%`, go: () => this.L ? cvs.forEach(x => this.coverSet(x, v)) : this.setState(st => ({ covers: st.covers.map(x => ({ ...x, v })) })) }));
     o.ord = Object.fromEntries(c.order.map((k, i) => [k, { order: i + 1, display: 'flex', flexDirection: 'column' }]));
     o.openEdit = () => this.setState({ edOpen: true });
     const btn = on => ({ width: 36, height: 36, borderRadius: 18, display: 'grid', placeItems: 'center', background: on ? '#232323' : 'transparent', color: on ? '#fafafa' : '#545454', pointerEvents: on ? 'auto' : 'none' });
@@ -570,7 +653,7 @@ class Component extends DCLogic {
       Object.assign(o.ed, o._kEd || {});
       o.ed.acc = { space: acc('space', 'Mellomrom', 'space_bar', `${c.gap ?? 18} px mellom`),
         secs: acc('secs', 'Seksjoner', 'view_agenda', `${c.order.filter(k => !H[k]).length} av ${c.order.length} vises`),
-        lys: acc('lys', 'Lys', 'lightbulb', vis('Lys'), { types: s.lights.map(l => { const cur = (c.ltype || {})[l.name] || ''; return { name: l.name, auto: 'Auto: ' + (LT_NAMES.find(x => x[0] === LT_AUTO(l.name)) || [])[1], value: cur, opts: LT_NAMES.map(([v, lb]) => ({ v, l: lb })), set: e => { const n = { ...(c.ltype || {}) }; if (e.target.value) n[l.name] = e.target.value; else delete n[l.name]; this.setCfg({ ltype: n }); } }; }), items: grp('Lys'), allOn: () => bulk('Lys', false), allOff: () => bulk('Lys', true) }),
+        lys: acc('lys', 'Lys', 'lightbulb', vis('Lys'), { types: s.lights.map(l => { const cur = (c.ltype || {})[l.name] || ''; return { name: l.name, auto: 'Auto: ' + (LT_NAMES.find(x => x[0] === (l.auto || LT_AUTO(l.name))) || [])[1], value: cur, opts: LT_NAMES.map(([v, lb]) => ({ v, l: lb })), set: e => { const n = { ...(c.ltype || {}) }; if (e.target.value) n[l.name] = e.target.value; else delete n[l.name]; this.setCfg({ ltype: n }); } }; }), items: grp('Lys'), allOn: () => bulk('Lys', false), allOff: () => bulk('Lys', true) }),
         dev: acc('dev', 'Enheter', 'power', vis('Enhet'), { items: grp('Enhet'), allOn: () => bulk('Enhet', false), allOff: () => bulk('Enhet', true) }),
         ovr: acc('ovr', 'Utseende på kort', 'palette', `${Object.keys(c.ovr || {}).length} overstyrt`, { items: [...s.devices.map(d => ['d:' + d.name, d.name, d.icon, 'Enhet', d.on ? 'på' : 'av']), ...s.sensors.map(z => ['s:' + z[0], z[0], z[1], 'Sensor', z[2]])].map(([key, name, icon, kind, st], i) => { const open = s.ovrSel === key, ov = (c.ovr || {})[key] || {}, setF = (f, v) => { const n = { ...ov, [f]: v }; Object.keys(n).forEach(x => { if (n[x] === '') delete n[x]; }); const all = { ...(c.ovr || {}) }; if (Object.keys(n).length) all[key] = n; else delete all[key]; this.setCfg({ ovr: all }); };
           const SW = ['#3a3a3a', '#232323', PINK, C.green, C.blue, C.yellow, C.amber, C.red, '#fafafa'];
@@ -583,19 +666,19 @@ class Component extends DCLogic {
     return o;
   }
   setLight(i, v) { this.setState(s => ({ scene: null, lights: s.lights.map((x, j) => j === i ? { ...x, v } : x) })); }
-  drag(onSet, onTap) {
+  drag(onSet, onTap, onEnd) {
     return {
       down: e => { e.currentTarget.setPointerCapture?.(e.pointerId); this.d = { x: e.clientX, moved: false }; },
-      move: e => { if (!this.d) return; if (Math.abs(e.clientX - this.d.x) > 5) this.d.moved = true; if (this.d.moved) { const r = e.currentTarget.getBoundingClientRect(); onSet(Math.round(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * 100)); } },
-      up: () => { if (this.d && !this.d.moved) onTap(); this.d = null; },
+      move: e => { if (!this.d) return; if (Math.abs(e.clientX - this.d.x) > 5) this.d.moved = true; if (this.d.moved) { const r = e.currentTarget.getBoundingClientRect(); this.d.v = Math.round(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * 100); onSet(this.d.v); } },
+      up: () => { if (this.d && !this.d.moved) onTap(); else if (this.d && onEnd && this.d.v != null) onEnd(this.d.v); this.d = null; },
     };
   }
   renderVals0() {
     const s = this.state, p = this.props;
-    const col = p.col || C.green, temp = p.temp ?? 22.8, hum = p.hum ?? 50;
+    const L = this.L, col = p.col || C.green, temp = L ? L.temp ?? 0 : p.temp ?? 22.8, hum = L ? L.hum ?? 0 : p.hum ?? 50;
     const k = s.climate[0], set = k ? k.set : null, heating = k && k.set > temp;
     const rawT = Array.from({ length: 25 }, (_, i) => Math.sin((i + 3) / 24 * Math.PI * 2) * 1.1 + Math.sin(i * 1.7) * 0.2);
-    const temps = rawT.map(t => t - rawT[24] + temp);
+    const temps = L ? L.tS || Array(25).fill(temp) : rawT.map(t => t - rawT[24] + temp);
     const mn = Math.min(...temps), mx = Math.max(...temps);
     const line = temps.map((t, i) => `${i ? 'L' : 'M'}${(i / 24 * 384).toFixed(1)},${(56 - (t - mn) / (mx - mn || 1) * 48).toFixed(1)}`).join(' ');
     const on = s.lights.filter(l => l.v > 0).length, watt = s.devices.filter(d => d.on).reduce((t, d) => t + d.w, 0) + (k ? k.w : 0);
@@ -616,10 +699,10 @@ class Component extends DCLogic {
       m ? tile('speaker', 'Media', m.playing ? 'Spiller' : 'Pauset', C.green, m.playing, () => this.setState(st => ({ media: st.media.map((x, j) => j ? x : { ...x, playing: !x.playing }) }))) : tile('sensor_occupied', 'Tilstede', s.sensors.some(z => /sensor_occupied/.test(z[1]) && !quiet(z[2])) ? 'Noen her' : 'Tomt', C.blue, s.sensors.some(z => !quiet(z[2])), () => {}),
       s.curtain != null ? tile('bolt', 'Strøm', `${watt} W nå`, C.amber, watt > 0, () => {}) : tile('water_drop', 'Fukt', `${nf(hum, 0)} %`, C.blue, false, () => {}),
     ];
-    const act = s.sensors.filter(z => !quiet(z[2])).length;
+    const act = s.sensors.filter(z => !qz(z)).length;
     const win = s.sensors.find(z => /door_front|window/.test(z[1]));
     return {
-      name: p.name || 'Stue', icon: p.icon || 'weekend',
+      name: L ? L.name : p.name || 'Stue', icon: L ? L.icon : p.icon || 'weekend',
       headIcon: { width: 40, height: 40, borderRadius: 20, flex: 'none', display: 'grid', placeItems: 'center', background: col, color: '#232323' },
       glow: { position: 'absolute', left: '50%', top: 20, width: 260, height: 260, marginLeft: -130, borderRadius: '50%', background: `radial-gradient(circle, ${a(dcol, 0.22)}, transparent 65%)`, transition: 'background .6s', pointerEvents: 'none' },
       dialTrack: { position: 'absolute', inset: 0, borderRadius: '50%', background: 'conic-gradient(from -135deg, #3a3a3a 0 270deg, transparent 270deg)', WebkitMask: mask, mask },
@@ -633,15 +716,15 @@ class Component extends DCLogic {
       hasSet: set != null, setVal: set ?? '', dec: () => this.setState(st => ({ climate: st.climate.map((x, j) => j ? x : { ...x, set: Math.max(MIN, x.set - 0.5) }) })), inc: () => this.setState(st => ({ climate: st.climate.map((x, j) => j ? x : { ...x, set: Math.min(MAX, x.set + 0.5) }) })),
       chips: [['water_drop', `${nf(hum, 0)} % fukt`, false], ...(win ? [[win[1], `${win[0]} ${win[2].toLowerCase()}`, !quiet(win[2])]] : []), ['bolt', `${watt} W`, watt > 0]].map(([icon, t, hot]) => ({ icon, t, style: { height: 30, padding: '0 11px', borderRadius: 15, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 500, background: hot ? a(C.amber, 0.18) : '#2f2f2f', color: hot ? C.amber : '#afafaf', whiteSpace: 'nowrap' } })),
       tiles,
-      scenes: SCENES.map(([key, label, icon]) => { const on = s.scene === key; return { label, icon,
-        go: () => this.setState(st => ({ scene: key, lights: st.lights.map((l, i) => ({ ...l, v: sceneLevel(key, i, l.name) })) })),
+      scenes: (L ? L.scenes : SCENES.map(([key, label, icon]) => ({ key, label, icon }))).map(({ key, label, icon, ent }) => { const on = s.scene === key; return { label, icon,
+        go: () => L ? (this.setState({ scene: key }), ent.startsWith('scene.') ? ha.call('scene', 'turn_on', { entity_id: ent }) : ha.press(ent)) : this.setState(st => ({ scene: key, lights: st.lights.map((l, i) => ({ ...l, v: sceneLevel(key, i, l.name) })) })),
         tile: { flex: 'none', width: 100, height: 100, borderRadius: 26, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, background: on ? PINK : '#2f2f2f', color: on ? '#2a1720' : '#fafafa', transition: 'background .25s, transform .2s' },
         iconStyle: { fontSize: 26, fontVariationSettings: "'FILL' 1" },
         labelStyle: { fontSize: 14, fontWeight: 400, whiteSpace: 'nowrap' } }; }),
       hasLights: s.lights.length > 0, lightSum: `${on} på - ${s.lights.length - on} av`,
       lights: s.lights.map((l, i) => ({ name: l.name, pct: `${l.v}%`,
         bar: { position: 'relative', flex: 1, height: 40, borderRadius: 20, overflow: 'hidden', background: '#545454', touchAction: 'none', cursor: 'pointer' },
-        barFill: { position: 'absolute', left: 0, top: 0, bottom: 0, width: `${l.v}%`, background: 'linear-gradient(90deg, #a07c5c, #d8b07e)', transition: this.d?.moved ? 'none' : 'width .3s' }, val: l.v ? `${l.v} %` : 'Av', ...this.drag(v => this.setLight(i, v), () => this.setLight(i, l.v ? 0 : 70)),
+        barFill: { position: 'absolute', left: 0, top: 0, bottom: 0, width: `${l.v}%`, background: 'linear-gradient(90deg, #a07c5c, #d8b07e)', transition: this.d?.moved ? 'none' : 'width .3s' }, val: l.v ? `${l.v} %` : 'Av', ...(L ? this.drag(v => this.prev(l.ent, v), () => ha.toggle(l.ent), v => this.lightSet(l.ent, v)) : this.drag(v => this.setLight(i, v), () => this.setLight(i, l.v ? 0 : 70))),
         pill: { position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', gap: 8, height: 56, padding: '0 12px 0 6px', borderRadius: 28, background: '#3a3a3a', touchAction: 'none', cursor: 'pointer', userSelect: 'none' },
         fill: { position: 'absolute', left: 0, top: 0, bottom: 0, width: `${l.v}%`, background: `linear-gradient(90deg, ${a(C.yellow, 0.18)}, ${a(C.yellow, 0.42)})`, transition: this.d?.moved ? 'none' : 'width .35s cubic-bezier(.34,1.2,.64,1)' },
         iconWrap: { position: 'relative', width: 44, height: 44, borderRadius: 22, flex: 'none', display: 'grid', placeItems: 'center', background: l.v ? C.yellow : '#3a3a3a', color: l.v ? '#232323' : '#696969', transition: 'background .25s' },
@@ -649,7 +732,7 @@ class Component extends DCLogic {
       hasDevices: s.devices.length > 0, watt,
       devices: s.devices.map((d, i) => { const P = profOf(d.name), act = P && d.on && d.w > P.thr, ent = 'sensor.' + slug(d.name) + '_effekt';
         const base = { name: d.name, icon: d.icon, sub: d.on ? `På · ${d.w} W` : 'Av', ent,
-        toggle: () => this.setState(st => ({ devices: st.devices.map((x, j) => j === i ? { ...x, on: !x.on, w: !x.on && P && x.w <= P.thr ? P.def : x.w } : x) })),
+        toggle: L ? () => ha.toggle(d.ent) : () => this.setState(st => ({ devices: st.devices.map((x, j) => j === i ? { ...x, on: !x.on, w: !x.on && P && x.w <= P.thr ? P.def : x.w } : x) })),
         iconStyle: { fontSize: 24, width: 24, height: 24, overflow: 'hidden', lineHeight: 1, fontVariationSettings: "'FILL' 1", display: 'inline-block' },
         pill: { display: 'flex', alignItems: 'center', gap: 14, height: 66, padding: '0 16px 0 5px', borderRadius: 33, background: d.on ? PINK : '#3a3a3a', color: d.on ? '#2a1720' : '#fafafa', transition: 'background .25s, transform .2s' },
         iconWrap: { width: 56, height: 56, borderRadius: 28, flex: 'none', display: 'grid', placeItems: 'center', background: d.on ? 'rgba(42,23,32,0.12)' : '#232323', color: d.on ? '#2a1720' : '#afafaf', transition: 'background .25s' },
@@ -661,21 +744,22 @@ class Component extends DCLogic {
           iconStyle: { ...base.iconStyle, animation: act ? `${P.anim} ${P.anim === 'spinn' ? '1.6s linear' : P.anim === 'rist' ? '.5s ease-in-out' : '1.4s ease-in-out'} infinite` : 'none' },
           subStyle: { fontSize: 12, fontWeight: act ? 600 : 400, color: act ? 'rgba(31,31,31,0.8)' : '#979797' } }; }),
       media: s.media.map((x, i) => { const upd = f => this.setState(st => ({ media: st.media.map((y, j) => j === i ? { ...y, ...f(y) } : y) }));
-        return { title: x.name, state: x.playing ? 'Spiller' : 'Av', volPct: x.vol, power: () => upd(y => ({ playing: false })),
-          knob: { position: 'absolute', left: `calc(${x.vol}% - 11px)`, width: 22, height: 22, borderRadius: 11, background: '#fafafa', boxShadow: '0 2px 6px rgba(0,0,0,0.4)' }, sub: x.playing ? `Spiller · Spotify · ${x.vol} %` : `Pauset · ${x.vol} %`, playIcon: x.playing ? 'pause' : 'play_arrow', play: () => upd(y => ({ playing: !y.playing })),
-          ...this.drag(v => upd(() => ({ vol: v })), () => {}),
+        return { title: x.name, state: L ? mState(x) : x.playing ? 'Spiller' : 'Av', volPct: x.vol, power: () => L ? ha.call('media_player', 'toggle', { entity_id: x.ent }) : upd(y => ({ playing: false })),
+          prev: () => L && ha.call('media_player', 'media_previous_track', { entity_id: x.ent }), next: () => L && ha.call('media_player', 'media_next_track', { entity_id: x.ent }), more: () => L && ha.moreInfo(x.ent),
+          knob: { position: 'absolute', left: `calc(${x.vol}% - 11px)`, width: 22, height: 22, borderRadius: 11, background: '#fafafa', boxShadow: '0 2px 6px rgba(0,0,0,0.4)' }, sub: x.playing ? `Spiller · Spotify · ${x.vol} %` : `Pauset · ${x.vol} %`, playIcon: x.playing ? 'pause' : 'play_arrow', play: () => L ? ha.call('media_player', 'media_play_pause', { entity_id: x.ent }) : upd(y => ({ playing: !y.playing })),
+          ...(L ? this.drag(v => this.prev(x.ent, v), () => {}, v => ha.call('media_player', 'volume_set', { entity_id: x.ent, volume_level: v / 100 })) : this.drag(v => upd(() => ({ vol: v })), () => {})),
           card: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 10px 10px 10px', borderRadius: 36, background: x.playing ? `linear-gradient(90deg, ${a(C.green, 0.16)}, #2f2f2f)` : '#2f2f2f', transition: 'background .4s' },
           art: { width: 52, height: 52, borderRadius: 26, flex: 'none', display: 'grid', placeItems: 'center', background: x.playing ? C.green : '#3a3a3a', color: x.playing ? '#232323' : '#979797' },
           fill: { position: 'absolute', left: 0, height: 8, width: `${x.vol}%`, borderRadius: 4, background: 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)' } }; }),
       hasSensors: s.sensors.length > 0, sensSum: `${act} aktiv - ${s.sensors.length - act} stille`,
-      devSum: `${watt} W`, modeShort: heating ? 'Varmer' : set != null ? `${nf(set)}°` : '',
+      devSum: L && L.eff != null ? `${Math.round(L.eff)} W` : `${watt} W`, modeShort: heating ? 'Varmer' : set != null ? `${nf(set)}°` : '',
       hasMedia: s.media.length > 0, mediaSum: `${s.media.filter(x => x.playing).length} spiller - ${s.media.filter(x => !x.playing).length} av`,
       ac: Object.fromEntries(['lys', 'dev', 'klima', 'media', 'sens'].map(k => { const o = !!(s.acc || {})[k]; return [k, { open: o, go: () => this.setState(st => ({ acc: { ...(st.acc || {}), [k]: !o } })), chev: { fontSize: 24, transform: o ? 'rotate(180deg)' : 'none', transition: 'transform .2s' } }]; })),
       hasCurtain: s.curtain != null, curtainName: 'Rullegardin', curtainPct: s.curtain ?? 0,
       ...(() => { const dd = this.drag(v => this.setState({ curtain: v }), () => this.setState({ curtain: (s.curtain ?? 0) > 0 ? 0 : 100 })); return { cDown: dd.down, cMove: dd.move, cUp: dd.up }; })(),
       cFill: { position: 'absolute', left: 0, height: 8, borderRadius: 4, width: `${s.curtain ?? 0}%`, background: 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)', transition: this.d?.moved ? 'none' : 'width .3s' },
       cKnob: { position: 'absolute', left: `calc(${s.curtain ?? 0}% - 11px)`, width: 22, height: 22, borderRadius: 11, background: '#fafafa', boxShadow: '0 2px 6px rgba(0,0,0,0.4)', transition: this.d?.moved ? 'none' : 'left .3s' },
-      sensors: s.sensors.map(([name, icon, st], i) => { const hot = !quiet(st); return { name, icon, state: st,
+      sensors: s.sensors.map((z, i) => { const [name, icon, st] = z, hot = !qz(z); return { name, icon, state: st,
         pill: { display: 'flex', alignItems: 'center', gap: 14, height: 66, padding: '0 16px 0 5px', borderRadius: 33, background: hot ? 'rgb(102 209 158)' : '#3a3a3a', color: hot ? '#1f2a24' : '#fafafa' },
         iconWrap: { width: 56, height: 56, borderRadius: 28, flex: 'none', display: 'grid', placeItems: 'center', background: hot ? 'rgba(0,0,0,0.1)' : '#232323' },
         subStyle: { fontSize: 12, color: hot ? 'rgba(31,42,36,0.75)' : '#979797' },
@@ -683,7 +767,7 @@ class Component extends DCLogic {
       tempRange: `${nf(mn)}–${nf(mx)}°`,
       ...(() => {
         const lit = on > 0, hc = heating ? C.red : lit ? C.yellow : C.blue;
-        const rawH = temps.map((t, i) => -(t - mn) * 2.2 + Math.sin(i * 1.3) * 1.2), hums = rawH.map(v => v - rawH[24] + hum);
+        const rawH = temps.map((t, i) => -(t - mn) * 2.2 + Math.sin(i * 1.3) * 1.2), hums = L ? L.hS || Array(25).fill(hum) : rawH.map(v => v - rawH[24] + hum);
         const GL = { t: C.amber, h: C.blue, fill: 0.2, w: 2, ...((s.cfg || {}).graphLook || {}) }, isT = (s.gTab || 't') === 't', ser = isT ? temps : hums, gc = isT ? GL.t : GL.h;
         const lo = Math.floor(Math.min(...ser) - (isT ? 0.3 : 2)), hi = Math.ceil(Math.max(...ser) + (isT ? 0.3 : 2));
         const X = i => (i / 24 * 300).toFixed(1), Y = v => (92 - (v - lo) / (hi - lo) * 72).toFixed(1);
@@ -705,7 +789,7 @@ class Component extends DCLogic {
           gTicks: [0, 1, 2, 3].map(j => ({ label: nf(hi - (hi - lo) * j / 3, isT ? 1 : 0), line: { position: 'absolute', left: 0, right: 0, top: `${j / 3 * 100}%`, borderTop: j === 3 ? '1px solid #3a3a3a' : '1px dashed #444446' } })),
           gLine: pts, gArea: `0,100 ${pts} 300,100`, gStroke: { stroke: gc, strokeWidth: GL.w }, gFill: { fill: a(GL.area && GL.area !== 'line' ? GL.area : gc, GL.fill), stroke: 'none' },
           showT: () => this.setState({ gTab: 't' }), showH: () => this.setState({ gTab: 'h' }),
-          tVal: nf(temps[sel]), hVal: nf(hums[sel], 0),
+          tVal: nf(temps[sel]), hVal: L && L.hum == null ? '–' : nf(hums[sel], 0),
           tBtn: { display: 'flex', alignItems: 'flex-start', color: isT ? '#fafafa' : '#7f7f7f', transition: 'color .25s' },
           hBtn: { display: 'flex', alignItems: 'baseline', gap: 1, height: 26, padding: '0 9px', borderRadius: 13, background: isT ? 'transparent' : a(C.blue, 0.2), color: isT ? '#afafaf' : '#fafafa', transition: 'background .25s, color .25s' },
           gWhen: sel === 24 ? `Nå · ${isT ? `${nf(mn)}–${nf(mx)}°` : `${nf(Math.min(...hums), 0)}–${nf(Math.max(...hums), 0)} %`} siste døgn` : `−${24 - sel} t`,

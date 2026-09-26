@@ -129,7 +129,8 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:900}}">
 const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
 const a = (c, o) => c.startsWith('#') ? c : c.replace(')', ` / ${o})`);
-const TODAY = new Date(2026, 8, 25);
+const DEMO_TODAY = new Date(2026, 8, 25);
+let TODAY = DEMO_TODAY;
 const F0 = [
   { id: 'rest', name: 'Restavfall', entity: 'sensor.min_renovasjon_restavfall', icon: 'delete', col: '#979797', start: '2026-09-28', step: 14 },
   { id: 'plast', name: 'Plastemballasje', entity: 'sensor.min_renovasjon_plastemballasje', icon: 'recycling', col: 'rgb(173 153 230)', start: '2026-09-28', step: 14 },
@@ -143,7 +144,62 @@ const COLS = ['#979797', 'rgb(173 153 230)', 'rgb(115 185 242)', 'rgb(102 209 15
 const tr = on => ({ track: { position: 'relative', width: 44, height: 26, borderRadius: 13, flex: 'none', background: on ? 'rgb(242 133 201)' : '#232323', transition: 'background .2s' }, knob: { position: 'absolute', top: 3, left: on ? 21 : 3, width: 20, height: 20, borderRadius: 10, background: '#fafafa', transition: 'left .2s' } });
 const segBtn = on => ({ flex: 1, height: 36, borderRadius: 14, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: on ? 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)' : 'transparent', color: on ? '#5a3a48' : '#afafaf' });
 const DAY = 864e5;
-const dates = f => Array.from({ length: 16 }, (_, i) => new Date(f.start.getTime() + (i - 4) * f.step * DAY));
+const demoDates = f => Array.from({ length: 16 }, (_, i) => new Date(f.start.getTime() + (i - 4) * f.step * DAY));
+// Live: real pickup dates when the fraction has them (f.live), else the fraction's own interval aligned around today.
+const dates = f => {
+  if (f.live) return f.live;
+  if (TODAY === DEMO_TODAY) return demoDates(f);
+  if (f.entity) return []; // live, but this fraction's sensor has no dates → not shown
+  const k = Math.floor((TODAY - f.start) / (f.step * DAY));
+  return Array.from({ length: 16 }, (_, i) => new Date(f.start.getTime() + (k + i - 4) * f.step * DAY));
+};
+// ── live helpers ──
+const d0 = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+function parseDate(v) {
+  if (v === null || v === undefined || v === '') return null;
+  if (v instanceof Date) return isNaN(v) ? null : d0(v);
+  if (typeof v === 'object') return parseDate(v.date || v.dato || v.dateTime || v.start);
+  const t = String(v).trim();
+  let m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t); if (m) return new Date(+m[1], m[2] - 1, +m[3]);
+  m = /^(\d{1,2})[./](\d{1,2})[./](\d{2,4})/.exec(t); if (m) return new Date(m[3].length === 2 ? 2000 + +m[3] : +m[3], m[2] - 1, +m[1]);
+  return null;
+}
+const WASTE_ICONS = [[/rest/i, 'delete', '#979797'], [/plast/i, 'recycling', 'rgb(173 153 230)'], [/papir|papp/i, 'newspaper', 'rgb(115 185 242)'], [/glass|metall/i, 'liquor', 'rgb(102 209 158)'], [/mat|bio|kompost|organ/i, 'compost', 'rgb(242 210 111)'], [/tekstil|kl[æa]r/i, 'checkroom', 'rgb(242 181 115)'], [/farlig|batteri|el-?avfall/i, 'battery_full', 'rgb(242 128 115)'], [/hage/i, 'yard', 'rgb(102 209 158)']];
+const styleOf = (name, i) => { const w = WASTE_ICONS.find(x => x[0].test(name)); return w ? { icon: w[1], col: w[2] } : { icon: 'delete', col: COLS[i % COLS.length] }; };
+// Pickup dates for one fraction from its entity: calendar.* (events matching f.match/name), or a sensor
+// (Min renovasjon / waste_collection_schedule: date state, date attributes, "upcoming" lists, days-to numbers).
+function liveDates(f) {
+  const id = f.entity; if (!id || !ha.live) return null;
+  const st = ha.state(id); if (!st) return null;
+  if (id.startsWith('calendar.')) {
+    const evs = ha.events(id, 180); if (!evs) return [];
+    const key = (f.match || f.name.split(/[\s,]/)[0] || '').toLowerCase();
+    return evs.filter(e => !key || String(e.summary || '').toLowerCase().includes(key)).map(e => parseDate(e.start)).filter(Boolean);
+  }
+  const out = [], A = st.attributes || {}, today = d0(new Date());
+  const add = v => { const d = parseDate(v); if (d) out.push(d); };
+  ['next_date', 'next_pickup', 'neste_tomming', 'neste', 'date', 'dato', 'tommedato'].forEach(k => add(A[k]));
+  ['upcoming', 'dates', 'datoer', 'kommende', 'pickups'].forEach(k => Array.isArray(A[k]) && A[k].forEach(add));
+  Object.keys(A).forEach(k => { if (/^\d{4}-\d{2}-\d{2}$|^\d{1,2}\.\d{1,2}\.\d{4}$/.test(k)) add(k); });
+  add(st.state);
+  const n = parseFloat(st.state), unit = A.unit_of_measurement || '';
+  if (!out.length && /^\d+$/.test(String(st.state)) && Number.isFinite(n) && n < 400 && (!unit || /^(d|days?|dager?)$/i.test(unit))) out.push(new Date(today.getTime() + n * DAY));
+  if (!out.length && Number.isFinite(A.days_to ?? A.daysTo ?? A.dager)) out.push(new Date(today.getTime() + (A.days_to ?? A.daysTo ?? A.dager) * DAY));
+  return [...new Map(out.map(d => [d.toDateString(), d])).values()].sort((x, y) => x - y);
+}
+// Fractions discovered from the waste integrations (used when neither the editor nor card config lists any that exist).
+function autoFractions() {
+  if (!ha.live) return null;
+  const cal = ha.first('tommekalender');
+  if (cal && cal.startsWith('calendar.')) {
+    ha.state(cal);
+    const names = [...new Set((ha.events(cal, 180) || []).map(e => String(e.summary || '').trim()).filter(Boolean))];
+    if (names.length) return names.map((name, i) => ({ id: 'a' + i, name, entity: cal, match: name, ...styleOf(name, i), start: '2026-09-28', step: 14 }));
+  }
+  const ids = [...ha.all('min_renovasjon', 'sensor'), ...ha.all('waste_collection_schedule', 'sensor'), ...ha.all('renovasjonsportal', 'sensor')];
+  if (!ids.length) return null;
+  return ids.map((id, i) => { const name = ha.name(id, id.split('.')[1]).replace(/^(min renovasjon|renovasjon)\s*/i, '').replace(/^./, c => c.toUpperCase()); return { id: 'a' + i, name, entity: id, ...styleOf(name, i), start: '2026-09-28', step: 14 }; });
+}
 const nextOf = f => dates(f).find(d => d >= TODAY);
 const diff = d => Math.round((d - TODAY) / DAY);
 const fmt = d => d.toLocaleDateString('nb-NO', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, c => c.toUpperCase());
@@ -151,7 +207,14 @@ const short = d => d.toLocaleDateString('nb-NO', { weekday: 'short', day: 'numer
 const same = (x, y) => x.toDateString() === y.toDateString();
 class Component extends DCLogic {
   state = { tab: null, open: null, notify: true, month: [2026, 8], ed: false, edSel: null };
-  cfg() { if (this._c === undefined) { try { this._c = JSON.parse(localStorage.getItem('soppel-cfg') || 'null'); } catch (e) { this._c = null; } } return { ...DEF, ...(this.state.cfg || this._c || {}) }; }
+  cfg() {
+    if (this._c === undefined) { try { this._c = JSON.parse(localStorage.getItem('soppel-cfg') || 'null'); } catch (e) { this._c = null; } }
+    const base = { ...DEF };
+    const cf = Array.isArray(ha.config.fractions) && ha.config.fractions.length ? ha.config.fractions : null;
+    if (cf) base.fr = cf.map((f, i) => ({ id: f.id || 'c' + i, name: f.name || ha.name(f.entity, 'Fraksjon ' + (i + 1)), entity: f.entity || '', match: f.match, ...styleOf(f.name || '', i), ...(f.icon ? { icon: f.icon } : {}), ...(f.col || f.color ? { col: f.col || f.color } : {}), start: f.start || '2026-09-28', step: f.step || 14 }));
+    else if (ha.live && !F0.some(f => ha.state(f.entity))) { const auto = autoFractions(); if (auto) base.fr = auto; }
+    return { ...base, ...(this.state.cfg || this._c || {}) };
+  }
   setCfg(p) { const n = { ...this.cfg(), ...p }; try { localStorage.setItem('soppel-cfg', JSON.stringify(n)); } catch (e) {} this._c = n; this.setState({ cfg: n }); }
   toggles(defs, C) { return defs.map(([k, label, sub], i) => ({ label, sub, hasSub: !!sub, bt: i ? '1px solid rgba(255,255,255,0.06)' : '0', go: () => this.setCfg({ [k]: !C[k] }), ...tr(C[k]) })); }
   segs(defs, C) { return defs.map(([title, k, opts]) => ({ title, opts: opts.map(([v, label]) => ({ label, go: () => this.setCfg({ [k]: v }), style: segBtn(C[k] === v) })) })); }
@@ -178,30 +241,38 @@ class Component extends DCLogic {
     };
   }
   renderVals() {
-    const s = this.state, C = this.cfg(), F = C.fr.map(f => ({ ...f, start: pd(f.start) })), tab = C.showTabs ? (s.tab || C.defTab) : 'list';
-    const all = F.map(f => ({ ...f, next: nextOf(f) })).sort((x, y) => x.next - y.next);
-    const first = all[0], today = all.filter(f => same(f.next, first.next)), n = diff(first.next);
-    const [y, m] = s.month, off = (new Date(y, m, 1).getDay() + 6) % 7;
+    const s = this.state, C = this.cfg(), tab = C.showTabs ? (s.tab || C.defTab) : 'list';
+    // Live when at least one fraction has real dates from HA; then "today" is now.
+    const F = C.fr.map(f => { const live = liveDates(f); const lv = live && live.length ? live : null;
+      const step = lv && lv.length > 1 ? Math.max(1, Math.round((lv[lv.length - 1] - lv[0]) / DAY / (lv.length - 1))) : f.step || 14;
+      return { ...f, start: pd(f.start || '2026-09-28'), live: lv, step, hasEnt: !!(f.entity && ha.state(f.entity)) }; });
+    const L = F.some(f => f.hasEnt);
+    TODAY = L ? d0(new Date()) : DEMO_TODAY;
+    const all = F.map(f => ({ ...f, next: nextOf(f) })).filter(f => f.next).sort((x, y) => x.next - y.next);
+    const first = all[0] || { id: null, name: 'Ingen tømming funnet', icon: 'delete', next: null }, n = first.next ? diff(first.next) : null;
+    const notifyEnt = ha.first('varsel', ha.config.notify_entity);
+    const [y, m] = L && !s.monthSet ? [TODAY.getFullYear(), TODAY.getMonth()] : s.month, off = (new Date(y, m, 1).getDay() + 6) % 7;
     const listed = (C.order === 'custom' ? F.map(f => all.find(x => x.id === f.id)) : all).filter(f => f.id !== first.id);
-    return { ...this.edVals(C), showTabs: C.showTabs, showNotify: C.showNotify,
-      hero: { icon: first.icon, names: first.name, days: n === 0 ? 'I dag' : n, unit: n === 0 ? '' : n === 1 ? 'dag' : 'dager', date: fmt(first.next) },
+    return { ...this.edVals(C), showTabs: C.showTabs,
+      hero: { icon: first.icon, names: all.length > 1 && L ? all.filter(f => same(f.next, first.next)).map(f => f.name).join(' + ') : first.name, days: n === null ? '–' : n === 0 ? 'I dag' : n, unit: n === 0 || n === null ? '' : n === 1 ? 'dag' : 'dager', date: first.next ? fmt(first.next) : '' },
       heroIcon: { fontSize: 22, color: '#e1e1e1' },
-      heroBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: `${Math.max(6, 100 - n / 14 * 100)}%`, background: PINK },
+      heroBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: `${Math.max(6, 100 - (n ?? 14) / 14 * 100)}%`, background: PINK },
       tabs: [['list', 'Fraksjoner', 'format_list_bulleted'], ['cal', 'Kalender', 'calendar_month']].map(([k, label, icon]) => ({ label, icon, go: () => this.setState({ tab: k }),
         style: { height: 52, borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 15, fontWeight: 500, background: tab === k ? PINK : 'transparent', color: tab === k ? '#2a1720' : '#979797', boxShadow: tab === k ? '0 6px 18px rgba(0,0,0,0.3)' : 'none', transition: 'background .25s' } })),
       isList: tab === 'list', isCal: tab === 'cal',
+      showNotify: C.showNotify && (!L || !!notifyEnt),
       fractions: listed.map(f => { const d = diff(f.next), open = s.open === f.name; return {
-        name: f.name, icon: f.icon, date: fmt(f.next), days: d, unit: d === 1 ? 'dag' : 'dager', open,
-        every: `Hver ${f.step / 7}. uke · ${f.next.toLocaleDateString('nb-NO', { weekday: 'long' })}`,
+        name: f.name, icon: f.icon, date: fmt(f.next), days: d === 0 ? 'I dag' : d, unit: d === 0 ? '' : d === 1 ? 'dag' : 'dager', open,
+        every: f.step % 7 === 0 ? `Hver ${f.step / 7}. uke · ${f.next.toLocaleDateString('nb-NO', { weekday: 'long' })}` : `Ca. hver ${f.step}. dag · neste ${f.next.toLocaleDateString('nb-NO', { weekday: 'long' })}`,
         upcoming: dates(f).filter(x => x >= TODAY).slice(0, 4).map(short),
         toggle: () => this.setState({ open: open ? null : f.name }),
         card: { display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 18px 14px 14px', borderRadius: 24, background: '#2f2f2f', width: '100%', boxShadow: open ? 'inset 0 0 0 1px rgba(255,255,255,0.08)' : 'none' },
         iconWrap: { width: 52, height: 52, borderRadius: 26, flex: 'none', display: 'grid', placeItems: 'center', background: '#3a3a3a', color: f.col } }; }),
-      toggleNotify: () => this.setState({ notify: !s.notify }),
-      notifyTrack: { position: 'relative', width: 46, height: 28, borderRadius: 14, flex: 'none', background: s.notify ? 'rgb(242 133 201)' : '#3a3a3a', transition: 'background .2s' },
-      notifyKnob: { position: 'absolute', top: 3, left: s.notify ? 21 : 3, width: 22, height: 22, borderRadius: 11, background: '#fafafa', transition: 'left .2s' },
+      toggleNotify: () => L ? ha.toggle(notifyEnt) : this.setState({ notify: !s.notify }),
+      notifyTrack: { position: 'relative', width: 46, height: 28, borderRadius: 14, flex: 'none', background: (L ? ha.on(notifyEnt, false) : s.notify) ? 'rgb(242 133 201)' : '#3a3a3a', transition: 'background .2s' },
+      notifyKnob: { position: 'absolute', top: 3, left: (L ? ha.on(notifyEnt, false) : s.notify) ? 21 : 3, width: 22, height: 22, borderRadius: 11, background: '#fafafa', transition: 'left .2s' },
       monthLabel: new Date(y, m, 1).toLocaleDateString('nb-NO', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase()),
-      prev: () => this.setState({ month: m ? [y, m - 1] : [y - 1, 11] }), next: () => this.setState({ month: m < 11 ? [y, m + 1] : [y + 1, 0] }),
+      prev: () => this.setState({ monthSet: true, month: m ? [y, m - 1] : [y - 1, 11] }), next: () => this.setState({ monthSet: true, month: m < 11 ? [y, m + 1] : [y + 1, 0] }),
       wd: ['M', 'T', 'O', 'T', 'F', 'L', 'S'],
       cells: Array.from({ length: 42 }, (_, i) => { const d = new Date(y, m, 1 - off + i), inM = d.getMonth() === m, hits = inM ? F.filter(f => dates(f).some(x => same(x, d))) : [], t = same(d, TODAY);
         return { n: d.getDate(), dots: hits.map(f => ({ width: 6, height: 6, borderRadius: 3, background: f.col })),

@@ -217,33 +217,161 @@ const ROOMW = [['inngang', 'Inngang'], ['veranda', 'Veranda'], ['terrasse', 'Ter
 const guess = e => { const n = e.split('.')[1] || e, type = e.indexOf('lock.') === 0 ? 'lock' : /vindu|window/.test(n) ? 'window' : /bevegelse|motion/.test(n) ? 'motion' : /tilstede|presence|occupancy/.test(n) ? 'presence' : 'door';
   const r = ROOMW.find(([k]) => n.includes(k)), room = r ? r[1] : 'Annet', name = type === 'lock' ? 'Lås' : /port/.test(n) ? 'Port' : /luke/.test(n) ? 'Luke' : TYPES.find(t => t[0] === type)[1]; return { type, room, name }; };
 const LS = 'sik-cfg';
+
+// ── Live-kobling: alarm_control_panel.* + lock.* + binary_sensor (dør/vindu/bevegelse/tilstede) ──
+// ki_notifications (KI Varslinger og sikkerhet) gir «Sikkerhetsfeil»-varsler og «Sist låst opp av»
+// (ansiktsgjenkjenning). Hendelsesloggen kommer fra HA-loggboka. Uten entiteter: designets demo.
+const ALARM_MODE = { disarmed: 'av', armed_home: 'hjemme', armed_away: 'borte', armed_night: 'natt', armed_vacation: 'borte', armed_custom_bypass: 'hjemme' };
+const ALARM_SVC = { av: 'alarm_disarm', hjemme: 'alarm_arm_home', borte: 'alarm_arm_away', natt: 'alarm_arm_night' };
+const ALARM_EXTRA = { triggered: ['utlost', 'Utløst', 'e911_emergency', C.red], arming: ['arming', 'Aktiveres', 'shield', C.amber], pending: ['pending', 'Venter', 'hourglass_top', C.amber] };
+const DC_TYPE = { door: 'door', garage_door: 'door', opening: 'door', window: 'window', motion: 'motion', occupancy: 'presence', presence: 'presence' };
+const NOISE = /_(person|vehicle|car|animal|pet|cat|dog|package|face|licen[cs]e_plate|smoke|audio|baby_cry|speaking|bark)_(detected|occupancy)$|_doorbell$|_tamper/;
+const hhmm = d => d.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' });
+const whenTxt = d => { const t = new Date(); if (d.toDateString() === t.toDateString()) return hhmm(d); const y = new Date(t); y.setDate(t.getDate() - 1); return (d.toDateString() === y.toDateString() ? 'i går ' : d.toLocaleDateString('nb-NO', { weekday: 'short' }).replace('.', '') + ' ') + hhmm(d); };
+const bad = st => !st || st.state === 'unavailable' || st.state === 'unknown';
+const typeOfEnt = id => {
+  if (id.startsWith('lock.')) return 'lock';
+  const st = ha.state(id), dc = st?.attributes?.device_class;
+  if (DC_TYPE[dc]) return dc === 'opening' && /vindu|window/.test(id) ? 'window' : DC_TYPE[dc];
+  return null;
+};
+const cap1 = t => t ? t.charAt(0).toUpperCase() + t.slice(1) : t;
+// Type, rom og navn for en ekte entitet: HA-området vinner, ellers gjettes rommet fra entity_id.
+const liveGuess = e => {
+  const g = guess(e), type = typeOfEnt(e) || g.type, area = ha.area(e)?.name, fn = String(ha.name(e, '') || '').trim();
+  // uten område: «Cybele soverom vindu» → rom «Cybele soverom»
+  const tail = !area && /^(.+?)\s+(vindu|dør|dor|door|window|bevegelse|motion|tilstede|lås|las|dørlås|lock)$/i.exec(fn);
+  const room = area || (tail ? cap1(tail[1]) : g.room);
+  let name = fn;
+  if (name && room) name = name.replace(new RegExp('^' + room.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(\\s+|$)', 'i'), '').trim();
+  if (!name || name.length > 22) name = type === 'lock' ? (/bod/.test(e) ? 'Boddør' : 'Dørlås') : g.name === 'Port' || g.name === 'Luke' ? g.name : TYPES.find(t => t[0] === type)[1];
+  return { type, room, name: cap1(name) };
+};
+const autoEnts = () => {
+  const ents = ha.hass?.entities || {};
+  const ok = id => { const r = ents[id]; return !(r && (r.hidden || r.hidden_by || r.entity_category || r.disabled_by)) && !NOISE.test(id) && !ha.attr(id, 'integrasjon'); };
+  return [...ha.domain('lock'), ...ha.domain('binary_sensor', st => !!DC_TYPE[st.attributes?.device_class])].filter(ok);
+};
+const TYPE_ORDER = { door: 0, lock: 1, window: 2, motion: 3, presence: 4 };
+function liveSensors(c) {
+  const conf = ha.config.sensorer || ha.config.sensors;
+  let base;
+  if (Array.isArray(conf) && conf.length) {
+    base = conf.map((x, i) => { const e = typeof x === 'string' ? x : x.entity || x.entity_id, g = liveGuess(e);
+      return { id: 'c' + i, ent: e, type: x.type || g.type, room: x.room || x.rom || g.room, name: x.name || x.navn || g.name }; });
+  } else if (c.sensors !== DEF_S && c.sensors.some(x => x.ent && ha.state(x.ent))) {
+    base = c.sensors;
+  } else {
+    base = autoEnts().map(e => ({ id: e, ent: e, ...liveGuess(e) }));
+    const rooms = [...new Set(base.map(x => x.room))].sort((p, q) => (p === 'Annet') - (q === 'Annet') || p.localeCompare(q, 'nb'));
+    base.sort((p, q) => rooms.indexOf(p.room) - rooms.indexOf(q.room) || TYPE_ORDER[p.type] - TYPE_ORDER[q.type]);
+  }
+  return base.map(x => {
+    const st = ha.state(x.ent);
+    if (bad(st)) return { ...x, on: false, bat: null, na: true };
+    if (x.type === 'lock') {
+      const obj = x.ent.split('.')[1], bat = ha.attr(x.ent, 'battery_level', null) ?? ha.num(ha.first('bat_' + obj, `sensor.${obj}_battery`, `sensor.${obj}_battery_level`), null) ?? devBattery(x.ent);
+      return { ...x, on: !['locked', 'locking'].includes(st.state), jam: st.state === 'jammed', bat: bat == null ? null : Math.round(bat) };
+    }
+    return { ...x, on: st.state === 'on', bat: null };
+  });
+}
+const devBattery = id => { const ents = ha.hass?.entities || {}, dev = ents[id]?.device_id; if (!dev) return null;
+  const b = Object.keys(ents).find(x => x.startsWith('sensor.') && ents[x].device_id === dev && ha.attr(x, 'device_class') === 'battery'); return b ? ha.num(b, null) : null; };
+const strip = L => L.map(({ id, ent, type, room, name }) => ({ id, ent, type, room, name }));
+function userName(uid) {
+  if (!uid || !ha.hass) return null;
+  if (ha.hass.user?.id === uid) return 'Deg';
+  const p = ha.domain('person', st => st.attributes?.user_id === uid)[0];
+  return p ? ha.name(p, 'Bruker') : 'Bruker';
+}
+
 class Component extends DCLogic {
   state = { mode: 'borte', since: '12:40', hold: null, prog: 0, view: 'main', pad: null, entry: '', err: false, edSel: null, grpOpen: {}, addQ: '', alarmQ: '',
     log: [['Cybele soverom åpnet','Vindussensor','13:02','alert'],['Alarm satt til Borte','Rune · app','12:40','mode'],['Inngang låst','Automatisk','12:39','ok'],['Bevegelse i stue','Sensor','12:31','motion']] };
   cfg() { if (this._c === undefined) { try { this._c = JSON.parse(localStorage.getItem(LS) || 'null'); } catch (e) { this._c = null; } }
     return { alarm: 'alarm_control_panel.hjem', codeFor: 'alle', codeLen: 4, code: '1234', showRing: true, showLog: true, showAlerts: true, sensors: DEF_S, ...(this.state.cfgS || this._c || {}) }; }
   setCfg(p) { const n = { ...this.cfg(), ...p }; try { localStorage.setItem(LS, JSON.stringify(n)); } catch (e) {} this._c = n; this.setState({ cfgS: n }); }
-  setSens(f) { this.setCfg({ sensors: f(this.cfg().sensors) }); }
-  componentWillUnmount() { cancelAnimationFrame(this.raf); clearTimeout(this.et); }
+  setSens(f) { const L = this._L; this.setCfg({ sensors: L ? strip(f(L.S)) : f(this.cfg().sensors) }); }
+  componentWillUnmount() { this._dead = true; cancelAnimationFrame(this.raf); clearTimeout(this.et); }
   componentDidUpdate(pp) { if ((this.props.editReq || 0) !== (pp.editReq || 0) && this.props.editReq) this.setState({ view: 'edit' }); }
   flip(id) { this.setSens(L => L.map(x => x.id === id ? { ...x, on: !x.on } : x)); }
-  needCode(k) { const f = this.cfg().codeFor; return f === 'alle' || (f === 'av' && k === 'av'); }
+  needCode(k) { const A = this._L?.A; if (A) { const at = A.attributes || {}; return !!at.code_format && (k === 'av' || at.code_arm_required !== false); }
+    const f = this.cfg().codeFor; return f === 'alle' || (f === 'av' && k === 'av'); }
+  // Live: kall alarm_control_panel.alarm_* (med koden som ble tastet). Avvises koden, rister tastaturet.
+  callAlarm(k, code) { const L = this._L; if (!L?.A || !ha.hass) return Promise.resolve(); const data = { entity_id: L.alarm }; if (code) data.code = code;
+    return ha.hass.callService('alarm_control_panel', ALARM_SVC[k], data).catch(e => { ha.toast(e?.message || String(e)); throw e; }); }
   apply(k) { const time = new Date().toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' }), label = MODES.find(m => m[0] === k)[1];
     this.setState(s => ({ mode: k, since: time, hold: null, prog: 0, pad: null, entry: '', log: [[k === 'av' ? 'Alarm slått av' : `Alarm satt til ${label}`, 'Deg · iPad' + (this.needCode(k) ? ' · kode' : ''), time, 'mode'], ...s.log].slice(0, 5) })); }
   startHold(k) {
-    if (k === this.state.mode) return;
+    if (k === (this._mode ?? this.state.mode)) return;
     const t0 = performance.now();
     const step = () => { const p = Math.min(1, (performance.now() - t0) / 900); this.setState({ hold: k, prog: p });
-      if (p < 1) this.raf = requestAnimationFrame(step); else if (this.needCode(k)) this.setState({ hold: null, prog: 0, pad: k, entry: '', err: false }); else this.apply(k); };
+      if (p < 1) this.raf = requestAnimationFrame(step); else if (this.needCode(k)) this.setState({ hold: null, prog: 0, pad: k, entry: '', err: false }); else if (this._L?.A) { this.setState({ hold: null, prog: 0 }); this.callAlarm(k).catch(() => {}); } else this.apply(k); };
     this.raf = requestAnimationFrame(step);
   }
   cancelHold() { cancelAnimationFrame(this.raf); if (this.state.hold) this.setState({ hold: null, prog: 0 }); }
   press(d) { const s = this.state, c = this.cfg(); if (s.err) return; const e = (s.entry + d).slice(0, c.codeLen); this.setState({ entry: e });
-    if (e.length === c.codeLen) setTimeout(() => { if (e === String(c.code).slice(0, c.codeLen)) this.apply(this.state.pad); else { this.setState({ err: true }); this.et = setTimeout(() => this.setState({ err: false, entry: '' }), 900); } }, 120); }
+    const fail = () => { this.setState({ err: true }); this.et = setTimeout(() => this.setState({ err: false, entry: '' }), 900); };
+    if (e.length === c.codeLen) setTimeout(() => { if (this._L?.A) return this.callAlarm(this.state.pad, e).then(() => this.setState({ pad: null, entry: '', err: false }), fail);
+      if (e === String(c.code).slice(0, c.codeLen)) this.apply(this.state.pad); else fail(); }, 120); }
+  // Loggboka (logbook/get_events) for alarm, sensorer og ansiktsgjenkjenning – hentes på nytt når noe endrer seg.
+  loadLog(ids) {
+    const sig = ids.map(id => ha.state(id)?.last_changed || '').join('|'), now = Date.now(), R = this._logReq;
+    if (R && (R.pending || (R.sig === sig && now - R.at < 5 * 60e3))) return this._logRows || null;
+    if (!ha.hass?.callWS) return null;
+    const req = this._logReq = { sig, at: now, pending: true };
+    ha.hass.callWS({ type: 'logbook/get_events', start_time: new Date(now - 3 * 864e5).toISOString(), entity_ids: ids })
+      .then(r => { this._logRows = Array.isArray(r) ? r : []; }, () => { this._logRows = this._logRows || []; })
+      .then(() => { req.pending = false; if (!this._dead) this.setState({ logV: Date.now() }); });
+    return this._logRows || null;
+  }
+  liveLog(L) {
+    const rows = this.loadLog([L.alarm, ...L.S.map(x => x.ent), L.face].filter(Boolean));
+    if (!rows) return [];
+    const tms = e => typeof e.when === 'number' ? e.when * 1000 : new Date(e.when).getTime();
+    const byEnt = Object.fromEntries(L.S.map(x => [x.ent, x]));
+    const faces = L.face ? rows.filter(e => e.entity_id === L.face && e.state && !['unknown', 'unavailable'].includes(e.state)).map(e => ({ who: e.state, t: tms(e) })) : [];
+    const who = (e, def) => e.context_user_id ? userName(e.context_user_id) : e.context_event_type === 'automation_triggered' || e.context_domain === 'automation' ? 'Automatisk' : e.context_entity_id ? ha.name(e.context_entity_id, def) : def;
+    const out = [];
+    [...rows].sort((p, q) => tms(q) - tms(p)).forEach(e => {
+      if (out.length >= 5 || e.state === undefined) return;
+      const t = new Date(tms(e)), x = byEnt[e.entity_id];
+      if (e.entity_id === L.alarm) {
+        if (['arming', 'pending', 'unavailable', 'unknown'].includes(e.state)) return;
+        const m = MODES.find(q => q[0] === ALARM_MODE[e.state]);
+        out.push([e.state === 'triggered' ? 'Alarmen ble utløst' : e.state === 'disarmed' ? 'Alarm slått av' : m ? `Alarm satt til ${m[1]}` : `Alarm: ${e.state}`, who(e, 'Alarmsystemet'), whenTxt(t), e.state === 'triggered' ? 'alert' : 'mode']);
+      } else if (x) {
+        if (x.type === 'lock') {
+          if (!['locked', 'unlocked', 'open', 'jammed'].includes(e.state)) return;
+          const pa = e.state !== 'locked', f = pa && faces.find(a => tms(e) - a.t >= -30e3 && tms(e) - a.t <= 120e3);
+          out.push([e.state === 'jammed' ? `${x.name} er fastkjørt` : `${x.room} ${pa ? 'låst opp' : 'låst'}`, f ? `${f.who} · ansikt` : who(e, 'Dørlås'), whenTxt(t), pa ? 'alert' : 'ok']);
+        } else if (e.state === 'on') {
+          const mv = x.type === 'motion' || x.type === 'presence';
+          out.push([mv ? `Bevegelse i ${x.room.toLowerCase()}` : `${x.room} åpnet`, who(e, { door: 'Dørsensor', window: 'Vindussensor', motion: 'Sensor', presence: 'Sensor' }[x.type]), whenTxt(t), mv ? 'motion' : 'alert']);
+        }
+      }
+    });
+    return out;
+  }
+  // Leser alarm og sensorer fra hass. null = ingen relevante entiteter → demo.
+  loadLive(c) {
+    const alarm = ha.first('alarm', ha.config.alarm, c.alarm, 'alarm_control_panel.alarm', 'alarm_control_panel.alarmo', 'alarm_control_panel.hjem') || ha.domain('alarm_control_panel')[0] || null;
+    const A = alarm ? ha.state(alarm) : null, S = liveSensors(c);
+    if (!A && !S.length) return null;
+    const mode = A ? ALARM_MODE[A.state] || A.state : null;
+    const cur = A ? MODES.find(m => m[0] === mode) || ALARM_EXTRA[A.state] || ['ukjent', bad(A) ? 'Utilgjengelig' : A.state, 'help', C.mute] : null;
+    const kiSens = ha.all('ki_notifications', 'sensor');
+    const face = ha.first('ansikt', 'sensor.ansiktsgjenkjenning_dorlas_sist_last_opp_av') || kiSens.find(id => id.endsWith('_sist_last_opp_av')) || null;
+    const kiAlerts = kiSens.filter(id => ha.val(id) === 'Sikkerhetsfeil').map(id => ({ icon: 'gpp_maybe', text: `${ha.device(id)?.name_by_user || ha.device(id)?.name || ha.name(id, 'Sikkerhet')}: feil`, room: String(ha.attr(id, 'sikkerhetsfeil', '') || ha.attr(id, 'siste_feil', '') || 'Sikkerhetsfeil'), action: 'Vis', fix: () => ha.moreInfo(id) }));
+    return { alarm: A ? alarm : null, A, S, mode, cur, face, kiAlerts, since: A ? whenTxt(new Date(A.last_changed)) : null };
+  }
   isAlert(x) { return (x.type === 'door' || x.type === 'window' || x.type === 'lock') && x.on; }
   renderVals() {
-    const s = this.state, c = this.cfg(), S = c.sensors;
-    const cur = MODES.find(m => m[0] === s.mode), armed = s.mode !== 'av';
+    const s = this.state, c = this.cfg(), L = this._L = this.loadLive(c), S = L ? L.S : c.sensors, LA = L && L.A;
+    const mode = this._mode = LA ? L.mode : s.mode;
+    const cur = LA ? L.cur : MODES.find(m => m[0] === s.mode), armed = mode !== 'av';
+    const since = LA ? L.since : s.since, codeFor = LA ? (!LA.attributes?.code_format ? 'aldri' : LA.attributes.code_arm_required === false ? 'av' : 'alle') : c.codeFor;
     const alerts = S.filter(x => this.isAlert(x)), motion = S.filter(x => (x.type === 'motion' || x.type === 'presence') && x.on), n = S.length;
     const icon = x => ({ door: x.on ? 'door_open' : 'door_front', window: x.on ? 'sensor_window' : 'window', lock: x.on ? 'lock_open' : 'lock', motion: x.on ? 'directions_run' : 'directions_walk', presence: 'person' })[x.type] || 'sensors';
     const label = x => ({ door: x.on ? 'Åpen' : x.name, window: x.on ? 'Åpent' : x.name, lock: x.on ? `${x.name} ulåst` : x.name, motion: x.on ? 'Bevegelse nå' : x.name, presence: x.on ? 'Noen her' : x.name })[x.type] || x.name;
@@ -254,35 +382,37 @@ class Component extends DCLogic {
     const sw = on => ({ track: { position: 'relative', width: 44, height: 26, borderRadius: 13, flex: 'none', background: on ? 'rgb(242 133 201)' : '#545454', transition: 'background .2s' }, knob: { position: 'absolute', top: 3, left: on ? 21 : 3, width: 20, height: 20, borderRadius: 10, background: '#fafafa', transition: 'left .2s' } });
     const segS = on => ({ height: 32, padding: '0 12px', borderRadius: 14, fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', background: on ? PINK : 'transparent', color: on ? '#2a1720' : '#afafaf' });
     const pm = s.pad ? MODES.find(m => m[0] === s.pad) : null;
-    const aq = s.alarmQ.toLowerCase().trim(), q = s.addQ.toLowerCase().trim(), have = new Set(S.map(x => x.ent)), cand = [...new Set(ALL_ENTS)].filter(e => !have.has(e));
+    const G = L ? liveGuess : guess, allEnts = L ? [...ha.domain('lock'), ...ha.domain('binary_sensor', (st, id) => !!DC_TYPE[st.attributes?.device_class] || /dor|vindu|door|window|bevegelse|motion|tilstede|presence|occupancy|port|luke/.test(id))] : ALL_ENTS;
+    const aq = s.alarmQ.toLowerCase().trim(), q = s.addQ.toLowerCase().trim(), have = new Set(S.map(x => x.ent)), cand = [...new Set(allEnts)].filter(e => !have.has(e));
     const sug = cand.filter(e => !q || e.includes(q)).slice(0, q ? 8 : 4);
-    const add = e => { const g = guess(e); this.setSens(L => [...L, { id: 's' + Date.now() + Math.random().toString(36).slice(2, 5), ent: e, on: false, bat: e.indexOf('lock.') === 0 ? 100 : null, ...g }]); this.setState({ addQ: '' }); };
+    const add = e => { const g = G(e); this.setSens(L => [...L, { id: 's' + Date.now() + Math.random().toString(36).slice(2, 5), ent: e, on: false, bat: e.indexOf('lock.') === 0 ? 100 : null, ...g }]); this.setState({ addQ: '' }); };
     return {
       isMain: s.view === 'main', isEdit: s.view === 'edit', ownBtn: !this.props.embedded, hasSections: typeof this.props.onSections === 'function', openSections: () => { this.setState({ view: 'main' }); this.props.onSections(); }, openEdit: () => this.setState({ view: 'edit' }), closeEdit: () => this.setState({ view: 'main', edSel: null }),
-      alarmEnt: c.alarm, showRing: c.showRing, showLog: c.showLog,
+      alarmEnt: L ? L.alarm || '–' : c.alarm, showRing: c.showRing, showLog: c.showLog,
       ring: S.map((x, i) => { const col = colorOf(x), deg = (360 / Math.max(n, 1)) * i;
         return { title: `${x.room} · ${x.name}`, style: { position: 'absolute', left: 'calc(50% - 4px)', top: 'calc(50% - 16px)', width: 8, height: 32, borderRadius: 4, transform: `rotate(${deg}deg) translateY(-110px)`, background: col || (armed ? a(cur[3], 0.55) : '#38383b'), boxShadow: col ? `0 0 14px ${a(col, 0.7)}` : 'none', transition: 'background .4s, box-shadow .4s' } }; }),
       core: { position: 'absolute', inset: 44, borderRadius: '50%', background: armed ? `radial-gradient(circle at 50% 35%, ${a(cur[3], 0.16)}, #2f2f2f 70%)` : '#2f2f2f', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'background .4s' },
       coreIcon: { fontSize: 30, color: cur[3], fontVariationSettings: "'FILL' 1" },
-      modeIcon: cur[2], modeLabel: cur[1], modeSince: armed ? `Aktivert ${s.since}` : `Avslått ${s.since}`, headline,
+      modeIcon: cur[2], modeLabel: cur[1], modeSince: cur[0] === 'utlost' ? `Utløst ${since}` : armed ? `Aktivert ${since}` : `Avslått ${since}`, headline,
       subline: `${motion.length ? plural(motion.length, 'sensor', 'sensorer') + ' registrerer bevegelse' : 'Ingen bevegelse'} · ${n - alerts.length - motion.length} i ro`,
-      codeNeeded: c.codeFor !== 'aldri',
-      holdHint: s.hold ? `Hold for å sette ${MODES.find(m => m[0] === s.hold)[1].toLowerCase()}…` : c.codeFor === 'alle' ? 'Hold inne for å bytte modus · krever kode' : c.codeFor === 'av' ? 'Hold inne for å bytte modus · kode for å slå av' : 'Hold inne for å bytte modus',
-      modes: MODES.map(([k, l, ic, col]) => { const act = s.mode === k, holding = s.hold === k;
+      codeNeeded: codeFor !== 'aldri',
+      holdHint: s.hold ? `Hold for å sette ${MODES.find(m => m[0] === s.hold)[1].toLowerCase()}…` : codeFor === 'alle' ? 'Hold inne for å bytte modus · krever kode' : codeFor === 'av' ? 'Hold inne for å bytte modus · kode for å slå av' : 'Hold inne for å bytte modus',
+      modes: MODES.map(([k, l, ic, col]) => { const act = mode === k, holding = s.hold === k;
         return { label: l, icon: ic, down: () => this.startHold(k), cancel: () => this.cancelHold(),
           style: { position: 'relative', overflow: 'hidden', height: 64, borderRadius: 17, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5, background: act ? a(col, 0.18) : 'transparent', boxShadow: act ? `inset 0 0 0 1px ${a(col, 0.45)}` : 'none', color: act ? '#fafafa' : '#979797', touchAction: 'none', userSelect: 'none', transition: 'background .25s' },
           fill: { position: 'absolute', left: 0, bottom: 0, top: 0, width: `${holding ? s.prog * 100 : 0}%`, background: a(col, 0.28) },
           iconStyle: { position: 'relative', fontSize: 21, color: act || holding ? col : '#979797', fontVariationSettings: `'FILL' ${act ? 1 : 0}` } }; }),
-      hasAlerts: c.showAlerts && alerts.length > 0,
-      alerts: alerts.map(x => ({ icon: icon(x), text: x.type === 'lock' ? `${x.name} er ulåst` : `${x.name} er ${x.type === 'window' ? 'åpent' : 'åpen'}`, room: x.room, action: x.type === 'lock' ? 'Lås' : 'Merk lukket', fix: () => this.flip(x.id) })),
+      hasAlerts: c.showAlerts && alerts.length + (L ? L.kiAlerts.length : 0) > 0,
+      alerts: [...alerts.map(x => ({ icon: icon(x), text: x.jam ? `${x.name} er fastkjørt` : x.type === 'lock' ? `${x.name} er ulåst` : `${x.name} er ${x.type === 'window' ? 'åpent' : 'åpen'}`, room: x.room,
+        action: x.type === 'lock' && !x.jam ? 'Lås' : L ? 'Vis' : 'Merk lukket', fix: () => !L ? this.flip(x.id) : x.type === 'lock' && !x.jam ? ha.call('lock', 'lock', { entity_id: x.ent }) : ha.moreInfo(x.ent) })), ...(L ? L.kiAlerts : [])],
       sensorCount: `${n} sensorer`,
       rooms: roomsOrder.map((room, i) => { const list = S.filter(x => x.room === room), al = list.some(x => this.isAlert(x)), mv = list.some(x => x.on && !this.isAlert(x));
         return { name: room, rowStyle: { display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 4px', borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none' },
           dot: { width: 7, height: 7, borderRadius: 4, flex: 'none', background: al ? C.amber : mv ? C.blue : '#48474a' },
-          sensors: list.map(x => { const col = colorOf(x); return { icon: icon(x), ent: x.ent, tap: () => this.flip(x.id), label: x.type === 'lock' && !x.on && x.bat != null ? `${x.name} · ${x.bat} %` : label(x),
+          sensors: list.map(x => { const col = colorOf(x); return { icon: icon(x), ent: x.ent, tap: () => L ? ha.moreInfo(x.ent) : this.flip(x.id), label: x.type === 'lock' && !x.on && x.bat != null ? `${x.name} · ${x.bat} %` : label(x),
             style: { height: 32, padding: '0 11px 0 8px', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', background: col ? a(col, 0.16) : '#2f2f2f', color: col ? '#fafafa' : '#afafaf', boxShadow: col ? `inset 0 0 0 1px ${a(col, 0.4)}` : 'inset 0 0 0 1px rgba(255,255,255,0.04)', transition: 'background .2s' },
             iconStyle: { fontSize: 16, color: col || '#7f7f7f' } }; }) }; }),
-      log: s.log.map(([text, who, time, kind], i, arr) => { const col = kind === 'alert' ? C.amber : kind === 'motion' ? C.blue : kind === 'mode' ? '#fafafa' : C.green;
+      log: (L ? this.liveLog(L) : s.log).map(([text, who, time, kind], i, arr) => { const col = kind === 'alert' ? C.amber : kind === 'motion' ? C.blue : kind === 'mode' ? '#fafafa' : C.green;
         return { text, who, time, dot: { width: 9, height: 9, borderRadius: 5, marginTop: 5, background: col, flex: 'none' }, line: { flex: 1, width: 1, background: i < arr.length - 1 ? 'rgba(255,255,255,0.1)' : 'transparent', marginTop: 4 } }; }),
       padOpen: !!pm,
       pad: pm ? { icon: pm[2], title: s.pad === 'av' ? 'Slå av alarmen' : `Sett alarm til ${pm[1].toLowerCase()}`, msg: s.err ? 'Feil kode – prøv igjen' : `Skriv inn ${c.codeLen}-sifret kode`,
@@ -296,7 +426,7 @@ class Component extends DCLogic {
             go: () => k === 'close' ? this.setState({ pad: null, entry: '', err: false }) : k === 'backspace' ? this.setState(st => ({ entry: st.entry.slice(0, -1) })) : this.press(k),
             style: { width: 68, height: 68, borderRadius: 34, display: 'grid', placeItems: 'center', background: ic ? 'transparent' : '#3a3a3a', color: ic ? '#afafaf' : '#fafafa', transition: 'transform .1s, background .1s' } }; }) } : {},
       alarmQ: s.alarmQ, setAlarmQ: e => this.setState({ alarmQ: e.target.value }), hasAlarmSug: true,
-      alarmSug: ALARMS.filter(x => x !== c.alarm && (!aq || x.includes(aq))).map(id => ({ id, go: () => { this.setCfg({ alarm: id }); this.setState({ alarmQ: '' }); } })),
+      alarmSug: (L ? ha.domain('alarm_control_panel') : ALARMS).filter(x => x !== (L ? L.alarm : c.alarm) && (!aq || x.includes(aq))).map(id => ({ id, go: () => { this.setCfg({ alarm: id }); this.setState({ alarmQ: '' }); } })),
       codeSegs: [{ label: 'Krev kode', opts: [['alle', 'Alle endringer'], ['av', 'Bare for å slå av'], ['aldri', 'Aldri']].map(([v, l]) => ({ label: l, go: () => this.setCfg({ codeFor: v }), style: segS(c.codeFor === v) })) },
         { label: 'Kodelengde', opts: [[4, '4 siffer'], [6, '6 siffer']].map(([v, l]) => ({ label: l, go: () => this.setCfg({ codeLen: v, code: String(c.code).padEnd(v, '0').slice(0, v) }), style: segS(c.codeLen === v) })) }],
       code: c.code, codeLen: c.codeLen, setCode: e => this.setCfg({ code: e.target.value.replace(/\D/g, '').slice(0, c.codeLen) }),
@@ -310,8 +440,8 @@ class Component extends DCLogic {
               setName: e => up({ name: e.target.value }), setRoom: e => { const v = e.target.value; up({ room: v || 'Annet' }); if (v) this.setState(st => ({ grpOpen: { ...st.grpOpen, [v]: true }, edSel: x.id })); },
               types: TYPES.map(([t, l, ic]) => ({ label: l, icon: ic, go: () => up({ type: t }), style: { height: 32, padding: '0 10px 0 8px', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 500, background: x.type === t ? PINK : '#2f2f2f', color: x.type === t ? '#2a1720' : '#c7c7c7' } })) }; }) }; }),
       addQ: s.addQ, setAddQ: e => this.setState({ addQ: e.target.value }),
-      addSug: sug.map(e => { const g = guess(e); return { id: e, icon: TYPES.find(t => t[0] === g.type)[2], guess: `Auto: ${TYPES.find(t => t[0] === g.type)[1]} · ${g.room}`, go: () => add(e) }; }),
-      hasAddAll: cand.length > 0, addAllLabel: `Auto-legg til alle nye (${cand.length})`, addAll: () => { const now = Date.now(); this.setSens(L => [...L, ...cand.map((e, i) => ({ id: 's' + now + '_' + i, ent: e, on: false, bat: e.indexOf('lock.') === 0 ? 100 : null, ...guess(e) }))]); },
+      addSug: sug.map(e => { const g = G(e); return { id: e, icon: TYPES.find(t => t[0] === g.type)[2], guess: `Auto: ${TYPES.find(t => t[0] === g.type)[1]} · ${g.room}`, go: () => add(e) }; }),
+      hasAddAll: cand.length > 0, addAllLabel: `Auto-legg til alle nye (${cand.length})`, addAll: () => { const now = Date.now(); this.setSens(L => [...L, ...cand.map((e, i) => ({ id: 's' + now + '_' + i, ent: e, on: false, bat: e.indexOf('lock.') === 0 ? 100 : null, ...G(e) }))]); },
       viewToggles: [['showRing', 'Sensorring', 'Stor ring med alle sensorer'], ['showAlerts', 'Varsler', '«Krever oppmerksomhet» øverst'], ['showLog', 'Siste hendelser', 'Logg nederst']].map(([k, l, sub], i) => ({ label: l, sub, go: () => this.setCfg({ [k]: !c[k] }), ...sw(c[k]),
         row: { display: 'flex', alignItems: 'center', gap: 12, minHeight: 60, borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none', width: '100%' } })),
     };
