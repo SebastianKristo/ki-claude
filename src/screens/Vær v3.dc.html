@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#232323;color:#fafafa;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#fafafa}a:hover{color:rgb(242 133 201)}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+[data-snap]::-webkit-scrollbar{display:none}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;user-select:none}
+@keyframes wx-spin{to{transform:rotate(360deg)}}
+@keyframes wx-glow{0%,100%{filter:drop-shadow(0 0 14px rgb(242 210 111 / .3))}50%{filter:drop-shadow(0 0 32px rgb(242 210 111 / .65))}}
+@keyframes wx-drift{0%,100%{transform:translateX(-4px)}50%{transform:translateX(4px)}}
+@keyframes wx-bob{0%,100%{transform:translateY(-1px)}50%{transform:translateY(3px)}}
+@keyframes wx-sway{0%,100%{transform:rotate(-9deg)}50%{transform:rotate(9deg)}}
+@keyframes wx-flash{0%,86%,100%{opacity:1}88%{opacity:.25}90%{opacity:1}92%{opacity:.35}94%{opacity:1}}
+@keyframes wx-fade{0%,100%{opacity:.5;transform:translateX(-5px)}50%{opacity:1;transform:translateX(5px)}}
+@keyframes wx-rain{0%{transform:translateY(-30px) rotate(12deg);opacity:0}10%{opacity:.85}100%{transform:translateY(260px) rotate(12deg);opacity:0}}
+@keyframes wx-snow{0%{transform:translate(0,-20px);opacity:0}10%{opacity:1}50%{transform:translate(14px,120px)}100%{transform:translate(-8px,260px);opacity:0}}
+@keyframes wx-fog{0%{transform:translateX(-25%)}100%{transform:translateX(25%)}}
+@keyframes wx-bolt{0%,84%,100%{opacity:0}85%,88%{opacity:.55}86%{opacity:.1}}
+@keyframes wx-ray{0%,100%{opacity:.35;transform:scale(1)}50%{opacity:.7;transform:scale(1.12)}}
+@keyframes wx-wind{0%{transform:translateX(-120%);opacity:0}20%{opacity:.7}100%{transform:translateX(320%);opacity:0}}
+</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;max-width:420px;min-height:100vh;margin:0 auto;background:#232323;padding:20px 14px 40px;display:flex;flex-direction:column;gap:12px">
+  <header style="display:flex;align-items:center;gap:12px;padding:0 4px">
+    <span style="width:40px;height:40px;border-radius:20px;background:#e1e1e1;color:#232323;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">partly_cloudy_day</span></span>
+    <div style="flex:1;font-size:26px;font-weight:500;letter-spacing:-0.02em">Været</div>
+  </header>
+
+  <div style="{{ ord.hero }}">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+    <div data-snap="1" onScroll="{{ heroScroll }}" style="width:100%;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;border-radius:28px">
+      <div style="flex:none;width:100%;box-sizing:border-box;scroll-snap-align:start;position:relative;min-height:190px;padding:22px 24px;border-radius:28px;background:#2f2f2f;display:flex;flex-direction:column;justify-content:space-between">
+        <div style="position:absolute;inset:0;overflow:hidden;border-radius:28px;pointer-events:none"><sc-for list="{{ heroFx }}" as="p" hint-placeholder-count="0"><span style="{{ p }}"></span></sc-for></div>
+        <span style="position:relative;font-size:14px;color:#c7c7c7">Været nå · {{ place }}</span>
+        <span style="position:relative;display:flex;align-items:flex-end;gap:6px"><span style="font-size:64px;font-weight:300;letter-spacing:-0.04em;line-height:1;font-variant-numeric:tabular-nums">{{ now.temp }}°</span><span style="font-size:15px;color:#afafaf;padding-bottom:6px">{{ now.feels }}°</span></span>
+        <span style="position:relative;display:flex;gap:14px;font-size:14px;color:#c7c7c7;white-space:nowrap"><span>{{ now.cond }}</span><span>{{ now.wind }}</span><span>{{ now.rain }}</span></span>
+        <span style="position:absolute;right:20px;top:50%;transform:translateY(-50%);line-height:0"><span class="ms" style="{{ heroIcon.style }}">{{ heroIcon.icon }}</span></span>
+      </div>
+      <div style="flex:none;width:100%;box-sizing:border-box;scroll-snap-align:start;min-height:190px;padding:20px 16px 16px;border-radius:28px;background:#2f2f2f;display:flex;flex-direction:column;gap:14px">
+        <span style="font-size:14px;color:#c7c7c7;padding:0 8px">Andre varsler</span>
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px">
+          <sc-for list="{{ extras }}" as="x" hint-placeholder-count="4">
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;height:112px;border-radius:22px;background:#3a3a3a;min-width:0">
+              <span class="ms" style="{{ x.iconStyle }}">{{ x.icon }}</span>
+              <span style="font-size:12px;color:#c7c7c7;text-align:center;line-height:1.25;padding:0 4px">{{ x.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="flex:none;width:100%;box-sizing:border-box;scroll-snap-align:start;min-height:190px;padding:20px 16px 16px;border-radius:28px;background:#2f2f2f;display:flex;flex-direction:column;gap:12px">
+        <span style="display:flex;justify-content:space-between;align-items:baseline;padding:0 8px"><span style="font-size:14px;color:#c7c7c7">Pollen i dag</span><span style="font-size:11px;color:#7f7f7f">NAAF</span></span>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px">
+          <sc-for list="{{ pollenMini }}" as="p" hint-placeholder-count="6">
+            <div style="display:flex;align-items:center;gap:8px;height:53px;padding:0 10px;border-radius:18px;background:#3a3a3a;min-width:0">
+              <span class="ms" style="{{ p.iconStyle }}">{{ p.icon }}</span>
+              <span style="display:flex;flex-direction:column;min-width:0"><span style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.name }}</span><span style="{{ p.levelStyle }}">{{ p.level }}</span></span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;height:14px;align-items:center"><sc-for list="{{ heroDots }}" as="d" hint-placeholder-count="2"><span style="{{ d }}"></span></sc-for></div>
+  </div>
+  </div>
+  <div style="{{ ord.alerts }}">
+  <sc-if value="{{ hasAlerts }}" hint-placeholder-val="{{ true }}">
+  <section style="display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 6px">
+      <span style="display:flex;align-items:center;gap:6px;font-size:13px;color:#979797"><span class="ms" style="font-size:16px">warning</span>Farevarsler · {{ alertSum }}</span>
+      <span style="display:flex"><sc-for list="{{ alertChips }}" as="c" hint-placeholder-count="3"><span style="{{ c.wrap }}"><span class="ms" style="font-size:15px;font-variation-settings:'FILL' 1">{{ c.icon }}</span></span></sc-for></span>
+    </div>
+    <sc-for list="{{ alerts }}" as="w" hint-placeholder-count="2">
+      <button onClick="{{ w.toggle }}" style="{{ w.card }}">
+        <span style="display:flex;align-items:flex-start;gap:12px;width:100%">
+          <span style="{{ w.iconWrap }}"><span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">{{ w.icon }}</span></span>
+          <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;text-align:left">
+            <span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="{{ w.badge }}">{{ w.levelName }}</span><span style="{{ w.statusStyle }}">{{ w.status }}</span></span>
+            <span style="font-size:14px;font-weight:600;line-height:1.3">{{ w.title }}</span>
+            <span style="font-size:12px;color:#979797">{{ w.when }}</span>
+          </span>
+          <span class="ms" style="{{ w.chev }}">expand_more</span>
+        </span>
+        <sc-if value="{{ w.open }}" hint-placeholder-val="{{ false }}">
+          <span style="display:flex;flex-direction:column;gap:10px;width:100%;padding-top:12px;margin-top:12px;border-top:1px solid rgba(255,255,255,0.06);text-align:left">
+            <span style="font-size:13px;color:#e1e1e1;line-height:1.45;text-wrap:pretty">{{ w.text }}</span>
+            <sc-for list="{{ w.blocks }}" as="b" hint-placeholder-count="2"><span style="display:flex;flex-direction:column;gap:3px"><span style="font-size:11px;color:#7f7f7f">{{ b.l }}</span><span style="font-size:13px;color:#c7c7c7;line-height:1.45;text-wrap:pretty">{{ b.v }}</span></span></sc-for>
+            <span style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11px;color:#7f7f7f"><span>{{ w.source }}</span><span style="display:flex;align-items:center;gap:4px;color:#afafaf">Åpne kart<span class="ms" style="font-size:14px">open_in_new</span></span></span>
+          </span>
+        </sc-if>
+      </button>
+    </sc-for>
+  </section>
+  </sc-if>
+  </div>
+  <div style="{{ ord.hours }}">
+  <div data-snap="1" style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -14px;padding:0 14px">
+    <sc-for list="{{ hours }}" as="h" hint-placeholder-count="6">
+      <div style="{{ h.box }}">
+        <span style="font-size:13px;color:#afafaf">{{ h.t }}</span>
+        <span class="ms" style="{{ h.iconStyle }}">{{ h.icon }}</span>
+        <span style="font-size:24px;font-weight:300;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">{{ h.temp }}°</span>
+        <span style="display:flex;flex-direction:column;align-items:center;gap:1px;font-size:11px;color:#979797"><span>{{ h.wind }}</span><span>{{ h.rain }}</span></span>
+      </div>
+    </sc-for>
+  </div>
+  </div>
+  <div style="{{ ord.days }}">
+  <sc-for list="{{ days }}" as="d" hint-placeholder-count="5">
+    <button onClick="{{ d.toggle }}" style="{{ d.card }}">
+      <span style="display:flex;align-items:center;width:100%">
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;text-align:left">
+          <span style="font-size:14px;color:#c7c7c7">{{ d.day }}</span>
+          <span style="display:flex;align-items:baseline;gap:8px"><span style="font-size:40px;font-weight:300;letter-spacing:-0.03em;line-height:1;font-variant-numeric:tabular-nums">{{ d.hi }}°</span><span style="font-size:15px;color:#7f7f7f;font-variant-numeric:tabular-nums">{{ d.lo }}°</span></span>
+          <span style="display:flex;gap:12px;font-size:13px;color:#c7c7c7"><span>{{ d.cond }}</span><span>{{ d.rain }}</span></span>
+        </span>
+        <span class="ms" style="{{ d.iconStyle }}">{{ d.icon }}</span>
+      </span>
+      <sc-if value="{{ d.open }}" hint-placeholder-val="{{ false }}">
+        <span style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%;padding-top:14px;margin-top:14px;border-top:1px solid rgba(255,255,255,0.06)">
+          <sc-for list="{{ d.more }}" as="m" hint-placeholder-count="3"><span style="display:flex;flex-direction:column;gap:2px;text-align:left"><span style="font-size:11px;color:#7f7f7f">{{ m.l }}</span><span style="font-size:14px;font-weight:500">{{ m.v }}</span></span></sc-for>
+        </span>
+      </sc-if>
+    </button>
+  </sc-for>
+  </div>
+  <div style="{{ ord.tiles }}">
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px">
+    <div style="{{ tord.sky }}"><section style="display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:28px;background:#2f2f2f;min-height:150px;box-sizing:border-box">
+      <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#979797"><span class="ms" style="font-size:16px">cloud</span>Skydekke</span>
+      <span style="font-size:40px;font-weight:300;letter-spacing:-0.03em;line-height:1">{{ tile.sky }}</span>
+      <span style="font-size:12px;color:#c7c7c7">{{ tile.skyText }}</span>
+      <div style="position:relative;height:6px;border-radius:3px;background:#3a3a3a;margin-top:auto"><span style="{{ tile.skyBar }}"></span></div>
+    </section></div>
+    <div style="{{ tord.wind }}"><section style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;aspect-ratio:1;border-radius:50%;background:#2f2f2f;box-shadow:inset 0 0 0 10px #2a2a2a">
+      <span style="{{ wind.arrow }}"><span class="ms" style="font-size:22px;color:rgb(115 185 242);font-variation-settings:'FILL' 1">navigation</span></span>
+      <span style="font-size:12px;color:#979797">Vind</span>
+      <span style="font-size:34px;font-weight:300;letter-spacing:-0.03em;line-height:1">{{ tile.wind }}</span>
+      <span style="font-size:12px;color:#c7c7c7">{{ tile.windDir }}</span>
+    </section></div>
+    <div style="{{ tord.gust }}"><section style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;aspect-ratio:1;border-radius:50%;background:rgb(173 153 230 / 0.16);box-shadow:inset 0 0 0 1px rgb(173 153 230 / 0.35)">
+      <span style="display:flex;align-items:center;gap:4px;font-size:12px;color:#c7c7c7"><span class="ms" style="font-size:16px;color:rgb(173 153 230)">storm</span>Vindkast</span>
+      <span style="font-size:36px;font-weight:300;letter-spacing:-0.03em;line-height:1">{{ tile.gust }}</span>
+      <span style="font-size:12px;color:#c7c7c7">m/s</span>
+    </section></div>
+    <div style="{{ tord.sun }}"><section style="display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:28px;background:#2f2f2f">
+      <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#979797"><span class="ms" style="font-size:16px">wb_twilight</span>Sol opp og ned</span>
+      <div style="position:relative;height:56px;overflow:hidden">
+        <span style="position:absolute;left:4px;right:4px;top:6px;height:100px;border-radius:50%;border:1.5px dashed #545454;box-sizing:border-box"></span>
+        <span style="{{ sun.dot }}"></span>
+        <span style="position:absolute;left:0;right:0;bottom:0;height:1px;background:#545454"></span>
+      </div>
+      <span style="display:flex;justify-content:space-between;font-size:12px;color:#c7c7c7"><span>↑ {{ tile.rise }}</span><span>↓ {{ tile.set }}</span></span>
+      <span style="font-size:11px;color:#7f7f7f">{{ tile.elev }}</span>
+    </section></div>
+    <div style="{{ tord.hum }}"><section style="position:relative;overflow:hidden;display:flex;flex-direction:column;gap:6px;padding:16px;border-radius:28px;background:#2f2f2f;min-height:150px;box-sizing:border-box">
+      <span style="position:absolute;left:0;right:0;bottom:0;height:82%;background:linear-gradient(180deg, rgb(115 185 242 / 0.22), rgb(115 185 242 / 0.08))"></span>
+      <span style="position:relative;display:flex;align-items:center;gap:6px;font-size:12px;color:#c7c7c7"><span class="ms" style="font-size:16px;color:rgb(115 185 242);font-variation-settings:'FILL' 1">humidity_percentage</span>Fukt</span>
+      <span style="position:relative;font-size:40px;font-weight:300;letter-spacing:-0.03em;line-height:1">{{ tile.hum }}</span>
+      <span style="position:relative;font-size:12px;color:#c7c7c7;margin-top:auto">{{ tile.dew }}</span>
+    </section></div>
+    <div style="{{ tord.uv }}"><section style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;aspect-ratio:1;border-radius:36%;background:#2f2f2f;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.06)">
+      <span style="display:flex;align-items:center;gap:4px;font-size:12px;color:#979797"><span class="ms" style="font-size:16px;color:rgb(242 210 111);font-variation-settings:'FILL' 1">light_mode</span>UV-indeks</span>
+      <span style="font-size:40px;font-weight:300;line-height:1">{{ tile.uv }}</span>
+      <span style="{{ tile.uvStyle }}">{{ tile.uvText }}</span>
+    </section></div>
+    <div style="{{ tord.press }}"><section style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;aspect-ratio:1;border-radius:50%;background:#2f2f2f">
+      <span style="{{ pressRing }}"></span>
+      <span style="display:flex;align-items:center;gap:4px;font-size:12px;color:#979797"><span class="ms" style="font-size:16px">compress</span>Trykk</span>
+      <span style="font-size:32px;font-weight:300;letter-spacing:-0.03em;line-height:1">{{ tile.press }}</span>
+      <span style="font-size:12px;color:#c7c7c7">hPa</span>
+    </section></div>
+    <div style="{{ tord.rain }}"><section style="display:flex;flex-direction:column;gap:6px;padding:16px;border-radius:28px;background:#2f2f2f">
+      <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#979797"><span class="ms" style="font-size:16px;color:rgb(115 185 242);font-variation-settings:'FILL' 1">water_drop</span>Nedbør</span>
+      <span style="font-size:40px;font-weight:300;letter-spacing:-0.03em;line-height:1">{{ rain24 }}<span style="font-size:14px;color:#979797"> mm</span></span>
+      <span style="font-size:12px;color:#c7c7c7;margin-top:auto">Neste 24 timer</span>
+    </section></div>
+  </div>
+  </div>
+  <div style="{{ ord.moon }}">
+  <section style="display:flex;align-items:center;gap:16px;padding:16px 18px;border-radius:28px;background:#2f2f2f">
+    <div style="position:relative;width:56px;height:56px;flex:none;border-radius:50%;background:#e9e4d6;overflow:hidden;box-shadow:0 0 30px rgba(233,228,214,0.18)"><div style="{{ moonShade }}"></div>
+</div>
+    <span style="display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;color:#979797">Månefase</span><span style="font-size:16px;font-weight:500">{{ moonName }}</span></span>
+  </section>
+  </div>
+  <button onClick="{{ ed.openIt }}" style="order:100;height:52px;border-radius:26px;background:#2f2f2f;display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;font-weight:500" style-active="transform:scale(0.98)"><span class="ms" style="font-size:20px">tune</span>Tilpass været</button>
+  <sc-if value="{{ ed.open }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ ed.close }}" style="position:fixed;inset:0;z-index:60;background:rgba(0,0,0,0.5)"></div>
+    <div style="position:fixed;left:50%;bottom:0;transform:translateX(-50%);z-index:61;width:100%;max-width:440px;max-height:calc(100vh - 60px);overflow-y:auto;scrollbar-width:none;box-sizing:border-box;padding:20px 14px 40px;border-radius:34px 34px 0 0;background:#2f2f2f;box-shadow:0 -20px 50px rgba(0,0,0,0.5);display:grid;grid-template-columns:minmax(0,1fr);align-content:start;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px;padding:0 4px 6px">
+        <span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:22px;font-weight:600">Tilpass været</span><span style="font-size:12px;color:#979797">Dra for å flytte · øyet skjuler</span></span>
+        <button onClick="{{ ed.reset }}" style="height:40px;padding:0 14px;border-radius:20px;background:#3a3a3a;font-size:14px;font-weight:500">Nullstill</button>
+        <button onClick="{{ ed.close }}" style="height:40px;padding:0 18px;border-radius:20px;background:linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%);color:#5a3a48;font-size:14px;font-weight:600">Ferdig</button>
+      </div>
+      <span style="font-size:13px;color:#979797;padding:4px 6px 0">Forhåndsvis vær</span>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ ed.wx }}" as="o" hint-placeholder-count="9"><button onClick="{{ o.go }}" style="{{ o.style }}"><span class="ms" style="font-size:16px;font-variation-settings:'FILL' 1">{{ o.icon }}</span>{{ o.label }}</button></sc-for></div>
+      <span style="font-size:13px;color:#979797;padding:10px 6px 0">Seksjoner</span>
+      <sc-for list="{{ ed.secs }}" as="r" hint-placeholder-count="6">
+        <div draggable="true" onDragStart="{{ r.dragStart }}" onDragOver="{{ r.dragOver }}" onDrop="{{ r.drop }}" onDragEnd="{{ r.dragEnd }}" style="{{ r.row }}">
+          <span class="ms" style="font-size:20px;color:#7f7f7f;cursor:grab">drag_indicator</span>
+          <span class="ms" style="font-size:20px;width:24px;flex:none;font-variation-settings:'FILL' 1">{{ r.icon }}</span>
+          <span style="flex:1;min-width:0;font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.label }}</span>
+          <div style="display:flex;flex:none;border-radius:18px;background:#232323;padding:2px">
+            <button onClick="{{ r.up }}" style="{{ r.upStyle }}"><span class="ms" style="font-size:20px">expand_less</span></button>
+            <button onClick="{{ r.down }}" style="{{ r.downStyle }}"><span class="ms" style="font-size:20px">expand_more</span></button>
+          </div>
+          <button onClick="{{ r.eye }}" style="width:36px;height:36px;border-radius:18px;flex:none;display:grid;place-items:center"><span class="ms" style="{{ r.eyeStyle }}">{{ r.eyeIcon }}</span></button>
+        </div>
+      </sc-for>
+      <span style="font-size:13px;color:#979797;padding:10px 6px 0">Detaljkort</span>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;padding:10px;border-radius:24px;background:#232323">
+        <sc-for list="{{ ed.tiles }}" as="g" hint-placeholder-count="8">
+          <div draggable="true" onDragStart="{{ g.dragStart }}" onDragOver="{{ g.dragOver }}" onDrop="{{ g.drop }}" onDragEnd="{{ g.dragEnd }}" style="{{ g.style }}">
+            <span class="ms" style="font-size:18px;flex:none;color:#afafaf;font-variation-settings:'FILL' 1">{{ g.icon }}</span>
+            <span style="flex:1;min-width:0;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ g.label }}</span>
+            <button onClick="{{ g.eye }}" style="width:30px;height:30px;border-radius:15px;flex:none;display:grid;place-items:center"><span class="ms" style="{{ g.eyeStyle }}">{{ g.eyeIcon }}</span></button>
+          </div>
+        </sc-for>
+      </div>
+      <span style="font-size:12px;color:#7f7f7f;padding:4px 6px 0">Dra kortene for å bytte rekkefølge i rutenettet. På mobil kan du bruke pilene for seksjoner.</span>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:1800}}">
+const SUNY = 'rgb(242 210 111)', CLOUD = '#c7c7c7', MOON = '#979797', RAIN = 'rgb(115 185 242)';
+const IC = { fog: ['foggy', CLOUD], snow: ['weather_snowy', '#fafafa'], sleet: ['weather_mix', '#cfe3f5'], thunder: ['thunderstorm', SUNY], sun: ['clear_day', SUNY], moon: ['bedtime', MOON], cloud: ['cloud', CLOUD], part: ['partly_cloudy_day', SUNY], rain: ['rainy', RAIN], partn: ['partly_cloudy_night', MOON] };
+const HOURS = [['Nå', 'sun', 16.2, 0], ['17', 'part', 15.3, 0], ['18', 'part', 15.0, 0], ['19', 'moon', 14.6, 0], ['20', 'partn', 14.5, 0], ['21', 'partn', 14.1, 0], ['22', 'cloud', 13.8, 0.1], ['23', 'rain', 13.4, 0.4], ['00', 'rain', 13.1, 0.6], ['01', 'cloud', 12.9, 0], ['02', 'fog', 12.6, 0], ['03', 'fog', 12.4, 0]];
+const DAYS = [['I dag', 'sun', 17, 10, 0], ['Søndag', 'cloud', 16, 10, 0], ['Mandag', 'rain', 16, 10, 1.2], ['Tirsdag', 'part', 17, 11, 0], ['Onsdag', 'sun', 19, 11, 0], ['Torsdag', 'part', 18, 12, 0], ['Fredag', 'rain', 14, 9, 4.8]];
+const f1 = v => v.toLocaleString('nb-NO', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const DAYS2 = [['Søndag', 'cloud', 15.9, 10.2, 'Overskyet', 0, 6, 82], ['Mandag', 'rain', 15.5, 9.8, 'Regnbyger', 1.2, 8, 88], ['Tirsdag', 'part', 17.3, 10.9, 'Delvis skyet', 0, 5, 74], ['Onsdag', 'sun', 19.1, 11.4, 'Sol', 0, 3, 61], ['Torsdag', 'part', 18.2, 12.0, 'Lettskyet', 0, 4, 66], ['Fredag', 'thunder', 14.4, 9.1, 'Torden', 4.8, 9, 91], ['Lørdag', 'sleet', 6.9, 1.7, 'Sludd', 2.3, 6, 84]];
+const WIND = [7.8, 7.1, 7.0, 7.1, 6.8, 6.2, 5.9, 5.4, 5.0, 4.6, 4.4, 4.1];
+const WX = { sun: ['clear_day', 'Sol', 'rgb(242 210 111)'], part: ['partly_cloudy_day', 'Delvis skyet', 'rgb(242 210 111)'], cloud: ['cloud', 'Overskyet', '#c7c7c7'], rain: ['rainy', 'Regn', 'rgb(115 185 242)'], sleet: ['weather_mix', 'Sludd', '#cfe3f5'], snow: ['weather_snowy', 'Snø', '#fafafa'], fog: ['foggy', 'Tåke', '#c7c7c7'], thunder: ['thunderstorm', 'Torden', 'rgb(242 210 111)'], wind: ['air', 'Kraftig vind', 'rgb(115 185 242)'] };
+const WXANIM = { clear_day: 'wx-spin 24s linear infinite, wx-glow 4s ease-in-out infinite', partly_cloudy_day: 'wx-drift 5s ease-in-out infinite', partly_cloudy_night: 'wx-drift 6s ease-in-out infinite', cloud: 'wx-drift 6s ease-in-out infinite', rainy: 'wx-bob 1.1s ease-in-out infinite', weather_mix: 'wx-sway 2.6s ease-in-out infinite', weather_snowy: 'wx-sway 3.4s ease-in-out infinite', foggy: 'wx-fade 4s ease-in-out infinite', thunderstorm: 'wx-flash 3.2s linear infinite', air: 'wx-drift 1.6s ease-in-out infinite', bedtime: 'wx-bob 5s ease-in-out infinite' };
+const wxa = icon => ({ display: 'inline-block', animation: WXANIM[icon] || 'none' });
+const heroFxOf = k => { const P = [], rnd = i => ((i * 37) % 100);
+  const drops = (n, col, dur) => { for (let i = 0; i < n; i++) P.push({ position: 'absolute', left: rnd(i) + '%', top: 0, width: 2, height: 16, borderRadius: 1, background: col, animation: `wx-rain ${dur + (i % 5) * 0.12}s linear ${-((i * 0.17) % 1.2)}s infinite` }); };
+  const flakes = (n, dur) => { for (let i = 0; i < n; i++) { const sz = 4 + (i % 3) * 2; P.push({ position: 'absolute', left: rnd(i) + '%', top: 0, width: sz, height: sz, borderRadius: sz / 2, background: 'rgba(250,250,250,0.85)', animation: `wx-snow ${dur + (i % 4) * 0.9}s linear ${-((i * 0.6) % 5)}s infinite` }); } };
+  if (k === 'rain' || k === 'thunder') drops(26, 'rgb(115 185 242 / 0.55)', 0.7);
+  if (k === 'sleet') { drops(14, 'rgb(115 185 242 / 0.5)', 0.8); flakes(12, 3.4); }
+  if (k === 'snow') flakes(28, 4.2);
+  if (k === 'fog') [18, 62, 108, 150].forEach((y, i) => P.push({ position: 'absolute', left: '-30%', top: y, width: '160%', height: 36, borderRadius: 18, background: 'linear-gradient(90deg, transparent, rgba(220,220,220,0.16), rgba(220,220,220,0.22), transparent)', filter: 'blur(6px)', animation: `wx-fog ${7 + i * 1.5}s ease-in-out ${-i * 2}s infinite alternate` }));
+  if (k === 'thunder') P.push({ position: 'absolute', inset: 0, background: 'rgba(255,255,240,0.5)', animation: 'wx-bolt 4.5s linear infinite' });
+  if (k === 'sun') P.push({ position: 'absolute', right: -60, top: -60, width: 300, height: 300, borderRadius: 150, background: 'radial-gradient(circle, rgb(242 210 111 / 0.28), transparent 65%)', animation: 'wx-ray 5s ease-in-out infinite' });
+  if (k === 'part' || k === 'cloud') [[-10, 20, 220], [40, 90, 260]].forEach(([x, y, w], i) => P.push({ position: 'absolute', left: x + '%', top: y, width: w, height: 70, borderRadius: 35, background: `rgba(255,255,255,${k === 'cloud' ? 0.07 : 0.05})`, filter: 'blur(10px)', animation: `wx-drift ${8 + i * 3}s ease-in-out infinite` }));
+  if (k === 'wind') for (let i = 0; i < 7; i++) P.push({ position: 'absolute', left: 0, top: 20 + i * 24, width: 90 + (i % 3) * 40, height: 2, borderRadius: 1, background: 'linear-gradient(90deg, transparent, rgba(220,230,245,0.45), transparent)', animation: `wx-wind ${1.4 + (i % 4) * 0.3}s linear ${-i * 0.4}s infinite` });
+  return P; };
+const VSECS = [['hero', 'Toppkort', 'view_carousel'], ['alerts', 'Farevarsler', 'warning'], ['hours', 'Time for time', 'schedule'], ['days', 'Dagskort', 'calendar_month'], ['tiles', 'Detaljkort', 'grid_view'], ['moon', 'Månefase', 'bedtime']];
+const VTILES = [['sky', 'Skydekke', 'cloud'], ['wind', 'Vind', 'air'], ['gust', 'Vindkast', 'storm'], ['sun', 'Sol opp og ned', 'wb_twilight'], ['hum', 'Fukt', 'humidity_percentage'], ['uv', 'UV-indeks', 'light_mode'], ['press', 'Trykk', 'compress'], ['rain', 'Nedbør', 'water_drop']];
+// ─────────── Live (Home Assistant weather.* + sun/moon/alerts/pollen) ───────────
+const HA_WX = { sunny: 'sun', 'clear-night': 'sun', partlycloudy: 'part', cloudy: 'cloud', rainy: 'rain', pouring: 'rain', snowy: 'snow', 'snowy-rainy': 'sleet', hail: 'sleet', fog: 'fog', lightning: 'thunder', 'lightning-rainy': 'thunder', windy: 'wind', 'windy-variant': 'wind', exceptional: 'thunder' };
+const COND_NB = { sunny: 'Sol', 'clear-night': 'Klart', partlycloudy: 'Delvis skyet', cloudy: 'Overskyet', rainy: 'Regn', pouring: 'Kraftig regn', snowy: 'Snø', 'snowy-rainy': 'Sludd', hail: 'Hagl', fog: 'Tåke', lightning: 'Torden', 'lightning-rainy': 'Tordenbyger', windy: 'Kraftig vind', 'windy-variant': 'Vind og skyer', exceptional: 'Ekstremvær' };
+const icKey = (cond, night) => { const k = HA_WX[cond] || 'cloud'; return night ? (k === 'sun' ? 'moon' : k === 'part' ? 'partn' : k) : k === 'wind' ? 'cloud' : k; };
+const DIRS = ['N', 'NØ', 'Ø', 'SØ', 'S', 'SV', 'V', 'NV'];
+const dirOf = b => Number.isFinite(b) ? DIRS[Math.round(((b % 360) + 360) % 360 / 45) % 8] : '';
+const hm2 = d => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+const n1 = v => Number.isFinite(v) ? f1(v) : '–';
+const MOON_NB = { new_moon: ['Nymåne', { left: 0, width: '100%' }], waxing_crescent: ['Voksende månesigd', { left: 0, width: '75%' }], first_quarter: ['Første kvarter', { left: 0, width: '50%' }], waxing_gibbous: ['Voksende måne', { left: 0, width: '25%' }], full_moon: ['Fullmåne', { left: 0, width: '0%' }], waning_gibbous: ['Minkende måne', { right: 0, width: '25%' }], last_quarter: ['Siste kvarter', { right: 0, width: '50%' }], waning_crescent: ['Minkende månesigd', { right: 0, width: '75%' }] };
+const UVL = v => v < 3 ? (v < 1 ? ['Svært lav', 'rgb(102 209 158)'] : ['Lav', 'rgb(102 209 158)']) : v < 6 ? ['Moderat', 'rgb(242 210 111)'] : v < 8 ? ['Høy', 'rgb(242 181 115)'] : ['Svært høy', 'rgb(242 128 115)'];
+const skyText = c => c < 13 ? 'Klart' : c < 38 ? 'Lettskyet' : c < 63 ? 'Delvis skyet' : c < 88 ? 'Skyet' : 'Overskyet';
+const toMs = (v, u) => !Number.isFinite(v) ? NaN : u === 'km/h' ? v / 3.6 : u === 'mph' ? v * 0.44704 : u === 'kn' ? v * 0.514444 : v;
+function loadLive() {
+  const id = ha.first('vaer', ha.config.weather, 'weather.forecast_home', 'weather.home') || ha.domain('weather')[0];
+  const st = id && ha.state(id);
+  if (!st || st.state === 'unavailable') return null;
+  const A = st.attributes || {}, wu = A.wind_speed_unit || 'm/s';
+  const sunId = ha.first('sol', 'sun.sun');
+  const elev = ha.attr(sunId, 'elevation', NaN);
+  const night = sunId ? ha.val(sunId) === 'below_horizon' : st.state === 'clear-night';
+  const daily = ha.forecast(id, 'daily') || [], hourly = ha.forecast(id, 'hourly') || [];
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const d0 = daily.find(f => new Date(f.datetime) >= today && new Date(f.datetime) < new Date(today.getTime() + 864e5)) || daily[0];
+  const rise = sunId ? new Date(ha.attr(sunId, 'next_rising', '')) : null, set = sunId ? new Date(ha.attr(sunId, 'next_setting', '')) : null;
+  const moonId = ha.first('maane', 'sensor.moon_phase', 'sensor.moon');
+  const uvId = ha.first('uv', 'sensor.uv_index');
+  const uv = ha.num(uvId, Number.isFinite(A.uv_index) ? A.uv_index : NaN);
+  return { id, st, A, cond: st.state, night, key: HA_WX[st.state] || 'cloud',
+    temp: A.temperature, hi: d0?.temperature, lo: d0?.templow,
+    wind: toMs(A.wind_speed, wu), gust: toMs(A.wind_gust_speed, wu), bearing: A.wind_bearing, hum: A.humidity, dew: A.dew_point, press: A.pressure, cloud: A.cloud_coverage, uv, elev,
+    rise: rise && !isNaN(rise) ? rise : null, set: set && !isNaN(set) ? set : null,
+    moon: moonId ? ha.val(moonId, '') : '',
+    hourly: hourly.filter(h => new Date(h.datetime) > new Date(Date.now() - 3600e3)).slice(0, 24), daily: daily.filter(f => new Date(f.datetime) >= new Date(today.getTime() + 864e5 - 3600e3)).slice(0, 7), windU: wu };
+}
+// Farevarsler: alias `farevarsel` (eller config `alerts: [ids]`), ellers sensorer fra met_alerts / norway_alerts / MeteoAlarm.
+const LVL = { green: 1, yellow: 2, orange: 3, red: 4, black: 5 };
+const TYPE_RE = [[/wind|vind|storm|gale|kuling/i, 'wind'], [/snow|snø/i, 'snow'], [/thunder|lightning|torden/i, 'thunder'], [/ice|is|glatt|polar/i, 'ice'], [/forest|skogbrann|fire/i, 'forestfire'], [/avalanche|snøskred/i, 'avalanche'], [/landslide|jordskred|skred/i, 'landslide'], [/flood|flom/i, 'flood'], [/coast|kyst|storm ?surge|stormflo/i, 'coast'], [/rain|regn/i, 'rain']];
+function liveAlerts() {
+  const cfg = Array.isArray(ha.config.alerts) ? ha.config.alerts : null;
+  const ids = cfg || [ha.first('farevarsel'), ...ha.domain('sensor', (st, id) => /^sensor\.(met_?alerts|metalerts|norway_alerts|meteoalarm|farevarsel)/.test(id))].filter(Boolean);
+  const uniq = [...new Set(ids)].filter(id => ha.state(id));
+  if (!uniq.length) return null;
+  const out = [];
+  const wk = d => d.toLocaleDateString('nb-NO', { weekday: 'short' }).replace('.', '') + ' ' + hm2(d);
+  uniq.forEach(id => {
+    const A = ha.state(id).attributes || {};
+    const list = Array.isArray(A.alerts) ? A.alerts : Array.isArray(A.warnings) ? A.warnings : (A.title || A.event || A.headline) ? [A] : [];
+    list.forEach((x, i) => {
+      const al = String(x.awareness_level || x.level || x.severity || x.color || '');
+      let level = parseInt(al, 10); if (!Number.isFinite(level)) level = LVL[(/(green|yellow|orange|red|black)/i.exec(al) || [])[1]?.toLowerCase()] || ({ Minor: 1, Moderate: 2, Severe: 3, Extreme: 4 })[x.severity] || 2;
+      const start = new Date(x.starttime || x.start || x.onset || x.effective || ''), end = new Date(x.endtime || x.end || x.expires || '');
+      const now = new Date(), status = !isNaN(end) && end < now ? 'Utløpt' : !isNaN(start) && start > now ? 'Ventet' : 'Pågår';
+      const txt = [x.event, x.awareness_type, x.title, x.headline, id].join(' ');
+      const type = (TYPE_RE.find(([re]) => re.test(txt)) || [0, 'wind'])[1];
+      const src = /flood|flom|landslide|skred|avalanche|nve|varsom/i.test(id + ' ' + (x.event || '')) ? 'NVE · Varsom' : 'Met.no';
+      out.push({ id: id + '#' + i, type, src, ent: id, level, status, title: x.title || x.headline || x.event || 'Farevarsel', from: isNaN(start) ? 'nå' : wk(start), to: isNaN(end) ? '' : wk(end), text: x.description || '',
+        blocks: [['Råd', x.instruction], ['Konsekvenser', x.consequences], ['Område', x.area || x.areaDesc]].filter(b => b[1]), url: x.map_url || x.web || x.url });
+    });
+  });
+  return out.filter(x => x.status !== 'Utløpt');
+}
+// Pollen: sensor.pollen_<plante>_<sted>_today (NAAF/pollenvarsel), alias pollen_<plante>.
+const POLLEN_LVL = { 0: 'Ingen', 1: 'Beskjeden', 2: 'Moderat', 3: 'Kraftig', 4: 'Ekstrem', none: 'Ingen', low: 'Beskjeden', moderate: 'Moderat', severe: 'Kraftig', high: 'Kraftig', extreme: 'Ekstrem', ingen: 'Ingen', beskjeden: 'Beskjeden', moderat: 'Moderat', kraftig: 'Kraftig', ekstrem: 'Ekstrem' };
+function pollenOf(key) {
+  const id = ha.first('pollen_' + key) || ha.domain('sensor', (st, x) => x.startsWith(`sensor.pollen_${key}_`) && /today|i_dag/.test(x))[0] || ha.domain('sensor', (st, x) => x.startsWith(`sensor.pollen_${key}`))[0];
+  if (!id) return null;
+  const v = String(ha.val(id, '')).toLowerCase();
+  return POLLEN_LVL[v] || POLLEN_LVL[Math.round(parseFloat(v))] || 'Ingen';
+}
+class Component extends DCLogic {
+  state = { hero: 0, open: null, alertOpen: null, wx: 'sun' };
+  alertVals() {
+    const s = this.state, LV = { 1: ['Grønt', 'rgb(102 209 158)'], 2: ['Gult', 'rgb(242 210 111)'], 3: ['Oransje', 'rgb(242 181 115)'], 4: ['Rødt', 'rgb(242 128 115)'], 5: ['Svart', '#fafafa'] };
+    const TY = { wind: 'air', rain: 'rainy', snow: 'weather_snowy', flood: 'flood', landslide: 'landslide', avalanche: 'ac_unit', forestfire: 'local_fire_department', coast: 'waves', ice: 'severe_cold', thunder: 'thunderstorm' };
+    const A = this.LA || [
+      { id: 'm1', type: 'wind', src: 'Met.no', ent: 'sensor.norway_alerts_metalerts_stromstad', level: 2, status: 'Pågår', title: 'Gult farevarsel · Kraftige vindkast', from: 'søn 18:00', to: 'man 08:00', text: 'Vindkast opp mot 20 m/s langs kysten.', blocks: [['Råd', 'Sikre løse gjenstander. Vær forsiktig langs kysten og i fjellet.'], ['Konsekvenser', 'Løse gjenstander kan blåse vekk. Mindre skader på bygninger mulig.'], ['Område', 'Østfold, Oslofjorden']] },
+      { id: 'n1', type: 'flood', src: 'NVE · Varsom', ent: 'sensor.norway_alerts_flood_ostfold', level: 2, status: 'Ventet', title: 'Gult flomvarsel · Halden og Aremark', from: 'man 06:00', to: 'tir 23:59', text: 'Mye regn kan gi stor vannføring i mindre elver og bekker.', blocks: [['Råd', 'Hold stikkrenner og sluk åpne. Unngå å ferdes nær elver.'], ['Konsekvenser', 'Oversvømmelse av veier og lavtliggende områder.'], ['Kommuner', 'Halden, Aremark, Marker']] },
+      { id: 'n2', type: 'landslide', src: 'NVE · Varsom', ent: 'sensor.norway_alerts_landslide_ostfold', level: 1, status: 'Ingen fare', title: 'Jord- og flomskredfare · lav', from: 'i dag', to: 'i morgen', text: 'Generelt trygge forhold.', blocks: [] }];
+    const act = A.filter(x => x.level > 1).sort((a, b) => b.level - a.level);
+    return {
+      hasAlerts: act.length > 0, alertSum: `${act.filter(x => x.status === 'Pågår').length} pågår · ${act.filter(x => x.status === 'Ventet').length} ventet`,
+      alertChips: act.map((x, i) => ({ icon: TY[x.type], wrap: { width: 28, height: 28, borderRadius: 14, display: 'grid', placeItems: 'center', background: LV[x.level][1], color: '#232323', marginLeft: i ? -7 : 0, boxShadow: '0 0 0 2px #232323', zIndex: 10 - i } })),
+      alerts: act.map(x => { const c = LV[x.level][1], open = s.alertOpen === x.id; return { title: x.title, icon: TY[x.type], levelName: `${LV[x.level][0]} nivå`, status: x.status, when: `${x.from} – ${x.to}`, text: x.text, open,
+        blocks: x.blocks.map(([l, v]) => ({ l, v })), source: `${x.src} · ${x.ent}`, toggle: () => this.setState({ alertOpen: open ? null : x.id }),
+        card: { display: 'flex', flexDirection: 'column', padding: '14px 16px', borderRadius: 24, width: '100%', boxSizing: 'border-box', background: c.replace(')', ' / 0.12)'), boxShadow: `inset 0 0 0 1px ${c.replace(')', ' / 0.35)')}` },
+        iconWrap: { width: 42, height: 42, borderRadius: 21, flex: 'none', display: 'grid', placeItems: 'center', background: c, color: '#232323' },
+        badge: { fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 8, background: c.replace(')', ' / 0.22)'), color: c },
+        statusStyle: { fontSize: 11, color: x.status === 'Pågår' ? '#fafafa' : '#979797' },
+        chev: { fontSize: 22, color: '#979797', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s', flex: 'none' } }; }) };
+  }
+  vcfg() { if (this._vc === undefined) { try { this._vc = JSON.parse(localStorage.getItem('vaer-cfg-v1') || 'null'); } catch (e) { this._vc = null; } } const c = this.state.vc || this._vc || {};
+    const merge = (o, all) => [...(o || []).filter(k => all.includes(k)), ...all.filter(k => !(o || []).includes(k))];
+    return { order: merge(c.order, VSECS.map(x => x[0])), tiles: merge(c.tiles, VTILES.map(x => x[0])), hidden: c.hidden || {}, tileHidden: c.tileHidden || {} }; }
+  setVcfg(p) { const n = { ...this.vcfg(), ...p }; try { localStorage.setItem('vaer-cfg-v1', JSON.stringify(n)); } catch (e) {} this._vc = n; this.setState({ vc: n }); }
+  layoutVals() {
+    const s = this.state, c = this.vcfg(), over = s.vOver;
+    const mv = (arr, a, b) => { const o = arr.filter(x => x !== a), j = b ? o.indexOf(b) : -1; j < 0 ? o.push(a) : o.splice(j, 0, a); return o; };
+    const dnd = (type, id) => ({ dragStart: e => { this._vd = { type, id }; try { e.dataTransfer.setData('text/plain', id); e.dataTransfer.effectAllowed = 'move'; } catch (x) {} },
+      dragOver: e => { e.preventDefault(); if (this.state.vOver !== id) this.setState({ vOver: id }); },
+      drop: e => { e.preventDefault(); const d = this._vd; this._vd = null; this.setState({ vOver: null }); if (!d || d.type !== type || d.id === id) return; this.setVcfg(type === 'sec' ? { order: mv(c.order, d.id, id) } : { tiles: mv(c.tiles, d.id, id) }); },
+      dragEnd: () => { this._vd = null; this.setState({ vOver: null }); } });
+    const sq = on => ({ width: 32, height: 32, borderRadius: 16, display: 'grid', placeItems: 'center', color: '#fafafa', opacity: on ? 1 : 0.2, pointerEvents: on ? 'auto' : 'none' });
+    const swap = (arr, i, d) => { const o = [...arr], j = i + d; if (j < 0 || j >= o.length) return arr; [o[i], o[j]] = [o[j], o[i]]; return o; };
+    return {
+      ord: Object.fromEntries(c.order.map((k, i) => [k, { order: i, display: c.hidden[k] ? 'none' : 'flex', flexDirection: 'column', gap: 12 }])),
+      tord: Object.fromEntries(c.tiles.map((k, i) => [k, { order: i, display: c.tileHidden[k] ? 'none' : 'block', minWidth: 0 }])),
+      ed: { open: !!s.vEd, openIt: () => this.setState({ vEd: true }), close: () => this.setState({ vEd: false }), reset: () => { try { localStorage.removeItem('vaer-cfg-v1'); } catch (e) {} this._vc = null; this.setState({ vc: null }); },
+        secs: c.order.map((k, i) => { const [, label, icon] = VSECS.find(x => x[0] === k), hid = !!c.hidden[k]; return { label, icon, ...dnd('sec', k),
+          up: () => this.setVcfg({ order: swap(c.order, i, -1) }), down: () => this.setVcfg({ order: swap(c.order, i, 1) }), upStyle: sq(i > 0), downStyle: sq(i < c.order.length - 1),
+          eye: () => this.setVcfg({ hidden: { ...c.hidden, [k]: !hid } }), eyeIcon: hid ? 'visibility_off' : 'visibility', eyeStyle: { fontSize: 20, color: hid ? '#696969' : '#afafaf' },
+          row: { display: 'flex', alignItems: 'center', gap: 8, height: 56, padding: '0 6px 0 10px', borderRadius: 28, background: '#3a3a3a', opacity: hid ? 0.5 : 1, boxShadow: over === k ? 'inset 0 3px 0 rgb(242 133 201)' : 'none', cursor: 'grab' } }; }),
+        tiles: c.tiles.map(k => { const [, label, icon] = VTILES.find(x => x[0] === k), hid = !!c.tileHidden[k]; return { label, icon, ...dnd('tile', k),
+          eye: () => this.setVcfg({ tileHidden: { ...c.tileHidden, [k]: !hid } }), eyeIcon: hid ? 'visibility_off' : 'visibility', eyeStyle: { fontSize: 18, color: hid ? '#696969' : '#afafaf' },
+          style: { display: 'flex', alignItems: 'center', gap: 8, height: 48, padding: '0 4px 0 12px', borderRadius: 16, background: '#3a3a3a', opacity: hid ? 0.5 : 1, boxShadow: over === k ? 'inset 0 0 0 2px rgb(242 133 201)' : 'none', cursor: 'grab' } }; }) } };
+  }
+  liveOverlay(out, L, H) {
+    const nm = (v, suf = '') => Number.isFinite(v) ? f1(v) + suf : '–';
+    const moon = MOON_NB[L.moon];
+    const [uvText, uvCol] = Number.isFinite(L.uv) ? UVL(L.uv) : ['–', '#979797'];
+    const mins = d => d ? d.getHours() * 60 + d.getMinutes() : NaN, now = new Date(), nowM = now.getHours() * 60 + now.getMinutes();
+    const rM = mins(L.rise), sM = mins(L.set), frac = Number.isFinite(rM) && Number.isFinite(sM) && sM > rM ? Math.max(0, Math.min(1, (nowM - rM) / (sM - rM))) : 0.5, ang = Math.PI * (1 - frac);
+    const nextH = H !== HOURS ? H[0] : null;
+    out.place = ha.config.place || String(ha.name(L.id, 'Hjemme')).replace(/^(forecast|værmelding|vær)\s+/i, '');
+    out.now = { cond: COND_NB[L.cond] || L.cond, temp: nm(L.temp), feels: Number.isFinite(L.hi) ? `H ${Math.round(L.hi)}° · L ${Math.round(L.lo)}` : Number.isFinite(L.A.apparent_temperature) ? `Føles ${f1(L.A.apparent_temperature)}` : '–',
+      wind: Number.isFinite(L.wind) ? `${f1(L.wind)} m/s ${dirOf(L.bearing)}`.trim() : '–', rain: nextH ? `${nextH[3] ? f1(nextH[3]) : 0} mm` : '–' };
+    out.rain24 = f1((L.hourly || []).slice(0, 24).reduce((t, h) => t + (h.precipitation || 0), 0));
+    out.moonName = moon ? moon[0] : L.moon || '–';
+    out.moonShade = { position: 'absolute', top: 0, bottom: 0, ...(moon ? moon[1] : { left: 0, width: '50%' }), background: '#16161a', boxShadow: moon && moon[1].right === 0 ? '-6px 0 14px rgba(0,0,0,0.5)' : '6px 0 14px rgba(0,0,0,0.5)' };
+    out.extras = [['wb_twilight', L.rise ? hm2(L.rise) : '–', 'rgb(242 181 115)'], ['wb_twilight', L.set ? hm2(L.set) : '–', 'rgb(242 133 201)'], ['bedtime', out.moonName, MOON], ['light_mode', Number.isFinite(L.uv) ? `UV ${uvText.toLowerCase()} (${f1(L.uv)})` : 'UV –', SUNY]].map(([icon, label, c], i) => ({ icon, label, iconStyle: { fontSize: 30, color: c, fontVariationSettings: "'FILL' 1", transform: i === 1 ? 'scaleY(-1)' : 'none' } }));
+    const PM = { Ingen: '#7f7f7f', Beskjeden: 'rgb(102 209 158)', Moderat: 'rgb(242 210 111)', Kraftig: 'rgb(242 181 115)', Ekstrem: 'rgb(242 128 115)' };
+    out.pollenMini = [['Hassel', 'nature', 'hazel'], ['Or', 'forest', 'alder'], ['Salix', 'spa', 'salix'], ['Bjørk', 'park', 'birch'], ['Gress', 'grass', 'grass'], ['Burot', 'eco', 'mugwort']].map(([name, icon, key]) => { const level = pollenOf(key) || '—', c = PM[level] || '#7f7f7f';
+      return { name, icon, level, iconStyle: { fontSize: 20, color: c, fontVariationSettings: "'FILL' 1", flex: 'none' }, levelStyle: { fontSize: 10, color: c } }; });
+    const cc = L.cloud;
+    out.tile = { sky: Number.isFinite(cc) ? `${Math.round(cc)} %` : '–', skyText: Number.isFinite(cc) ? skyText(cc) : COND_NB[L.cond] || '', skyBar: { ...out.tile.skyBar, width: `${Number.isFinite(cc) ? Math.round(cc) : 0}%` },
+      wind: nm(L.wind), windDir: `m/s${Number.isFinite(L.bearing) ? ' · ' + dirOf(L.bearing) : ''}`, gust: nm(L.gust),
+      rise: L.rise ? hm2(L.rise) : '–', set: L.set ? hm2(L.set) : '–', elev: Number.isFinite(L.elev) ? `Solhøyde ${Math.round(L.elev)}°` : '',
+      hum: Number.isFinite(L.hum) ? `${Math.round(L.hum)} %` : '–', dew: Number.isFinite(L.dew) ? `Duggpunkt ${f1(L.dew)}°` : '',
+      uv: nm(L.uv), uvText, uvStyle: { fontSize: 12, fontWeight: 600, color: uvCol }, press: Number.isFinite(L.press) ? String(Math.round(L.press)) : '–' };
+    out.wind = { arrow: { ...out.wind.arrow, transform: `rotate(${Number.isFinite(L.bearing) ? (L.bearing + 180) % 360 : 45}deg)` } };
+    out.sun = { dot: { ...out.sun.dot, left: `calc(${50 + Math.cos(ang) * 46}% - 9px)`, top: `${6 + 50 - Math.sin(ang) * 50 - 9}px` } };
+    if (Number.isFinite(L.press)) { const deg = Math.max(0, Math.min(270, (L.press - 960) / (1060 - 960) * 270)); out.pressRing = { ...out.pressRing, background: `conic-gradient(from 225deg, ${RAIN} 0 ${deg}deg, #3a3a3a ${deg}deg 270deg, transparent 270deg)` }; }
+  }
+  renderVals() {
+    const s = this.state;
+    const L = this.L = loadLive();
+    const LA = liveAlerts();
+    this.LA = LA || (L ? [] : null);
+    const H = L && L.hourly.length ? L.hourly.slice(0, 12).map((h, i) => { const t = new Date(h.datetime), hh = String(t.getHours()).padStart(2, '0');
+      const nightH = h.is_daytime === false || (h.is_daytime === undefined && L.rise && L.set && (t.getHours() * 60 + t.getMinutes() < L.rise.getHours() * 60 + L.rise.getMinutes() || t.getHours() * 60 + t.getMinutes() > L.set.getHours() * 60 + L.set.getMinutes()));
+      return [hh, icKey(h.condition, nightH), h.temperature, h.precipitation || 0, toMs(h.wind_speed, L.windU)]; }) : HOURS;
+    const D2 = L && L.daily.length ? L.daily.map(f => { const d = new Date(f.datetime), wd = d.toLocaleDateString('nb-NO', { weekday: 'long' });
+      return [wd.charAt(0).toUpperCase() + wd.slice(1), icKey(f.condition, false), f.temperature, Number.isFinite(f.templow) ? f.templow : f.temperature, COND_NB[f.condition] || f.condition || '', f.precipitation || 0, Math.round(toMs(f.wind_speed, L.windU)) || 0, f.humidity]; }) : DAYS2;
+    const tMin = Math.min(...H.map(h => h[2])), tMax = Math.max(...H.map(h => h[2]));
+    const lo = Math.min(...DAYS.map(d => d[3])), hi = Math.max(...DAYS.map(d => d[2]));
+    const sunFrac = (16 * 60 - 390) / (1184 - 390), ang = Math.PI * (1 - sunFrac);
+    const PM = { Ingen: '#7f7f7f', Beskjeden: 'rgb(102 209 158)', Moderat: 'rgb(242 210 111)', Kraftig: 'rgb(242 181 115)', Ekstrem: 'rgb(242 128 115)' };
+    const pollenMini = [['Hassel', 'nature', 'Ingen'], ['Or', 'forest', 'Ingen'], ['Salix', 'spa', 'Ingen'], ['Bjørk', 'park', 'Ingen'], ['Gress', 'grass', 'Beskjeden'], ['Burot', 'eco', 'Moderat']].map(([name, icon, level]) => ({ name, icon, level,
+      iconStyle: { fontSize: 20, color: PM[level], fontVariationSettings: "'FILL' 1", flex: 'none' }, levelStyle: { fontSize: 10, color: PM[level] } }));
+    const out = { ...this.alertVals(), ...this.layoutVals(), pollenMini, moonName: 'Første kvarter', rain24: f1(HOURS.reduce((t, h) => t + h[3], 0) + 0.3),
+      place: 'Strømstad', now: { cond: 'Sol', temp: f1(16.2), feels: 'H 17° · L 10', wind: '7,8 m/s SV', rain: '0 mm' },
+      heroScroll: e => { const el = e.currentTarget, n = Math.round(el.scrollLeft / el.clientWidth); if (n !== this.state.hero) this.setState({ hero: n }); },
+      heroDots: [0, 1, 2].map(i => ({ width: (i === s.hero) ? 12 : 10, height: (i === s.hero) ? 12 : 10, borderRadius: 6, background: (i === s.hero) ? '#8a8a8a' : '#454545', transition: 'background .2s' })),
+      extras: [['wb_twilight', '06:30', 'rgb(242 181 115)'], ['wb_twilight', '19:44', 'rgb(242 133 201)'], ['bedtime', 'Første kvarter', MOON], ['light_mode', 'UV svært lav (0,8)', SUNY]].map(([icon, label, c], i) => ({ icon, label, iconStyle: { fontSize: 30, color: c, fontVariationSettings: "'FILL' 1", transform: i === 1 ? 'scaleY(-1)' : 'none' } })),
+      hours: H.map(([t, k, temp, r, wv], i) => ({ t: i ? t + ':00' : 'Nå', temp: n1(temp), wind: `${n1(H === HOURS ? WIND[i] || 4 : wv)} m/s`,
+        box: { flex: 'none', width: 92, height: 172, boxSizing: 'border-box', borderRadius: 24, background: i === 0 ? '#3a3a3a' : '#2f2f2f', boxShadow: i === 0 ? 'inset 0 0 0 1px rgba(255,255,255,0.08)' : 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0' }, icon: IC[k][0], rain: `${f1(r)} mm`, iconStyle: { fontSize: 30, color: IC[k][1], fontVariationSettings: "'FILL' 1" },
+        dot: { position: 'absolute', left: '50%', top: `${(1 - (temp - tMin) / (tMax - tMin || 1)) * 32}px`, width: 8, height: 8, marginLeft: -4, borderRadius: 4, background: i ? SUNY : '#fafafa', boxShadow: i ? 'none' : '0 0 0 3px rgb(242 210 111 / 0.4)' },
+        rainStyle: { fontSize: 10, color: RAIN, height: 12 }, tStyle: { fontSize: 12, color: i ? '#979797' : '#fafafa', fontWeight: i ? 400 : 600 } })),
+      days: D2.map(([day, k, hi, lo, cond, r, w, hum]) => { const open = s.open === day; return { day, hi: n1(hi), lo: n1(lo), cond, rain: `${f1(r)} mm`, icon: IC[k][0], iconStyle: { fontSize: 64, color: IC[k][1], fontVariationSettings: "'FILL' 1", flex: 'none' }, open,
+        toggle: () => this.setState({ open: open ? null : day }), more: [{ l: 'Vind', v: `${w} m/s` }, { l: 'Lavest', v: `${n1(lo)}°` }, { l: 'Nedbør', v: `${f1(r)} mm` }],
+        card: { display: 'flex', flexDirection: 'column', padding: '18px 24px', borderRadius: 28, background: '#2f2f2f', width: '100%', boxSizing: 'border-box' } }; }),
+      daysOld: DAYS.map(([day, k, h, l, r], i) => ({ day, icon: IC[k][0], hi: h, lo: l, rain: r ? `${f1(r)} mm` : '',
+        row: { display: 'flex', alignItems: 'center', gap: 10, height: 48, borderTop: '1px solid rgba(255,255,255,0.05)' },
+        iconStyle: { fontSize: 22, width: 24, color: IC[k][1], fontVariationSettings: "'FILL' 1" }, rainStyle: { width: 46, fontSize: 11, color: RAIN, whiteSpace: 'nowrap' },
+        range: { position: 'absolute', top: 0, bottom: 0, left: `${(l - lo) / (hi - lo) * 100}%`, width: `${(h - l) / (hi - lo) * 100}%`, borderRadius: 3, background: `linear-gradient(90deg, ${RAIN}, ${SUNY})` } })),
+      wind: { arrow: { position: 'absolute', top: 12, left: '50%', marginLeft: -11, transform: 'rotate(45deg)', transformOrigin: 'center' } },
+      sun: { dot: { position: 'absolute', left: `calc(${50 + Math.cos(ang) * 46}% - 9px)`, top: `${6 + 50 - Math.sin(ang) * 50 - 9}px`, width: 18, height: 18, borderRadius: 9, background: SUNY, boxShadow: '0 0 16px rgb(242 210 111 / 0.6)' } },
+      pressRing: (() => { const deg = (1008 - 960) / (1060 - 960) * 270, m = 'radial-gradient(farthest-side, transparent calc(100% - 8px), #000 calc(100% - 7px))'; return { position: 'absolute', inset: 6, borderRadius: '50%', background: `conic-gradient(from 225deg, ${RAIN} 0 ${deg}deg, #3a3a3a ${deg}deg 270deg, transparent 270deg)`, WebkitMask: m, mask: m, pointerEvents: 'none' }; })(),
+      pollenMeta: 'NAAF · Østfold · oppdatert 14:00',
+      pollenLegend: [['Beskjeden', 'rgb(102 209 158)'], ['Moderat', 'rgb(242 210 111)'], ['Kraftig', 'rgb(242 181 115)'], ['Ekstrem', 'rgb(242 128 115)']].map(([t, c]) => ({ t, dot: { width: 8, height: 8, borderRadius: 4, background: c } })),
+      pollen: (() => { const ST = { none: ['Ingen', '#3a3a3a'], low: ['Beskjeden', 'rgb(102 209 158)'], moderate: ['Moderat', 'rgb(242 210 111)'], severe: ['Kraftig', 'rgb(242 181 115)'], extreme: ['Ekstrem', 'rgb(242 128 115)'] }, L = Object.values(ST), IDX = Object.keys(ST);
+        return [['Hassel', 'hazel', 'nature', ['none', 'none']], ['Or', 'alder', 'forest', ['none', 'none']], ['Salix', 'salix', 'spa', ['none', 'none']], ['Bjørk', 'birch', 'park', ['none', 'none']], ['Gress', 'grass', 'grass', ['low', 'low']], ['Burot', 'mugwort', 'eco', ['moderate', 'low']]].map(([name, key, icon, st], i) => { const d = st.map(x => IDX.indexOf(x)); return { name, icon, level: L[d[0]][0], ent: `sensor.pollen_${key}_stromstad_today`,
+          row: { display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none' },
+          days: d.map((v, k) => ({ width: 10, height: 10, borderRadius: 5, background: L[v][1], opacity: k ? 0.7 : 1 })),
+          chip: { minWidth: 58, textAlign: 'center', fontSize: 11, fontWeight: 600, padding: '4px 8px', borderRadius: 9, background: d[0] ? L[d[0]][1].replace(')', ' / 0.18)') : '#3a3a3a', color: d[0] ? L[d[0]][1] : '#7f7f7f' } }; }); })(),
+    };
+    // demo values of the detail tiles / moon (bound in the template)
+    out.tile = { sky: '18 %', skyText: 'Lettskyet', skyBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: '18%', borderRadius: 3, background: '#c7c7c7' }, wind: '7,8', windDir: 'm/s · SV', gust: '11,4', rise: '06:30', set: '19:44', elev: 'Solhøyde 18°', hum: '82 %', dew: 'Duggpunkt 11,6°', uv: '0,8', uvText: 'Svært lav', uvStyle: { fontSize: 12, fontWeight: 600, color: 'rgb(102 209 158)' }, press: '1008' };
+    out.moonShade = { position: 'absolute', top: 0, bottom: 0, left: 0, width: '50%', background: '#16161a', boxShadow: '6px 0 14px rgba(0,0,0,0.5)' };
+    if (L) this.liveOverlay(out, L, H);
+    const wxKey = L && !s.wxSet ? L.key : s.wx;
+    const W = L && !s.wxSet ? (L.cond === 'clear-night' || (L.night && L.key === 'sun') ? ['bedtime', COND_NB[L.cond] || 'Klart', MOON] : [...(WX[L.key] || WX.cloud).slice(0, 1), COND_NB[L.cond] || L.cond, (WX[L.key] || WX.cloud)[2]]) : WX[s.wx] || WX.sun;
+    out.now = { ...out.now, cond: W[1] };
+    out.heroIcon = { icon: W[0], style: { fontSize: 120, color: W[2], fontVariationSettings: "'FILL' 1", ...wxa(W[0]), filter: wxKey === 'sun' ? undefined : `drop-shadow(0 0 20px ${W[2].startsWith('#') ? 'rgba(255,255,255,0.15)' : W[2].replace(')', ' / 0.3)')})` } };
+    out.heroFx = heroFxOf(wxKey);
+    out.hours = out.hours.map(h => ({ ...h, iconStyle: { ...h.iconStyle, ...wxa(h.icon) } }));
+    out.days = out.days.map(d => ({ ...d, iconStyle: { ...d.iconStyle, ...wxa(d.icon) } }));
+    out.extras = out.extras.map(x => ({ ...x, iconStyle: { ...x.iconStyle, ...wxa(x.icon === 'light_mode' ? 'clear_day' : x.icon) } }));
+    out.ed = { ...out.ed, wx: Object.entries(WX).map(([k, [icon, label]]) => ({ icon, label, go: () => this.setState({ wx: k, wxSet: true }), style: { height: 34, padding: '0 12px 0 9px', borderRadius: 17, display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: wxKey === k ? 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)' : '#3a3a3a', color: wxKey === k ? '#5a3a48' : '#fafafa' } })) };
+    return out;
+  }
+}
+</script>
+</body>
+</html>

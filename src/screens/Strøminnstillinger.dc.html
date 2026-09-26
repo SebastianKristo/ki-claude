@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#232323;color:#fafafa;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#fafafa}a:hover{color:rgb(242 133 201)}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;user-select:none}
+</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;max-width:420px;min-height:100vh;margin:0 auto;background:#232323;padding:20px 18px 40px;display:flex;flex-direction:column;gap:16px">
+  <header style="display:flex;align-items:center;gap:12px">
+    <span style="width:40px;height:40px;border-radius:20px;background:#e1e1e1;color:#232323;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">settings_power</span></span>
+    <div style="flex:1;font-size:26px;font-weight:500;letter-spacing:-0.02em">Strøminnstillinger</div>
+  </header>
+  <section style="display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:26px;background:#2f2f2f">
+    <span style="font-size:12px;color:#7f7f7f">Totalpris nå · inkl. nettleie, påslag og strømstøtte</span>
+    <span style="font-size:44px;font-weight:500;letter-spacing:-0.03em;line-height:1.05;font-variant-numeric:tabular-nums">{{ total }}<span style="font-size:16px;color:#7f7f7f;font-weight:400"> kr/kWh</span></span>
+    <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;gap:2px"><sc-for list="{{ parts }}" as="p" hint-placeholder-count="4"><span style="{{ p.bar }}"></span></sc-for></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px"><sc-for list="{{ parts }}" as="p" hint-placeholder-count="4"><span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#979797"><span style="{{ p.dot }}"></span><span style="flex:1">{{ p.label }}</span><span style="color:#fafafa;font-variant-numeric:tabular-nums">{{ p.val }}</span></span></sc-for></div>
+  </section>
+  <sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
+    <span style="font-size:12px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#7f7f7f;padding:4px 4px 0">{{ g.title }}</span>
+    <section style="display:flex;flex-direction:column;padding:4px 10px 4px 16px;border-radius:24px;background:#2f2f2f">
+      <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="3">
+        <div style="{{ r.row }}">
+          <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:14px;font-weight:500">{{ r.label }}</span><span style="font-size:11px;color:#7f7f7f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.ent }}</span></span>
+          <div style="display:flex;align-items:center;gap:2px;flex:none;padding:3px;border-radius:20px;background:#232323">
+            <button onClick="{{ r.dec }}" style="width:34px;height:34px;border-radius:17px;display:grid;place-items:center;color:#afafaf"><span class="ms" style="font-size:18px">remove</span></button>
+            <span style="min-width:74px;text-align:center;font-size:14px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap">{{ r.val }}</span>
+            <button onClick="{{ r.inc }}" style="width:34px;height:34px;border-radius:17px;display:grid;place-items:center;color:#afafaf"><span class="ms" style="font-size:18px">add</span></button>
+          </div>
+        </div>
+      </sc-for>
+    </section>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:900}}">
+// ── LIVE (felles for Strøm-skjermene): ki_energi + pris-/måler-integrasjoner. Se docs/screens/Strøm.md ──
+const LV = (() => {
+  const STAT = new Map(), MEMO = {}, cfg = () => ha.config || {}, num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
+  const dk = d => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`, hk = d => `${dk(d)} ${d.getHours()}`;
+  const sod = (d = new Date()) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+  const E = (alias, key, dom = 'sensor') => ha.first(alias, `${dom}.${key}`) || (ha.hass ? ha.find('ki_energi', key, dom) : null);
+  const status = () => E('status', 'ki_energi_status');
+  const kiEnt = k => { const s = status(); const m = s && ha.attr(s, 'entiteter', null); return m && m[k] || null; };
+  const sensors = f => ha.domain('sensor', s => { try { return f(s.attributes || {}, s.entity_id.toLowerCase(), s); } catch (e) { return false; } });
+  const meterRe = /strommaler|str_mmaler|ams|han_|_han|pulse|tibber|elmaler|power_import|import/;
+  // Effekt nå (W): ki_energi total_effekt → vanlige målere (Tibber Pulse, AMS/HAN).
+  const effekt = () => ha.first('effekt', kiEnt('total_effekt'), 'sensor.strommaler_effekt') || sensors((a, id) => a.device_class === 'power' && meterRe.test(id) && !/export|produksjon|production|solar/.test(id))[0] || null;
+  const watt = () => { const id = effekt(); if (!id) return null; const v = ha.num(id, null); if (v == null) return null; const u = String(ha.unit(id, 'W')); return u === 'kW' ? v * 1000 : v; };
+  // Energiregister (kWh, total_increasing): ki_energi importert_energi → målere.
+  const energi = () => ha.first('energi', kiEnt('importert_energi'), 'sensor.strommaler_imported_energy') || sensors((a, id) => a.device_class === 'energy' && a.state_class === 'total_increasing' && meterRe.test(id) && !/export|produksjon|production|solar|cost/.test(id))[0] || null;
+  // Timepriser: alias `pris`, ellers autodeteksjon (Nord Pool / Energi Data Service / Tibber-lignende attributter), ellers ki_vvb_billige_timer.doegn.
+  const PK = ['raw_today', 'today', 'prices_today', 'today_prices', 'prices'];
+  const hasArr = a => PK.some(k => Array.isArray(a[k]) && a[k].length);
+  const prisId = extra => ha.first('pris', extra, 'sensor.nordpool') || sensors((a, id) => hasArr(a) && /nordpool|nord_pool|spot|energi_data|strompris|tibber|price|pris/.test(id))[0] || sensors(a => hasArr(a))[0] || null;
+  const scale = id => { const u = String(ha.unit(id, '') || ha.attr(id, 'unit', '') || ha.attr(id, 'currency', '')).toLowerCase(); return ha.attr(id, 'price_in_cents', false) || /øre|ore|cent/.test(u) ? 0.01 : /mwh/.test(u) ? 0.001 : 1; };
+  const parse = (arr, base, sc) => {
+    if (!Array.isArray(arr) || !arr.length) return [];
+    const n = arr.length, step = 24 / n * 3600e3;
+    const rows = arr.map((x, i) => {
+      if (x == null) return null;
+      if (typeof x === 'number' || typeof x === 'string') { const v = num(x); return v == null ? null : { t: new Date(+base + i * step), v: v * sc }; }
+      const t = x.start ?? x.hour ?? x.startsAt ?? x.starts_at ?? x.time ?? x.from ?? x.start_time ?? x.datetime;
+      const v = num(x.value ?? x.price ?? x.total ?? x.pris ?? x.v ?? x.price_per_kwh);
+      return v == null ? null : { t: t != null ? new Date(t) : new Date(+base + i * step), v: v * sc };
+    }).filter(r => r && !isNaN(r.t));
+    return rows;
+  };
+  const hourly = rows => { const out = Array(24).fill(null), cnt = Array(24).fill(0); rows.forEach(r => { const h = r.t.getHours(); out[h] = (out[h] || 0) + r.v; cnt[h]++; }); return out.map((v, i) => v == null ? null : v / cnt[i]); };
+  const quarters = rows => { const out = Array(96).fill(null); rows.forEach(r => { const q = r.t.getHours() * 4 + Math.floor(r.t.getMinutes() / 15); if (rows.length >= 90) out[q] = r.v; else for (let k = 0; k < 4; k++) out[r.t.getHours() * 4 + k] = r.v; }); return out; };
+  function priser(extraId, tmrAttr) {
+    const id = prisId(extraId), t0 = sod(), t1 = new Date(+t0 + 864e5);
+    if (id && ha.state(id)) {
+      const a = ha.state(id).attributes || {}, sc = scale(id);
+      const tk = PK.find(k => Array.isArray(a[k]) && a[k].length);
+      let all = parse(a[tk], t0, sc);
+      const tmrK = [tmrAttr, 'raw_tomorrow', 'tomorrow', 'prices_tomorrow', 'tomorrow_prices'].find(k => k && Array.isArray(a[k]) && a[k].length);
+      if (tmrK) all = all.concat(parse(a[tmrK], t1, sc));
+      const td = all.filter(r => r.t >= t0 && r.t < t1), tm = all.filter(r => r.t >= t1 && r.t < new Date(+t1 + 864e5));
+      if (td.length) return { id, today: hourly(td), tomorrow: tm.length ? hourly(tm) : null, qToday: quarters(td), qTomorrow: tm.length ? quarters(tm) : null, now: ha.num(id, null) != null ? ha.num(id) * sc : null };
+    }
+    // Fallback: ki_energi sine Nord Pool-timer (24 timer fra nå) i ki_vvb_billige_timer.
+    const vvb = E('vvb_billige_timer', 'ki_vvb_billige_timer'), d = vvb && ha.attr(vvb, 'doegn', null);
+    if (Array.isArray(d) && d.some(x => x && x.pris != null)) {
+      const today = Array(24).fill(null), tomorrow = Array(24).fill(null); let wrap = false;
+      d.forEach((x, i) => { if (i && x.t === 0) wrap = true; if (x.pris != null) (wrap ? tomorrow : today)[x.t] = +x.pris; });
+      const hasT = tomorrow.some(v => v != null);
+      return { id: vvb, today, tomorrow: hasT ? tomorrow : null, qToday: today.flatMap(v => [v, v, v, v]), qTomorrow: hasT ? tomorrow.flatMap(v => [v, v, v, v]) : null, now: today[new Date().getHours()], partial: true };
+    }
+    return null;
+  }
+  // Nettleie energiledd (kr/kWh) – ki_energi sine konfig-standarder (Elvia/Strømkalkulator) eller input_number.
+  const energiledd = natt => { const id = natt ? ha.first('energiledd_natt', 'input_number.grid_night_hourly_cost', 'sensor.nettleie_elvia_energiledd_natt_helg') : ha.first('energiledd_dag', 'input_number.grid_day_hourly_cost', 'sensor.nettleie_elvia_energiledd_dag'); return id ? ha.num(id, null) : null; };
+  const isNatt = d => { const h = d.getHours(), w = d.getDay(); return h < 6 || h >= 22 || w === 0 || w === 6; };
+  const npId = extra => ha.first('norgespris', extra, 'input_number.norgespris');
+  const norgespris = extra => { const id = npId(extra); const v = id ? ha.num(id, null) : null; return v != null ? (v > 5 ? v / 100 : v) : num(cfg().norgespris) ?? 0.5; };
+  const npAktiv = () => { const id = ha.first('norgespris_aktiv', 'binary_sensor.norgespris_norgespris_aktiv_na'); return id ? ha.on(id, null) : null; };
+  // Langtidsstatistikk (recorder) – timer/døgn/måneder uten å laste rå historikk.
+  function stats(id, period, start, types) {
+    if (!id || !ha.hass || !ha.hass.callWS) return null;
+    const k = `${id}|${period}|${+start}|${types}`, c = STAT.get(k);
+    if (c && (c.pending || Date.now() - c.at < 10 * 60e3)) return c.data;
+    STAT.set(k, { at: c?.at || 0, data: c?.data || null, pending: true });
+    Promise.resolve(ha.hass.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(start).toISOString(), period, statistic_ids: [id], types, units: {} }))
+      .then(r => { const rows = ((r || {})[id] || []).map(x => ({ t: new Date(typeof x.start === 'number' ? x.start : Date.parse(x.start)), change: num(x.change), mean: num(x.mean), state: num(x.state) })).filter(x => !isNaN(x.t)); STAT.set(k, { at: Date.now(), data: rows }); ha.bump(id); })
+      .catch(() => { STAT.set(k, { at: Date.now(), data: [] }); });
+    return c?.data || null;
+  }
+  // Timeforbruk (kWh) og timepris (kr/kWh) fra 1. januar i fjor (dekker år/forrige år), nøkkel = lokal time.
+  function timer() {
+    const eid = energi(); if (!eid) return null;
+    const y0 = new Date(new Date().getFullYear() - 1, 0, 1), P = priser();
+    const es = stats(eid, 'hour', y0, ['change']);
+    if (!es) return { eid, loading: true, kwh: new Map(), pris: new Map() };
+    const pid = P && !P.partial ? P.id : null, ps = pid ? stats(pid, 'hour', y0, ['mean']) : null;
+    if (MEMO.es !== es) { MEMO.es = es; MEMO.kwh = new Map(); es.forEach(r => { if (r.change != null) MEMO.kwh.set(hk(r.t), Math.max(0, r.change)); }); }
+    if (MEMO.ps !== ps) { MEMO.ps = ps; MEMO.pris = new Map(); (ps || []).forEach(r => { if (r.mean != null) MEMO.pris.set(hk(r.t), r.mean * scale(pid)); }); }
+    // Prissensor uten langtidsstatistikk: rå historikk siste 62 døgn (prisen gjelder til neste endring).
+    if (ps && !ps.length && pid) { const h = ha.history(pid, 24 * 62); if (h && h.length && MEMO.ph !== h) { MEMO.ph = h; MEMO.pris = new Map(); const sc = scale(pid);
+      h.forEach((r, i) => { const end = i + 1 < h.length ? +h[i + 1].t : Date.now(); for (let t = +r.t - (+r.t % 3600e3); t < end; t += 3600e3) MEMO.pris.set(hk(new Date(t)), r.v * sc); }); } }
+    const kwh = MEMO.kwh, pris = MEMO.pris;
+    if (P) { const t0 = sod(); P.today.forEach((v, h) => { if (v != null) pris.set(hk(new Date(+t0 + h * 3600e3)), v); }); }
+    // Inneværende time (ikke i statistikken ennå): ki_time_energi.
+    const cur = ha.num(E('time_energi', 'ki_time_energi'), null); if (cur != null) kwh.set(hk(new Date()), cur);
+    return { eid, kwh, pris, fallbackPris: P ? (P.now ?? P.today.find(v => v != null)) : null };
+  }
+  // Summer for en periode [a, b): kWh, strømkost (spot/Norgespris), energiledd.
+  function sum(T, a, b, np) {
+    let kwh = 0, spot = 0, net = 0, n = 0; const ed = energiledd(false), en = energiledd(true);
+    for (let t = +a; t < +b; t += 3600e3) { const d = new Date(t), k = hk(d), e = T.kwh.get(k); if (e == null) continue; n++;
+      kwh += e; const p = T.pris.get(k) ?? T.fallbackPris ?? 0; spot += e * p; const g = isNatt(d) ? (en ?? ed) : (ed ?? en); net += e * (g || 0); }
+    return { kwh, spot, np: kwh * (np ?? norgespris()), net, timer: n };
+  }
+  return { E, status, effekt, watt, energi, priser, energiledd, isNatt, norgespris, npId, npAktiv, stats, timer, sum, dk, hk, sod, num, scale };
+})();
+const nf = (n, d = 2) => n.toLocaleString('nb-NO', { minimumFractionDigits: d, maximumFractionDigits: d });
+const DEF = { day: 0.4238, night: 0.3238, sur: 0.049, thr: 0.9375, pct: 90, vat: 25 };
+const DEMO_SPOT = 1.42;
+let SPOT = DEMO_SPOT;
+// Hver rad: nøkkel → [alias, standard-entiteter …] (input_number kan justeres, sensor åpner more-info).
+const ROWS = { day: ['energiledd_dag', 'input_number.grid_day_hourly_cost', 'sensor.nettleie_elvia_energiledd_dag'], night: ['energiledd_natt', 'input_number.grid_night_hourly_cost', 'sensor.nettleie_elvia_energiledd_natt_helg'],
+  sur: ['paaslag', 'input_number.el_company_surcharge'], thr: ['stotte_terskel', 'input_number.electricity_government_support_threshold'], pct: ['stotte_prosent', 'input_number.electricity_government_support_percentage'], vat: ['mva', 'input_number.vat_percent'] };
+const KI_SW = [['Energimotor', 'ki_energi_hovedbryter'], ['Skyggemodus', 'ki_skyggemodus'], ['Bortemodus', 'ki_helgemodus'], ['Sommermodus', 'ki_sommermodus'], ['VVB prisstyring', 'ki_vvb_prisstyring']];
+const KI_NUM = [['Ønsket trinn under', 'ki_mal_trinn_kw', 'kW', 1], ['Absolutt timegrense', 'ki_maks_time_kwh', 'kWh', 1], ['VVB billige timer', 'vvb_billigste_timer_dogn', 't', 0], ['VVB-boost varighet', 'ki_vvb_boost_minutter', 'min', 0]];
+function loadLive() {
+  const ids = {}; for (const k in ROWS) ids[k] = ha.first(...ROWS[k]);
+  const P = LV.priser(), sw = KI_SW.map(([l, k]) => [l, LV.E(k, k, 'switch')]).filter(x => x[1]), nums = KI_NUM.map(([l, k, u, d]) => [l, LV.E(k, k, 'number'), u, d]).filter(x => x[1]);
+  if (!P && !Object.values(ids).some(Boolean) && !sw.length && !nums.length) return null;
+  return { ids, P, sw, nums, vvbTime: LV.E('vvb_vindu_start', 'ki_vvb_vindu_start', 'time'), boost: LV.E('vvb_boost_aktiv', 'ki_vvb_boost_aktiv', 'binary_sensor') };
+}
+class Component extends DCLogic {
+  state = { ...DEF };
+  renderVals() {
+    const L = loadLive(), V = { ...this.state };
+    SPOT = DEMO_SPOT;
+    if (L) {
+      for (const k in L.ids) { const v = L.ids[k] && ha.num(L.ids[k], null); if (v != null) V[k] = v; }
+      const sp = L.P && (L.P.now ?? L.P.today[new Date().getHours()]);
+      // Spotprisen fra Nord Pool o.l. er normalt inkl. mva – omregnes til eks. mva (config `pris_inkl_mva: false` slår av).
+      if (sp != null) SPOT = ha.config.pris_inkl_mva === false ? sp : sp / (1 + V.vat / 100);
+      // Norgespris aktiv (binary_sensor fra Norgespris-integrasjonen): fastpris erstatter spot, ingen strømstøtte.
+      if (LV.npAktiv()) { L.np = true; SPOT = LV.norgespris() / (1 + V.vat / 100); }
+    }
+    const s = V, grid = new Date().getHours() >= 6 && new Date().getHours() < 22 ? s.day : s.night;
+    const support = L && L.np ? 0 : Math.max(0, SPOT - s.thr) * s.pct / 100, vat = 1 + s.vat / 100;
+    const spotV = SPOT * vat, sup = -support * vat, surV = s.sur * vat, tot = spotV + sup + surV + grid;
+    const P = [[L && L.np ? 'Norgespris' : 'Spot', spotV, 'rgb(115 185 242)'], ['Nettleie', grid, 'rgb(242 181 115)'], ['Påslag', surV, 'rgb(173 153 230)'], ['Strømstøtte', sup, 'rgb(102 209 158)']];
+    const pos = P.filter(p => p[1] > 0).reduce((t, p) => t + p[1], 0);
+    const rowSt = { display: 'flex', alignItems: 'center', gap: 10, minHeight: 64, borderTop: '1px solid rgba(255,255,255,0.05)' };
+    const setN = (id, v) => { const lo = ha.attr(id, 'min', 0), hi = ha.attr(id, 'max', 1e9); return ha.setNumber(id, Math.min(hi, Math.max(lo, +v.toFixed(4)))); };
+    const row = (label, ent, key, step, fmt) => { const id = L && L.ids[key], edit = id && /^(input_)?number\./.test(id);
+      const local = d => this.setState({ [key]: Math.max(0, +(s[key] + d).toFixed(4)) }), act = d => id ? (edit ? setN(id, s[key] + d) : ha.moreInfo(id)) : local(d);
+      return { label, ent: id || ent, val: fmt(s[key]), dec: () => act(-step), inc: () => act(step), row: rowSt }; };
+    const kiRows = !L ? [] : [
+      ...L.sw.map(([label, id]) => ({ label, ent: id, val: ha.on(id, false) ? 'På' : 'Av', dec: () => ha.turn(id, false), inc: () => ha.turn(id, true), row: rowSt })),
+      ...(L.boost || L.nums.some(n => n[1].includes('vvb')) ? [{ label: 'VVB-boost', ent: 'ki_energi.vvb_boost', val: ha.on(L.boost, false) ? 'Pågår' : 'Av', dec: () => ha.call('ki_energi', 'vvb_avbryt_boost'), inc: () => ha.call('ki_energi', 'vvb_boost'), row: rowSt }] : []),
+      ...L.nums.map(([label, id, u, d]) => { const v = ha.num(id, 0), st = +ha.attr(id, 'step', d ? 0.1 : 1);
+        return { label, ent: id, val: `${nf(v, d)} ${ha.unit(id, u)}`, dec: () => setN(id, v - st), inc: () => setN(id, v + st), row: rowSt }; }),
+      ...(L.vvbTime ? [(() => { const t = String(ha.val(L.vvbTime, '22:00:00')), [h, m] = t.split(':').map(Number), mv = d => { const x = ((h * 60 + m + d) % 1440 + 1440) % 1440; return ha.call('time', 'set_value', { entity_id: L.vvbTime, time: `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}:00` }); };
+        return { label: 'VVB-vindu starter', ent: L.vvbTime, val: t.slice(0, 5), dec: () => mv(-30), inc: () => mv(30), row: rowSt }; })()] : []),
+    ];
+    const kr = v => `${nf(v, 4)} kr`;
+    return {
+      total: nf(tot),
+      parts: P.map(([label, v, c]) => ({ label, val: `${v < 0 ? '−' : ''}${nf(Math.abs(v))}`, bar: { flex: Math.max(0.001, Math.abs(v) / pos), background: c, display: v === 0 ? 'none' : 'block' }, dot: { width: 8, height: 8, borderRadius: 4, background: c, flex: 'none' } })),
+      groups: [
+        { title: 'Nettleie', rows: [row('Dag · 06–22', 'input_number.grid_day_hourly_cost', 'day', 0.01, kr), row('Natt og helg', 'input_number.grid_night_hourly_cost', 'night', 0.01, kr)] },
+        { title: 'Strømselskap og stat', rows: [row('Påslag', 'input_number.el_company_surcharge', 'sur', 0.005, kr), row('Strømstøtte fra', 'input_number.electricity_government_support_threshold', 'thr', 0.01, kr), row('Strømstøtte', 'input_number.electricity_government_support_percentage', 'pct', 5, v => `${v} %`), row('Mva', 'input_number.vat_percent', 'vat', 1, v => `${v} %`)] },
+        ...(kiRows.length ? [{ title: 'KI Energi', rows: kiRows }] : []),
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

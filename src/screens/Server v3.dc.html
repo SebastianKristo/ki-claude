@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#232323;color:#fafafa;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#fafafa}a:hover{color:rgb(242 133 201)}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;user-select:none}
+[data-hscroll]::-webkit-scrollbar{display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;max-width:440px;min-height:100vh;margin:0 auto;background:#232323;padding:20px 10px 40px;display:flex;flex-direction:column;gap:10px">
+  <header style="display:flex;align-items:center;gap:12px;padding:0 8px 6px">
+    <span style="width:40px;height:40px;border-radius:20px;background:#e9e7e2;color:#232323;display:grid;place-items:center"><span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">dns</span></span>
+    <span style="flex:1;font-size:28px;font-weight:500">Server</span>
+  </header>
+
+  <div style="display:flex;justify-content:center;align-items:center;gap:6px">
+    <div style="display:flex;gap:2px;padding:4px;border-radius:24px;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.18)">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3"><button onPointerDown="{{ t.odown }}" onPointerMove="{{ t.omove }}" onPointerUp="{{ t.oup }}" onPointerCancel="{{ t.oup }}" onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button></sc-for>
+    </div>
+    <button onClick="{{ openEdit }}" title="Tilpass" style="width:40px;height:40px;border-radius:20px;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.18);display:grid;place-items:center"><span class="ms" style="font-size:20px">settings</span></button>
+  </div>
+  <span style="font-size:11px;color:#7f7f7f;text-align:center">{{ srcLabel }}</span>
+
+  <sc-if value="{{ noInt }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:30px 20px;border-radius:28px;background:#2f2f2f;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center">
+      <span class="ms" style="font-size:36px;color:#979797">hub</span>
+      <span style="font-size:15px">Ingen integrasjoner er slått på</span>
+      <button onClick="{{ openEdit }}" style="height:40px;padding:0 18px;border-radius:20px;background:linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%);color:#2a1720;font-size:14px;font-weight:600">Konfigurer</button>
+    </div>
+  </sc-if>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <sc-for list="{{ sum }}" as="p" hint-placeholder-count="4">
+      <div style="display:flex;align-items:center;gap:12px;height:64px;padding:0 12px 0 6px;border-radius:32px;background:#2f2f2f;min-width:0">
+        <span style="width:52px;height:52px;border-radius:26px;background:#3a3a3a;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:24px">{{ p.icon }}</span></span>
+        <span style="display:flex;flex-direction:column;gap:1px;min-width:0"><span style="font-size:15px;font-weight:500;white-space:nowrap">{{ p.v }}</span><span style="font-size:12px;color:#979797;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.name }}</span></span>
+      </div>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{ hasDevs }}" hint-placeholder-val="{{ true }}">
+    <div data-hscroll="1" style="display:flex;justify-content:safe center;gap:6px;overflow-x:auto;scrollbar-width:none;padding-top:4px">
+      <sc-for list="{{ devTabs }}" as="t" hint-placeholder-count="3"><button onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button></sc-for>
+    </div>
+    <div style="{{ dev.pill }}">
+      <span style="{{ dev.iconWrap }}"><span class="ms" style="font-size:24px;font-variation-settings:'FILL' 1">{{ dev.icon }}</span></span>
+      <span style="display:flex;flex-direction:column;gap:1px;min-width:0"><span style="font-size:16px;font-weight:600">{{ dev.title }}</span><span style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ dev.sub }}</span></span>
+    </div>
+    <sc-for list="{{ graphs }}" as="g" hint-placeholder-count="1">
+      <div style="position:relative;height:170px;border-radius:30px;background:#2f2f2f;overflow:hidden">
+        <div style="position:absolute;left:16px;right:16px;top:16px;display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:#979797;white-space:nowrap">{{ g.name }} siste 24t</span><span style="font-size:16px">{{ g.v }}</span></div>
+        <svg viewBox="0 0 300 100" preserveAspectRatio="none" style="position:absolute;left:0;right:0;bottom:0;width:100%;height:96px">
+          <polygon points="{{ g.area }}" fill="rgba(200,215,240,0.14)"></polygon>
+          <polyline points="{{ g.line }}" fill="none" stroke="rgb(115 185 242)" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>
+        </svg>
+      </div>
+    </sc-for>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <sc-for list="{{ details }}" as="p" hint-placeholder-count="4">
+        <button onClick="{{ p.go }}" style="{{ p.style }}">
+          <span style="{{ p.iconWrap }}"><span class="ms" style="{{ p.iconStyle }}">{{ p.icon }}</span></span>
+          <span style="display:flex;flex-direction:column;gap:1px;min-width:0;text-align:left"><span style="font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.v }}</span><span style="{{ p.lStyle }}">{{ p.name }}</span></span>
+        </button>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ ed.open }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ ed.close }}" style="position:fixed;inset:0;z-index:60;background:rgba(0,0,0,0.55)"></div>
+    <div style="position:fixed;left:50%;bottom:0;transform:translateX(-50%);z-index:61;width:100%;max-width:440px;max-height:calc(100vh - 40px);overflow-y:auto;scrollbar-width:none;box-sizing:border-box;padding:18px 10px 30px;border-radius:34px 34px 0 0;background:#232323;box-shadow:0 -20px 50px rgba(0,0,0,0.5);display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px;padding:0 4px">
+        <span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:22px;font-weight:600">Tilpass server</span><span style="font-size:12px;color:#979797">{{ ed.summary }}</span></span>
+        <button onClick="{{ ed.scan }}" style="height:40px;padding:0 14px 0 10px;border-radius:20px;background:#2f2f2f;display:flex;align-items:center;gap:6px;font-size:14px;font-weight:500"><span class="ms" style="{{ ed.scanIcon }}">sync</span>{{ ed.scanLabel }}</button>
+        <button onClick="{{ ed.close }}" style="height:40px;padding:0 18px;border-radius:20px;background:linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%);color:#2a1720;font-size:14px;font-weight:600">Ferdig</button>
+      </div>
+      <span style="font-size:13px;color:#979797;padding:4px 8px 0">Integrasjoner · autokonfigurert</span>
+      <sc-for list="{{ ed.ints }}" as="it" hint-placeholder-count="3">
+        <div style="display:flex;flex-direction:column;border-radius:26px;background:#2f2f2f;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 14px 10px 8px">
+            <span style="{{ it.logo }}"><span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">{{ it.icon }}</span></span>
+            <button onClick="{{ it.expand }}" style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;text-align:left"><span style="font-size:16px;font-weight:600">{{ it.label }}</span><span style="font-size:12px;color:#979797">{{ it.meta }}</span></button>
+            <button onClick="{{ it.expand }}" style="width:32px;height:32px;display:grid;place-items:center"><span class="ms" style="{{ it.chev }}">expand_more</span></button>
+            <button onClick="{{ it.toggle }}" style="{{ it.track }}"><span style="{{ it.knob }}"></span></button>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:0 14px 12px 60px">
+            <span style="font-size:12px;color:#979797;white-space:nowrap">Henter fra</span>
+            <select value="{{ it.src }}" onChange="{{ it.setSrc }}" style="flex:1;min-width:0;height:36px;border-radius:12px;border:0;outline:none;padding:0 10px;background:#3a3a3a;color:#fafafa;font:inherit;font-size:13px;color-scheme:dark"><sc-for list="{{ it.srcOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o }}">{{ o }}</option></sc-for></select>
+          </div>
+          <sc-if value="{{ it.open }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:12px;padding:0 10px 12px">
+              <sc-for list="{{ it.devs }}" as="dv" hint-placeholder-count="2">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <div style="display:flex;align-items:center;gap:8px;padding:4px 6px 0"><span class="ms" style="font-size:18px;color:#979797">{{ dv.icon }}</span><span style="flex:1;font-size:13px;font-weight:600;color:#afafaf">{{ dv.name }}</span><span style="font-size:11px;color:#7f7f7f">{{ dv.meta }}</span></div>
+                  <sc-for list="{{ dv.ents }}" as="e" hint-placeholder-count="3">
+                    <div style="{{ e.row }}">
+                      <div style="display:flex;align-items:center;gap:8px">
+                        <span class="ms" style="font-size:20px;width:24px;flex:none">{{ e.icon }}</span>
+                        <input value="{{ e.name }}" onChange="{{ e.rename }}" style="flex:1;min-width:0;height:32px;border:0;outline:none;border-radius:10px;padding:0 8px;background:#2f2f2f;color:#fafafa;font:inherit;font-size:14px;font-weight:500"></input>
+                        <span style="font-size:13px;color:#afafaf;white-space:nowrap;font-variant-numeric:tabular-nums">{{ e.val }}</span>
+                        <button onClick="{{ e.up }}" style="{{ e.upStyle }}"><span class="ms" style="font-size:18px">expand_less</span></button>
+                        <button onClick="{{ e.down }}" style="{{ e.downStyle }}"><span class="ms" style="font-size:18px">expand_more</span></button>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:6px;padding-left:32px">
+                        <span style="flex:1;min-width:0;font-size:10px;color:#7f7f7f;font-family:ui-monospace,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ e.id }}</span>
+                        <div style="display:flex;gap:2px;padding:2px;border-radius:14px;background:#2f2f2f;flex:none">
+                          <sc-for list="{{ e.roles }}" as="r" hint-placeholder-count="5"><button onClick="{{ r.go }}" title="{{ r.title }}" style="{{ r.style }}"><span class="ms" style="font-size:15px">{{ r.icon }}</span></button></sc-for>
+                        </div>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+      <span style="font-size:12px;color:#7f7f7f;padding:0 8px">Roller: oppsummering øverst, detalj, graf, handling eller skjult. Nye entiteter legges til automatisk ved skanning.</span>
+      <button onClick="{{ ed.reset }}" style="height:50px;border-radius:25px;background:#2f2f2f;font-size:14px;color:#979797">Nullstill alle entiteter</button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:440,&quot;height&quot;:1000}}">
+const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
+const GREEN = 'rgb(102 209 158)', ORANGE = 'rgb(242 181 115)', RED = 'rgb(242 128 115)';
+const DEMO_INTS = [
+  ['unifi', 'Nettverk', 'UniFi Network', 'router', 'rgb(115 185 242)'],
+  ['proxmox', 'Proxmox', 'Proxmox VE', 'deployed_code', 'rgb(242 181 115)'],
+  ['unraid', 'Unraid', 'Unraid', 'storage', 'rgb(242 128 115)'],
+];
+const DEMO_DEVS = [
+  ['unifi', 'udm', 'Ruter', 'router', true], ['unifi', 'sw', 'Switch', 'lan', true], ['unifi', 'ap', 'AP', 'wifi', true],
+  ['proxmox', 'pve', 'pve-01', 'dns', true], ['proxmox', 'vm-ha', 'HomeAssistant', 'home', true], ['proxmox', 'vm-frig', 'Frigate', 'videocam', true], ['proxmox', 'vm-plex', 'Plex', 'movie', false],
+  ['unraid', 'array', 'Array', 'hard_drive', true], ['unraid', 'docker', 'Docker', 'deployed_code_history', true],
+];
+// id, int, dev, name, icon, val, role
+const DEMO_ENTS = [
+  ['sensor.google_latency', 'unifi', 'udm', 'Google latency', 'speed', '10 ms', 'sum'],
+  ['sensor.cloudflare_latency', 'unifi', 'udm', 'Cloudflare latency', 'speed', '9 ms', 'sum'],
+  ['sensor.udm_cpu', 'unifi', 'udm', 'CPU', 'memory', '30.5%', 'graph'],
+  ['sensor.udm_memory', 'unifi', 'udm', 'Minne', 'developer_board', '66.39%', 'sum'],
+  ['sensor.udm_uptime', 'unifi', 'udm', 'Oppetid', 'schedule', '12 d 4 t', 'detail'],
+  ['sensor.udm_clients', 'unifi', 'udm', 'Klienter', 'group', '34', 'detail'],
+  ['sensor.udm_cpu_temp', 'unifi', 'udm', 'CPU temp', 'thermostat', '46.75°', 'detail'],
+  ['sensor.udm_storage', 'unifi', 'udm', 'Lagring', 'hard_drive', '96.11%', 'detail'],
+  ['update.udm_firmware', 'unifi', 'udm', 'Fastvare', 'update', 'Oppdatert', 'detail'],
+  ['button.udm_restart', 'unifi', 'udm', 'Restart', 'restart_alt', 'Handling', 'action'],
+  ['sensor.switch_ports', 'unifi', 'sw', 'Porter i bruk', 'cable', '11 / 24', 'detail'],
+  ['sensor.switch_poe', 'unifi', 'sw', 'PoE', 'bolt', '38 W', 'detail'],
+  ['sensor.switch_temp', 'unifi', 'sw', 'Temp', 'thermostat', '39.2°', 'detail'],
+  ['sensor.switch_tx', 'unifi', 'sw', 'Trafikk', 'swap_vert', '184 Mbit/s', 'graph'],
+  ['button.switch_restart', 'unifi', 'sw', 'Restart', 'restart_alt', 'Handling', 'action'],
+  ['sensor.ap_clients', 'unifi', 'ap', 'Klienter', 'group', '27', 'graph'],
+  ['sensor.ap_signal', 'unifi', 'ap', 'Signal', 'signal_cellular_alt', '-54 dBm', 'detail'],
+  ['sensor.ap_uptime', 'unifi', 'ap', 'Oppetid', 'schedule', '12 d 3 t', 'detail'],
+  ['sensor.pve_cpu', 'proxmox', 'pve', 'CPU', 'memory', '21.8%', 'sum'],
+  ['sensor.pve_memory', 'proxmox', 'pve', 'Minne', 'developer_board', '71.0%', 'sum'],
+  ['sensor.pve_load', 'proxmox', 'pve', 'Last', 'monitoring', '1.42', 'graph'],
+  ['sensor.pve_uptime', 'proxmox', 'pve', 'Oppetid', 'schedule', '41 d', 'detail'],
+  ['sensor.pve_disk', 'proxmox', 'pve', 'local-lvm', 'hard_drive', '58%', 'detail'],
+  ['binary_sensor.vm_ha', 'proxmox', 'vm-ha', 'Status', 'play_circle', 'Kjører', 'detail'],
+  ['sensor.vm_ha_cpu', 'proxmox', 'vm-ha', 'CPU', 'memory', '8.1%', 'graph'],
+  ['button.vm_ha_reboot', 'proxmox', 'vm-ha', 'Start på nytt', 'restart_alt', 'Handling', 'action'],
+  ['binary_sensor.vm_frigate', 'proxmox', 'vm-frig', 'Status', 'play_circle', 'Kjører', 'detail'],
+  ['sensor.vm_frigate_cpu', 'proxmox', 'vm-frig', 'CPU', 'memory', '34.6%', 'graph'],
+  ['button.vm_frigate_reboot', 'proxmox', 'vm-frig', 'Start på nytt', 'restart_alt', 'Handling', 'action'],
+  ['binary_sensor.vm_plex', 'proxmox', 'vm-plex', 'Status', 'stop_circle', 'Stoppet', 'detail'],
+  ['button.vm_plex_start', 'proxmox', 'vm-plex', 'Start', 'play_arrow', 'Handling', 'action'],
+  ['sensor.unraid_array', 'unraid', 'array', 'Array', 'hard_drive', 'Startet', 'sum'],
+  ['sensor.unraid_used', 'unraid', 'array', 'Brukt', 'pie_chart', '18.2 / 32 TB', 'sum'],
+  ['sensor.unraid_cpu', 'unraid', 'array', 'CPU', 'memory', '12.4%', 'graph'],
+  ['sensor.unraid_parity', 'unraid', 'array', 'Paritet', 'verified', 'Gyldig', 'detail'],
+  ['sensor.unraid_disk1_temp', 'unraid', 'array', 'Disk 1 temp', 'thermostat', '34°', 'detail'],
+  ['sensor.unraid_disk2_temp', 'unraid', 'array', 'Disk 2 temp', 'thermostat', '36°', 'detail'],
+  ['sensor.unraid_cache', 'unraid', 'array', 'Cache', 'bolt', '42%', 'detail'],
+  ['sensor.unraid_containers', 'unraid', 'docker', 'Containere', 'deployed_code', '14 / 16', 'detail'],
+  ['switch.docker_plex', 'unraid', 'docker', 'Plex', 'movie', 'På', 'detail'],
+  ['switch.docker_nextcloud', 'unraid', 'docker', 'Nextcloud', 'cloud', 'På', 'detail'],
+  ['button.unraid_parity_check', 'unraid', 'docker', 'Paritetssjekk', 'fact_check', 'Handling', 'action'],
+];
+const ROLES = [['sum', 'Oppsummering', 'vertical_align_top'], ['detail', 'Detalj', 'grid_view'], ['graph', 'Graf', 'show_chart'], ['action', 'Handling', 'touch_app'], ['hide', 'Skjult', 'visibility_off']];
+const DEMO_SOURCES = { unifi: ['UniFi Network', 'Omada', 'pfSense', 'OpenWrt'], proxmox: ['Proxmox VE', 'VMware ESXi', 'Unraid VM-er'], unraid: ['Unraid', 'TrueNAS', 'Synology DSM'] };
+let INTS = DEMO_INTS, DEVS = DEMO_DEVS, ENTS = DEMO_ENTS, SOURCES = DEMO_SOURCES;
+
+// ── Live-kobling: serverintegrasjoner (UniFi/Omada/pfSense/OPNsense/OpenWrt, Proxmox VE,
+// Unraid/TrueNAS/Synology/QNAP, System Monitor/Glances) ─────────────────────────────────────
+// Integrasjoner, enheter og entiteter hentes fra entitetsregisteret (platform + device_id).
+// Roller (oppsummering/detalj/graf/handling/skjult), navn og rekkefølge settes i «Tilpass» og
+// lagres i localStorage (server-cfg) som i designet. `server.skjul: [entity_id…]` i kortkonfig
+// skjuler entiteter, `server.integrasjoner: { nettverk: [plattform…], … }` overstyrer kildene.
+const GROUPS = [
+  ['unifi', 'Nettverk', 'UniFi Network', 'router', 'rgb(115 185 242)', [['unifi', 'UniFi Network'], ['tplink_omada', 'Omada'], ['pfsense', 'pfSense'], ['opnsense', 'OPNsense'], ['luci', 'OpenWrt'], ['openwrt', 'OpenWrt'], ['fritz', 'FRITZ!Box'], ['asuswrt', 'ASUS'], ['netgear', 'Netgear'], ['mikrotik', 'MikroTik'], ['speedtestdotnet', 'Speedtest']]],
+  ['proxmox', 'Proxmox', 'Proxmox VE', 'deployed_code', 'rgb(242 181 115)', [['proxmoxve', 'Proxmox VE'], ['proxmox', 'Proxmox VE'], ['vmware', 'VMware ESXi']]],
+  ['unraid', 'Unraid', 'Unraid', 'storage', 'rgb(242 128 115)', [['unraid', 'Unraid'], ['truenas', 'TrueNAS'], ['synology_dsm', 'Synology DSM'], ['qnap', 'QNAP'], ['portainer', 'Portainer']]],
+  ['system', 'System', 'Systemovervåking', 'monitor_heart', 'rgb(102 209 158)', [['systemmonitor', 'System Monitor'], ['glances', 'Glances'], ['hassio', 'Home Assistant Supervisor']]],
+];
+const ICONRULES = [[/latency|ping|latens/i, 'speed'], [/cpu|processor/i, 'memory'], [/memory|minne|ram|swap/i, 'developer_board'], [/uptime|oppetid|last_boot|boot_time/i, 'schedule'], [/clients|klienter|users/i, 'group'], [/temp/i, 'thermostat'],
+  [/disk|storage|lagring|volume|array|pool|used|brukt/i, 'hard_drive'], [/parity|paritet/i, 'verified'], [/cache/i, 'bolt'], [/poe|power|effekt|watt/i, 'bolt'], [/port/i, 'cable'], [/tx|rx|throughput|traffic|trafikk|download|upload|network|bandwidth/i, 'swap_vert'],
+  [/signal|rssi/i, 'signal_cellular_alt'], [/load|last/i, 'monitoring'], [/container|docker/i, 'deployed_code'], [/restart|reboot/i, 'restart_alt'], [/shutdown|stop/i, 'stop'], [/start/i, 'play_arrow'], [/update|firmware|fastvare/i, 'update']];
+const devIcon = n => /udm|dream|gateway|router|usg|ruter|fritz|pfsense|opnsense/i.test(n) ? 'router' : /switch|usw/i.test(n) ? 'lan' : /\bap\b|u6|u7|uap|access|nano|lite|pro\b/i.test(n) ? 'wifi' : /home ?assistant|haos/i.test(n) ? 'home' : /frigate|nvr|camera|kamera/i.test(n) ? 'videocam' : /plex|jellyfin|emby|media/i.test(n) ? 'movie' : /array|nas|disk|pool|synology|truenas/i.test(n) ? 'hard_drive' : /docker|container/i.test(n) ? 'deployed_code_history' : /node|pve|server|host|proxmox/i.test(n) ? 'dns' : 'deployed_code';
+const fmtVal = id => { const st = ha.state(id); if (!st) return '–'; const d = id.split('.')[0], v = st.state, a = st.attributes || {};
+  if (d === 'button') return 'Handling'; if (['unavailable', 'unknown'].includes(v)) return 'Utilgjengelig';
+  if (d === 'binary_sensor') return a.device_class === 'running' || /status|running/i.test(id) ? (v === 'on' ? 'Kjører' : 'Stoppet') : a.device_class === 'connectivity' ? (v === 'on' ? 'Tilkoblet' : 'Frakoblet') : v === 'on' ? 'På' : 'Av';
+  if (d === 'switch') return v === 'on' ? 'På' : 'Av'; if (d === 'update') return v === 'on' ? `Ny: ${a.latest_version || 'oppdatering'}` : 'Oppdatert';
+  if (a.device_class === 'timestamp') { const s = (Date.now() - new Date(v)) / 1000; const dd = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600); return dd ? `${dd} d ${h} t` : `${h} t ${Math.floor(s % 3600 / 60)} min`; }
+  const n = parseFloat(v), u = a.unit_of_measurement || '';
+  if (!Number.isFinite(n) || !/^-?[\d.]+(e[-+]?\d+)?$/i.test(v)) return v;
+  const t = String(Math.round(n * 100) / 100); return u === '%' ? `${t}%` : /°/.test(u) ? `${t}°` : u ? `${t} ${u}` : t; };
+function loadLive(cfg) {
+  const ents = ha.hass?.entities || {}, devices = ha.hass?.devices || {}, hide = new Set(ha.config.server?.skjul || []);
+  const byPlat = {}; Object.keys(ents).forEach(id => { const e = ents[id]; if (!ha.hass.states[id] || e.hidden || e.disabled_by || e.hidden_by) return; (byPlat[e.platform] = byPlat[e.platform] || []).push(id); });
+  const ints = [], devs = [], list = [], srcs = {};
+  GROUPS.forEach(([k, label, full, icon, col, plats]) => {
+    const over = ha.config.server?.integrasjoner?.[k];
+    const present = (over ? over.map(p => [p, p]) : plats).filter(([p]) => byPlat[p]);
+    if (!present.length) return;
+    srcs[k] = [...new Set(present.map(x => x[1]))];
+    const chosen = present.filter(x => x[1] === (cfg.src?.[k] || srcs[k][0]));
+    const use = chosen.length ? chosen : present.filter(x => x[1] === srcs[k][0]);
+    ints.push([k, label, use[0][1], icon, col]);
+    const devMap = {};
+    use.flatMap(([p]) => byPlat[p]).sort().forEach(id => { if (hide.has(id)) return; const e = ents[id], did = e.device_id || ('plat:' + e.platform);
+      const dn = devices[e.device_id]?.name_by_user || devices[e.device_id]?.name || use[0][1];
+      (devMap[did] = devMap[did] || { dn, ids: [] }).ids.push(id); });
+    const RANK = ['router', 'dns', 'hard_drive', 'lan', 'wifi'], DOM = ['binary_sensor', 'sensor', 'switch', 'update', 'button'];
+    const rank = ([did, { dn }]) => { const r = RANK.indexOf(devIcon(dn + ' ' + (devices[did]?.model || ''))); return r < 0 ? 9 : r; };
+    Object.entries(devMap).sort((a, b) => rank(a) - rank(b)).forEach(([did, { dn, ids }], di) => {
+      ids.sort((a, b) => { const x = DOM.indexOf(a.split('.')[0]), y = DOM.indexOf(b.split('.')[0]); return (x < 0 ? 5 : x) - (y < 0 ? 5 : y); });
+      const run = ids.find(id => id.startsWith('binary_sensor.') && (ha.attr(id, 'device_class') === 'running' || /status|running/i.test(id)));
+      const online = run ? ha.val(run) === 'on' : ids.some(id => !['unavailable', 'unknown'].includes(ha.state(id)?.state));
+      devs.push([k, did, dn, devIcon(dn + ' ' + (devices[did]?.model || '')), online]);
+      let graph = false;
+      ids.forEach(id => { const st = ha.state(id), dom = id.split('.')[0], ec = ents[id].entity_category;
+        const nmRaw = String(st.attributes.friendly_name || id.split('.')[1].replace(ha.norm(dn) + '_', '').replace(/_/g, ' ')).replace(new RegExp('^' + dn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*', 'i'), '') || dn;
+        const numeric = dom === 'sensor' && Number.isFinite(parseFloat(st.state)) && st.attributes.unit_of_measurement;
+        let role = dom === 'button' ? 'action' : ec === 'config' ? 'hide' : 'detail';
+        if (di === 0 && numeric && /cpu|processor|memory|minne|latency|ping/i.test(id) && list.filter(x => x[1] === k && x[6] === 'sum').length < 4) role = 'sum';
+        else if (!graph && numeric && /cpu|load|throughput|clients|tx|rx|traffic/i.test(id)) { role = 'graph'; graph = true; }
+        const icon = (ICONRULES.find(([r]) => r.test(id + ' ' + nmRaw)) || [0, dom === 'binary_sensor' ? (ha.val(id) === 'on' ? 'play_circle' : 'stop_circle') : dom === 'switch' ? 'toggle_on' : 'sensors'])[1];
+        list.push([id, k, did, nmRaw.charAt(0).toUpperCase() + nmRaw.slice(1), icon, fmtVal(id), role]); });
+    });
+  });
+  return ints.length ? { ints, devs, list, srcs } : null;
+}
+const CFG0 = { src: {}, on: { unifi: true, proxmox: true, unraid: true }, role: {}, name: {}, order: {} };
+// 24 t historikk → 60 punkter skalert til 10–90 (flat linje mens data lastes)
+const histWave = id => { const h = ha.history(id, 24) || [], cur = ha.num(id, 0); if (!h.length) return Array(60).fill(50);
+  const t0 = Date.now() - 24 * 3600e3, out = []; let j = 0, last = h[0].v;
+  for (let i = 0; i < 60; i++) { const t = t0 + i / 59 * 24 * 3600e3; while (j < h.length && h[j].t.getTime() <= t) last = h[j++].v; out.push(i === 59 ? cur : last); }
+  const lo = Math.min(...out), hi = Math.max(...out), r = hi - lo || 1; return out.map(v => 15 + (v - lo) / r * 65); };
+const wave = seed => Array.from({ length: 60 }, (_, i) => 50 + Math.sin(i * 0.9 + seed) * 18 + Math.sin(i * 2.3 + seed * 2) * 12 + Math.sin(i * 0.31) * 8);
+const TABORD = (comp, key, list) => {
+  const LK = 'tab-order:' + key; let ord = null; try { ord = JSON.parse(localStorage.getItem(LK) || 'null'); } catch (e) {}
+  const st = comp.state.__tdrag; let L = list.map((t, i) => ({ t, k: String(t.label ?? i) }));
+  if (ord) L.sort((a, b) => { const ia = ord.indexOf(a.k), ib = ord.indexOf(b.k); return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib); });
+  const keys = L.map(x => x.k), mine = st && st.key === key;
+  const begin = (el, k, x0) => { const sib = [...el.parentElement.children].filter(c => c.tagName === el.tagName), rects = sib.map(c => c.getBoundingClientRect()), i = sib.indexOf(el);
+    window.__tabReorder = true; if (navigator.vibrate) navigator.vibrate(10); comp.setState({ __tdrag: { key, k, dx: 0 } });
+    const mv = e => { e.preventDefault(); e.stopPropagation(); comp.setState({ __tdrag: { key, k, dx: e.clientX - x0 } }); };
+    const fin = e => { window.removeEventListener('pointermove', mv, true); window.removeEventListener('pointerup', fin, true); window.removeEventListener('pointercancel', fin, true);
+      e.stopPropagation(); setTimeout(() => { window.__tabReorder = false; }, 60);
+      if (e.type === 'pointerup') { const r0 = rects[Math.max(0, i)] || rects[0], cx = r0.left + r0.width / 2 + (e.clientX - x0); let j = rects.findIndex(r => cx >= r.left && cx <= r.right); if (j < 0) j = cx < rects[0].left ? 0 : rects.length - 1;
+        const a2 = keys.filter(x => x !== k); a2.splice(j, 0, k); try { localStorage.setItem(LK, JSON.stringify(a2)); } catch (x) {} }
+      comp._tEat = true; setTimeout(() => { comp._tEat = false; }, 350); comp.setState({ __tdrag: null }); };
+    window.addEventListener('pointermove', mv, { capture: true, passive: false }); window.addEventListener('pointerup', fin, true); window.addEventListener('pointercancel', fin, true); };
+  return L.map(({ t, k }) => { const d = mine && st.k === k;
+    return { ...t,
+      odown: e => { const el = e.currentTarget, x0 = e.clientX, y0 = e.clientY; clearTimeout(comp._tHold); comp._tXY = [x0, y0]; comp._tHold = setTimeout(() => begin(el, k, x0), 380); },
+      omove: e => { const p = comp._tXY; if (p && Math.hypot(e.clientX - p[0], e.clientY - p[1]) > 8) clearTimeout(comp._tHold); },
+      oup: () => clearTimeout(comp._tHold),
+      ...(t.go ? { go: e => { if (comp._tEat) return; t.go(e); } } : {}),
+      style: d ? { ...t.style, position: 'relative', zIndex: 5, transform: `translateX(${st.dx}px) scale(1.06)`, boxShadow: '0 8px 20px rgba(0,0,0,0.45), inset 0 0 0 1.5px rgb(242 133 201)', transition: 'none', touchAction: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }
+        : mine ? { ...t.style, opacity: 0.65, transition: 'opacity .2s' } : { ...t.style, WebkitTouchCallout: 'none', userSelect: 'none' } }; });
+};
+class Component extends DCLogic {
+  state = { tab: null, dev: {}, edOpen: false, exp: {}, scanning: false, cfg: this.load() };
+  load() { try { const c = JSON.parse(localStorage.getItem('server-cfg') || 'null'); return c ? { ...CFG0, ...c, on: { ...CFG0.on, ...c.on }, src: c.src || {} } : { ...CFG0 }; } catch (e) { return { ...CFG0 }; } }
+  save(p) { const c = { ...this.state.cfg, ...p }; try { localStorage.setItem('server-cfg', JSON.stringify(c)); } catch (e) {} this.setState({ cfg: c }); }
+  componentWillUnmount() { clearTimeout(this.st); }
+  __tabWrap(v) { if (v && Array.isArray(v.tabs)) v.tabs = TABORD(this, 'server', v.tabs); return v; }
+  renderVals() { return this.__tabWrap(this.__rv()); }
+  __rv() {
+    const s = this.state, c = s.cfg;
+    const L = this.L = ha.live ? loadLive(c) : null;
+    if (L) { INTS = L.ints; DEVS = L.devs; ENTS = L.list; SOURCES = L.srcs; } else { INTS = DEMO_INTS; DEVS = DEMO_DEVS; ENTS = DEMO_ENTS; SOURCES = DEMO_SOURCES; }
+    const isOn = k => c.on[k] !== false;
+    const role = e => c.role[e[0]] || e[6], nm = e => c.name[e[0]] || e[3];
+    const sorted = list => { const ids = list.map(e => e[0]); return [...list].sort((a, b) => (c.order[a[0]] ?? ids.indexOf(a[0])) - (c.order[b[0]] ?? ids.indexOf(b[0]))); };
+    const ints = INTS.filter(i => isOn(i[0]));
+    const tab = ints.find(i => i[0] === s.tab) ? s.tab : ints[0]?.[0];
+    const devs = DEVS.filter(d => d[0] === tab);
+    const devId = devs.find(d => d[1] === s.dev[tab]) ? s.dev[tab] : devs[0]?.[1];
+    const D = DEVS.find(d => d[1] === devId);
+    const ents = sorted(ENTS.filter(e => e[1] === tab));
+    const devEnts = ents.filter(e => e[2] === devId);
+    const pill = (on, go, label, icon) => ({ label, icon, go, style: { flex: 'none', height: 32, padding: icon ? '0 14px 0 10px' : '0 14px', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: on ? PINK : 'transparent', color: on ? '#2a1720' : '#979797', boxShadow: on ? 'none' : 'inset 0 0 0 1px rgba(255,255,255,0.18)' } });
+    const pts = arr => arr.map((v, i) => `${(i / 59 * 300).toFixed(1)},${(100 - v).toFixed(1)}`).join(' ');
+    const detailPill = e => { const act = role(e) === 'action', off = /Stoppet|Av/.test(e[5]);
+      return { icon: e[4], v: act ? nm(e) : e[5], name: act ? 'Handling' : nm(e), go: () => { if (!ha.state(e[0])) return; const d = e[0].split('.')[0]; if (d === 'button') { if (/restart|reboot|shutdown|stop/i.test(e[0]) && !window.confirm(`${nm(e)}?`)) return; ha.press(e[0]); } else if (d === 'switch') ha.toggle(e[0]); else ha.moreInfo(e[0]); },
+        style: { display: 'flex', alignItems: 'center', gap: 12, height: 64, padding: '0 12px 0 6px', borderRadius: 32, minWidth: 0, background: act ? ORANGE : '#2f2f2f', color: act ? '#2a1d0e' : '#fafafa' },
+        iconWrap: { width: 52, height: 52, borderRadius: 26, flex: 'none', display: 'grid', placeItems: 'center', background: act ? 'rgba(0,0,0,0.1)' : '#3a3a3a' },
+        iconStyle: { fontSize: 24, color: off ? RED : 'inherit' },
+        lStyle: { fontSize: 12, color: act ? 'rgba(42,29,14,0.75)' : '#979797', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }; };
+    const sw = on => ({ track: { position: 'relative', width: 44, height: 26, borderRadius: 13, flex: 'none', background: on ? GREEN : '#545454', transition: 'background .2s' }, knob: { position: 'absolute', top: 3, left: on ? 21 : 3, width: 20, height: 20, borderRadius: 10, background: on ? '#1f2a24' : '#c7c7c7', transition: 'left .2s' } });
+    const vis = ENTS.filter(e => isOn(e[1]) && role(e) !== 'hide').length;
+    return {
+      tabs: ints.map(([k, label]) => ({ label, go: () => this.setState({ tab: k }), style: { height: 34, padding: '0 14px', borderRadius: 17, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: k === tab ? PINK : 'transparent', color: k === tab ? '#2a1720' : '#afafaf' } })),
+      srcLabel: tab ? `Henter fra ${c.src?.[tab] || SOURCES[tab][0]}` : '',
+      noInt: !ints.length, openEdit: () => this.setState({ edOpen: true }),
+      sum: ents.filter(e => role(e) === 'sum').map(e => ({ icon: e[4], v: e[5], name: nm(e) })),
+      hasDevs: !!D,
+      devTabs: devs.map(d => pill(d[1] === devId, () => this.setState({ dev: { ...s.dev, [tab]: d[1] } }), d[2])),
+      dev: D ? { icon: D[3], title: `${D[2]}: ${D[4] ? 'Online' : 'Stoppet'}`, sub: devEnts.filter(e => role(e) !== 'hide' && role(e) !== 'action').slice(0, 2).map(e => `${nm(e)} ${e[5]}`).join(' • '),
+        pill: { display: 'flex', alignItems: 'center', gap: 14, height: 66, padding: '0 16px 0 6px', borderRadius: 33, background: D[4] ? GREEN : '#3a3a3a', color: D[4] ? '#1f2a24' : '#fafafa' },
+        iconWrap: { width: 56, height: 56, borderRadius: 28, flex: 'none', display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,0.1)' } } : {},
+      graphs: devEnts.filter(e => role(e) === 'graph').map((e, i) => { const l = pts(L ? histWave(e[0]) : wave(e[0].length + i)); return { name: nm(e), v: e[5], line: l, area: `0,100 ${l} 300,100` }; }),
+      details: devEnts.filter(e => role(e) === 'detail' || role(e) === 'action').map(detailPill),
+      ed: { open: s.edOpen, close: () => this.setState({ edOpen: false }), reset: () => this.save({ role: {}, name: {}, order: {} }),
+        summary: `${INTS.filter(i => isOn(i[0])).length} integrasjoner · ${vis} entiteter vises`,
+        scan: () => { this.setState({ scanning: true }); clearTimeout(this.st); this.st = setTimeout(() => this.setState({ scanning: false }), 1600); },
+        scanLabel: s.scanning ? 'Skanner…' : 'Skann', scanIcon: { fontSize: 18, animation: s.scanning ? 'spin 1s linear infinite' : 'none' },
+        ints: INTS.map(([k, label, full, icon, col]) => { const on = isOn(k), open = !!s.exp[k], all = sorted(ENTS.filter(e => e[1] === k)), t = sw(on);
+          const src = (c.src || {})[k] || SOURCES[k][0];
+          return { name: full, label, icon, open, src, srcOpts: SOURCES[k], setSrc: ev => this.save({ src: { ...(c.src || {}), [k]: ev.target.value } }), meta: `${DEVS.filter(d => d[0] === k).length} enheter · ${all.length} entiteter · ${on ? 'aktiv' : 'av'}`,
+            logo: { width: 44, height: 44, borderRadius: 14, flex: 'none', display: 'grid', placeItems: 'center', background: col.replace(')', ' / 0.3)'), color: col },
+            expand: () => this.setState({ exp: { ...s.exp, [k]: !open } }), chev: { fontSize: 22, color: '#979797', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s' },
+            toggle: () => this.save({ on: { ...c.on, [k]: !on } }), track: t.track, knob: t.knob,
+            devs: DEVS.filter(d => d[0] === k).map(d => { const list = all.filter(e => e[2] === d[1]);
+              return { name: d[2], icon: d[3], meta: `${list.filter(e => role(e) !== 'hide').length} av ${list.length} vises`,
+                ents: list.map((e, i) => { const r = role(e), hid = r === 'hide';
+                  const move = dd => { const j = i + dd; if (j < 0 || j >= list.length) return; const o = list.map(x => x[0]); [o[i], o[j]] = [o[j], o[i]]; const ord = { ...c.order }; o.forEach((id, n) => { ord[id] = n; }); this.save({ order: ord }); };
+                  const b = ok => ({ width: 28, height: 28, borderRadius: 14, flex: 'none', display: 'grid', placeItems: 'center', background: ok ? '#2f2f2f' : 'transparent', color: ok ? '#fafafa' : '#545454', pointerEvents: ok ? 'auto' : 'none' });
+                  return { id: e[0], icon: e[4], name: nm(e), val: e[5], rename: ev => this.save({ name: { ...c.name, [e[0]]: ev.target.value } }),
+                    up: () => move(-1), down: () => move(1), upStyle: b(i > 0), downStyle: b(i < list.length - 1),
+                    roles: ROLES.map(([rk, title, ic]) => ({ title, icon: ic, go: () => this.save({ role: { ...c.role, [e[0]]: rk } }), style: { width: 30, height: 26, borderRadius: 12, display: 'grid', placeItems: 'center', background: r === rk ? (rk === 'hide' ? '#545454' : PINK) : 'transparent', color: r === rk ? (rk === 'hide' ? '#fafafa' : '#2a1720') : '#979797' } })),
+                    row: { display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 8px 8px 10px', borderRadius: 18, background: '#3a3a3a', opacity: hid ? 0.5 : 1 } }; }) }; }) }; }) },
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#232323;color:#fafafa;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#fafafa}a:hover{color:rgb(242 133 201)}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+@keyframes bob{0%{transform:translateY(0)}35%{transform:translateY(-4px)}70%{transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;user-select:none}
+</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;max-width:420px;min-height:100vh;margin:0 auto;background:#232323;padding:20px 18px 40px;display:flex;flex-direction:column;gap:12px">
+  <header style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:6px">
+    <div style="font-size:30px;font-weight:600;letter-spacing:-0.03em">{{ carName }}</div>
+    <button style="width:44px;height:44px;border-radius:22px;background:#3a3a3a;display:grid;place-items:center"><span class="ms" style="font-size:22px">close</span></button>
+  </header>
+
+  <section style="position:relative;height:184px;border-radius:28px;background:#2f2f2f;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.04)">
+    <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="bil-v3-foto" shape="rect" placeholder="Bilde av bilen (sidebilde)" style="position:absolute;right:0;top:0;bottom:0;width:60%;height:100%" hint-size="60%,184px"></x-import>
+    <div style="position:absolute;inset:0;background:linear-gradient(90deg, #2f2f2f 38%, rgba(28,28,31,0) 70%);pointer-events:none"></div>
+    <div style="position:absolute;left:18px;top:18px;bottom:18px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none">
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start">
+        <span style="font-size:13px;color:#7f7f7f">{{ carName }}</span>
+        <div style="display:flex;gap:6px">
+          <sc-for list="{{ chips }}" as="c" hint-placeholder-count="1"><span style="{{ c.style }}"><span class="ms" style="font-size:14px;font-variation-settings:'FILL' 1">{{ c.icon }}</span>{{ c.t }}</span></sc-for>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:baseline;gap:3px"><span style="font-size:40px;font-weight:300;letter-spacing:-0.04em;line-height:1;font-variant-numeric:tabular-nums">{{ battery }}</span><span style="font-size:14px;color:#7f7f7f">%</span></div>
+        <span style="font-size:12px;color:#7f7f7f;white-space:nowrap">{{ heroSub }}</span>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px">
+    <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="5">
+      <button onClick="{{ t.go }}" title="{{ t.label }}" style="{{ t.style }}" style-active="transform:scale(0.94)">
+        <span class="ms" style="{{ t.iconStyle }}">{{ t.icon }}</span>
+        <span style="font-size:10px;color:#7f7f7f;white-space:nowrap">{{ t.label }}</span>
+      </button>
+    </sc-for>
+  </section>
+
+  <div style="display:flex;gap:2px;padding:4px;border-radius:22px;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.14);align-self:center;margin:4px 0">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2"><button onPointerDown="{{ t.odown }}" onPointerMove="{{ t.omove }}" onPointerUp="{{ t.oup }}" onPointerCancel="{{ t.oup }}" onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button></sc-for>
+  </div>
+
+  <sc-if value="{{ isCharge }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px">
+        <div style="height:150px;box-sizing:border-box;padding:14px 16px 16px;border-radius:28px;background:#2f2f2f;display:flex;flex-direction:column;justify-content:space-between">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="{{ chargeIcon }}"><span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">ev_station</span></span>
+            <button onClick="{{ toggleCharge }}" style="{{ chTrack }}"><span style="{{ chKnob }}"></span></button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#7f7f7f">Lading</span><span style="font-size:32px;font-weight:300;letter-spacing:-0.03em;line-height:1.05">{{ chargeState }}</span></div>
+        </div>
+        <div style="height:150px;box-sizing:border-box;padding:14px 16px 16px;border-radius:28px;background:#2f2f2f;display:flex;flex-direction:column;justify-content:space-between">
+          <span style="width:44px;height:44px;border-radius:22px;background:#2f2f2f;display:grid;place-items:center;color:#afafaf"><span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">bolt</span></span>
+          <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#7f7f7f">Ladeeffekt</span><div style="display:flex;align-items:baseline;gap:4px"><span style="font-size:32px;font-weight:300;letter-spacing:-0.03em;line-height:1.05;font-variant-numeric:tabular-nums">{{ kw }}</span><span style="font-size:13px;color:#7f7f7f">kW</span></div></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px">
+        <sc-for list="{{ limits }}" as="l" hint-placeholder-count="5">
+          <button onClick="{{ l.go }}" style="{{ l.style }}" style-active="transform:scale(0.95)">
+            <span style="{{ l.bar }}"></span>
+            <span style="font-size:14px;font-weight:600;font-variant-numeric:tabular-nums">{{ l.label }}</span>
+          </button>
+        </sc-for>
+      </div>
+      <div style="font-size:19px;line-height:1.85;letter-spacing:-0.01em;padding:4px 4px;text-wrap:pretty">
+        Det vil ta ca <span style="display:inline-flex;align-items:center;height:30px;padding:0 11px;border-radius:15px;background:#3a3a3a;font-weight:500;vertical-align:middle;white-space:nowrap;font-variant-numeric:tabular-nums">{{ eta }}</span> å lade til <span style="display:inline-flex;align-items:center;height:30px;padding:0 11px;border-radius:15px;background:rgb(242 133 201 / 0.16);box-shadow:inset 0 0 0 1px rgb(242 133 201 / 0.4);font-weight:500;vertical-align:middle;white-space:nowrap;font-variant-numeric:tabular-nums">{{ limit }} %</span>, og det vil koste ca <span style="display:inline-flex;align-items:center;height:30px;padding:0 11px;border-radius:15px;background:#3a3a3a;font-weight:500;vertical-align:middle;white-space:nowrap;font-variant-numeric:tabular-nums">{{ cost }} kr</span>. Sist lading kostet <span style="display:inline-flex;align-items:center;height:30px;padding:0 11px;border-radius:15px;background:#3a3a3a;font-weight:500;vertical-align:middle;white-space:nowrap">{{ lastCost }}</span>.
+      </div>
+      <div style="height:150px;box-sizing:border-box;padding:16px;border-radius:28px;background:#2f2f2f;display:flex;flex-direction:column;justify-content:space-between">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+          <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:13px;color:#7f7f7f">Smartlading</span><span style="font-size:12px;color:#696969">{{ smartSub }}</span></div>
+          <span style="width:44px;height:44px;border-radius:22px;background:#2f2f2f;display:grid;place-items:center;color:#afafaf"><span class="ms" style="font-size:22px">schedule</span></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end">
+          <span style="font-size:32px;font-weight:300;letter-spacing:-0.03em;line-height:1">{{ smartState }}</span>
+          <button onClick="{{ toggleSmart }}" style="{{ smTrack }}"><span style="{{ smKnob }}"></span></button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isDrive }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px">
+        <sc-for list="{{ driveStats }}" as="d" hint-placeholder-count="2">
+          <div style="height:150px;box-sizing:border-box;padding:14px 16px 16px;border-radius:28px;background:#2f2f2f;display:flex;flex-direction:column;justify-content:space-between">
+            <span style="width:44px;height:44px;border-radius:22px;background:#2f2f2f;display:grid;place-items:center;color:#afafaf"><span class="ms" style="font-size:22px">{{ d.icon }}</span></span>
+            <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#7f7f7f">{{ d.label }}</span><div style="display:flex;align-items:baseline;gap:4px;white-space:nowrap"><span style="font-size:32px;font-weight:300;letter-spacing:-0.03em;line-height:1.05;font-variant-numeric:tabular-nums">{{ d.value }}</span><span style="font-size:13px;color:#7f7f7f">km</span></div></div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="box-sizing:border-box;padding:16px 16px 14px;border-radius:28px;background:#2f2f2f;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:13px;color:#7f7f7f">Daglig kjøring siste 7 dager</span>
+            <div style="display:flex;align-items:baseline;gap:4px"><span style="font-size:32px;font-weight:300;letter-spacing:-0.03em;line-height:1;font-variant-numeric:tabular-nums">{{ dayKm }}</span><span style="font-size:13px;color:#7f7f7f">km</span></div>
+          </div>
+          <span style="font-size:12px;color:#7f7f7f;white-space:nowrap">{{ dayLabel }}</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:flex-end;height:130px">
+          <sc-for list="{{ bars }}" as="b" hint-placeholder-count="7">
+            <button onClick="{{ b.go }}" style="flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch"><span style="{{ b.style }}"></span></button>
+          </sc-for>
+        </div>
+        <div style="display:flex;gap:6px">
+          <sc-for list="{{ bars }}" as="b" hint-placeholder-count="7"><span style="{{ b.lblStyle }}">{{ b.label }}</span></sc-for>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);font-size:12px;color:#7f7f7f"><span>Uken totalt</span><span style="color:#fafafa;font-variant-numeric:tabular-nums">{{ weekKm }} km · {{ weekKwh }} kWh</span></div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:1100}}">
+const C = { green: 'rgb(102 209 158)', amber: 'rgb(242 181 115)', blue: 'rgb(115 185 242)', red: 'rgb(242 128 115)', orange: 'rgb(242 181 115)', pink: 'rgb(242 133 201)' };
+const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
+const a = (c, o) => c.replace(')', ` / ${o})`);
+const nf = (n, d = 1) => n.toLocaleString('nb-NO', { minimumFractionDigits: d, maximumFractionDigits: d });
+const DEMO_KM = [34, 12, 14, 12, 58, 13, 4], DEMO_DAYS = ['Sø', 'Ma', 'Ti', 'On', 'To', 'Fr', 'Lø'], DEMO_DAYL = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'I dag'];
+let KM = DEMO_KM, DAYS = DEMO_DAYS, DAYL = DEMO_DAYL;
+const sw = (on, col) => ({ track: { position: 'relative', width: 50, height: 30, borderRadius: 15, flex: 'none', background: on ? col : 'rgba(255,255,255,0.16)', transition: 'background .2s' }, knob: { position: 'absolute', top: 3, left: on ? 23 : 3, width: 24, height: 24, borderRadius: 12, background: '#fafafa', transition: 'left .22s cubic-bezier(.3,1.4,.6,1)' } });
+const TABORD = (comp, key, list) => {
+  const LK = 'tab-order:' + key; let ord = null; try { ord = JSON.parse(localStorage.getItem(LK) || 'null'); } catch (e) {}
+  const st = comp.state.__tdrag; let L = list.map((t, i) => ({ t, k: String(t.label ?? i) }));
+  if (ord) L.sort((a, b) => { const ia = ord.indexOf(a.k), ib = ord.indexOf(b.k); return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib); });
+  const keys = L.map(x => x.k), mine = st && st.key === key;
+  const begin = (el, k, x0) => { const sib = [...el.parentElement.children].filter(c => c.tagName === el.tagName), rects = sib.map(c => c.getBoundingClientRect()), i = sib.indexOf(el);
+    window.__tabReorder = true; if (navigator.vibrate) navigator.vibrate(10); comp.setState({ __tdrag: { key, k, dx: 0 } });
+    const mv = e => { e.preventDefault(); e.stopPropagation(); comp.setState({ __tdrag: { key, k, dx: e.clientX - x0 } }); };
+    const fin = e => { window.removeEventListener('pointermove', mv, true); window.removeEventListener('pointerup', fin, true); window.removeEventListener('pointercancel', fin, true);
+      e.stopPropagation(); setTimeout(() => { window.__tabReorder = false; }, 60);
+      if (e.type === 'pointerup') { const r0 = rects[Math.max(0, i)] || rects[0], cx = r0.left + r0.width / 2 + (e.clientX - x0); let j = rects.findIndex(r => cx >= r.left && cx <= r.right); if (j < 0) j = cx < rects[0].left ? 0 : rects.length - 1;
+        const a2 = keys.filter(x => x !== k); a2.splice(j, 0, k); try { localStorage.setItem(LK, JSON.stringify(a2)); } catch (x) {} }
+      comp._tEat = true; setTimeout(() => { comp._tEat = false; }, 350); comp.setState({ __tdrag: null }); };
+    window.addEventListener('pointermove', mv, { capture: true, passive: false }); window.addEventListener('pointerup', fin, true); window.addEventListener('pointercancel', fin, true); };
+  return L.map(({ t, k }) => { const d = mine && st.k === k;
+    return { ...t,
+      odown: e => { const el = e.currentTarget, x0 = e.clientX, y0 = e.clientY; clearTimeout(comp._tHold); comp._tXY = [x0, y0]; comp._tHold = setTimeout(() => begin(el, k, x0), 380); },
+      omove: e => { const p = comp._tXY; if (p && Math.hypot(e.clientX - p[0], e.clientY - p[1]) > 8) clearTimeout(comp._tHold); },
+      oup: () => clearTimeout(comp._tHold),
+      ...(t.go ? { go: e => { if (comp._tEat) return; t.go(e); } } : {}),
+      style: d ? { ...t.style, position: 'relative', zIndex: 5, transform: `translateX(${st.dx}px) scale(1.06)`, boxShadow: '0 8px 20px rgba(0,0,0,0.45), inset 0 0 0 1.5px rgb(242 133 201)', transition: 'none', touchAction: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }
+        : mine ? { ...t.style, opacity: 0.65, transition: 'opacity .2s' } : { ...t.style, WebkitTouchCallout: 'none', userSelect: 'none' } }; });
+};
+// ── Live-kobling: elbil (Tesla Fleet/Tessie/Tesla Custom, Volvo, Kia/Hyundai, VW …) ──
+// Hver rolle slås opp med ha.first('bil_<rolle>', standard, <prefiks>_<suffiks>…). Prefiks:
+// `bil.prefiks` (streng/liste; standard tesla_model_y + folkevogn), ellers autodetektert fra en
+// sensor med device_class battery på en enhet som heter noe med bil (tesla, volvo, kia, model …).
+// Rollene som ikke finnes via prefiks letes etter blant entitetene på samme enhet.
+const CAR_RE = /tesla|\bbil\b|elbil|car\b|model_?[3sxy]\b|volvo|polestar|kia|ev6|ev9|niro|hyundai|ioniq|leaf|nissan|enyaq|skoda|folkevogn|volkswagen|\bvw\b|id_?[3457]|audi|e_?tron|bmw|\bi[34x]\b|mercedes|eqa|eqb|renault|zoe|byd|mg_?[45]|xpeng|nio|toyota|bz4x|ford|mach_?e|peugeot|cupra|smart/i;
+const BIL = {
+  batteri: [['sensor.tesla_model_y_batteri_batteriniva'], ['sensor', /battery_level$|batteriniva$|_battery$|state_of_charge$|_soc$|batteri$/]],
+  rekkevidde: [['sensor.tesla_model_y_batteri_estimert_batterirekkevidde'], ['sensor', /range|rekkevidde/]],
+  effekt: [['sensor.tesla_model_y_batteri_charge_power'], ['sensor', /charg(e|er|ing)_power$|ladeeffekt/]],
+  ladestatus: [['select.tesla_model_y_batteri_charging_state'], ['sensor|select|binary_sensor', /charging_state$|charging$|charge_state$|ladestatus$/]],
+  lader: [['switch.elbillader_charging'], ['switch', /_charge$|_charger$|_charging$|lading$/]],
+  ladegrense: [['input_number.tesla_model_y_ladegrense'], ['number|input_number', /charge_limit|charge_limit_soc|target_soc|ladegrense/]],
+  laas: [['switch.tesla_model_y_car_doors_locked'], ['lock', /lock|las$|laas$|door/]],
+  tut: [[], ['button', /honk|horn|tut/]],
+  klima: [[], ['climate|switch', /climate|klima|hvac|precondition/]],
+  frunk: [['switch.tesla_model_y_car_trunk_front'], ['cover|switch|button|lock', /frunk|trunk_front|front_trunk/]],
+  bagasje: [['switch.tesla_model_y_car_trunk_rear'], ['cover|switch|button|lock', /(?<!front_)trunk(?!_front)|tailgate|bagasje|boot|liftgate/]],
+  sentry: [[], ['switch', /sentry|vaktmodus/]],
+  km: [[], ['sensor', /odometer|kilometerstand|mileage/]],
+  posisjon: [[], ['device_tracker', /./]],
+  smartlading: [['input_boolean.smartlading', 'switch.elbillader_smart_charging'], ['switch|input_boolean', /smart_?charg|smartlading/]],
+  smart_ferdig: [['input_datetime.smartlading_ferdig'], ['sensor|time|input_datetime', /ferdig|departure|ready_by|finish/]],
+  sist_lading: [['sensor.elbil_sist_lading_kostnad'], ['sensor', /last_charge_cost|sist_lading|charge_cost|ladekostnad/]],
+  strompris: [[], []],
+};
+function carBase() {
+  const c = ha.config.bil || {};
+  const pre = [].concat(c.prefiks || ['tesla_model_y', 'folkevogn']);
+  const ents = ha.hass?.entities || {};
+  let bat = ha.first('bil_batteri', BIL.batteri[0][0], ...pre.flatMap(p => [`sensor.${p}_battery_level`, `sensor.${p}_battery`, `sensor.${p}_batteri_batteriniva`]));
+  if (!bat) bat = ha.domain('sensor', (st, id) => st.attributes?.device_class === 'battery' && (CAR_RE.test(id) || CAR_RE.test(ha.norm(st.attributes.friendly_name || '')) || CAR_RE.test(ha.norm(ha.device(id)?.name || ''))) && !/phone|iphone|ipad|watch|mobil/i.test(id))[0] || null;
+  if (!bat) return null;
+  const dev = ents[bat]?.device_id;
+  const same = dev ? Object.keys(ents).filter(id => ents[id].device_id === dev) : [];
+  const p0 = bat.split('.')[1].replace(/_(battery_level|battery|batteri_batteriniva|state_of_charge|soc|batteri)$/, '');
+  return { bat, pre: [...new Set([...pre, p0])], same, dev };
+}
+function loadLive() {
+  const B = carBase(); if (!B) return null;
+  const c = ha.config.bil || {};
+  const E = { batteri: B.bat };
+  const pool = [...new Set([...B.same, ...Object.keys(ha.hass?.states || {}).filter(id => B.pre.some(p => id.split('.')[1]?.startsWith(p + '_') || id.split('.')[1] === p))])];
+  for (const k in BIL) {
+    if (k === 'batteri') continue;
+    const [def, [doms, re]] = [BIL[k][0], BIL[k][1] || []];
+    E[k] = ha.first('bil_' + k, ...def);
+    if (!E[k] && doms) { const dl = doms.split('|'); E[k] = pool.find(id => dl.includes(id.split('.')[0]) && re.test(id.split('.')[1]) && ha.state(id)) || null; }
+  }
+  if (!E.strompris) E.strompris = ha.first('strompris', 'sensor.strompris_na', 'sensor.nordpool_kwh_no1_nok_3_10_025', 'sensor.ki_energi_pris_na');
+  const n = id => ha.num(id, null);
+  const battery = n(E.batteri);
+  let range = n(E.rekkevidde);
+  if (range != null && /mi/.test(ha.unit(E.rekkevidde, 'km'))) range *= 1.609;
+  let kw = n(E.effekt) ?? 0; if (ha.unit(E.effekt, 'kW') === 'W') kw /= 1000;
+  const lsRaw = String(ha.val(E.ladestatus, '')).toLowerCase();
+  const charging = E.ladestatus ? (E.ladestatus.startsWith('binary_sensor.') ? lsRaw === 'on' : /charging|lader|^on$/.test(lsRaw) && !/not|ikke|stopp|complete/.test(lsRaw)) : E.lader ? ha.on(E.lader, false) : kw > 0.1;
+  const lockDom = E.laas ? E.laas.split('.')[0] : null;
+  const inv = c.laas_omvendt ?? (lockDom === 'switch' && /doors_locked/.test(E.laas || ''));
+  const locked = !E.laas ? true : lockDom === 'lock' ? ha.val(E.laas) === 'locked' : (ha.on(E.laas, false) !== inv);
+  const isOpen = id => { if (!id) return false; const d = id.split('.')[0]; return d === 'cover' ? ['open', 'opening'].includes(ha.val(id)) : d === 'lock' ? ha.val(id) === 'unlocked' : d === 'button' ? false : ha.on(id, false); };
+  const tracker = E.posisjon ? ha.val(E.posisjon, null) : null;
+  // kjøring siste 7 døgn fra kilometerstanden
+  let km7 = null;
+  const hist = E.km && ha.history(E.km, 24 * 8);
+  if (hist && hist.length) {
+    const days = []; const d0 = new Date(); d0.setHours(0, 0, 0, 0);
+    for (let i = 6; i >= 0; i--) { const s = new Date(d0.getTime() - i * 864e5), e = new Date(s.getTime() + 864e5);
+      const inDay = hist.filter(x => x.t >= s && x.t < e).map(x => x.v), before = hist.filter(x => x.t < s).map(x => x.v);
+      const start = before.length ? before[before.length - 1] : inDay[0], end = inDay.length ? Math.max(...inDay) : start;
+      days.push({ d: s, km: start == null || end == null ? 0 : Math.max(0, Math.round(end - start)) }); }
+    km7 = days;
+  }
+  const dn = hist && km7;
+  const odoKm = n(E.km) != null && /mi/.test(ha.unit(E.km, 'km')) ? n(E.km) * 1.609 : n(E.km);
+  return { E, battery, range, kw, charging, locked, inv, tracker, km7: dn ? km7 : null,
+    name: c.navn || ha.device(B.bat)?.name_by_user || ha.device(B.bat)?.name || 'Bil',
+    limit: n(E.ladegrense), cap: c.kapasitet || 75, perKm: c.forbruk || 0.16,
+    climate: E.klima ? (E.klima.startsWith('climate.') ? !['off', 'unavailable', 'unknown'].includes(ha.val(E.klima, 'off')) : ha.on(E.klima, false)) : false,
+    frunk: isOpen(E.frunk), trunk: isOpen(E.bagasje), sentry: E.sentry ? ha.on(E.sentry, false) : false,
+    smart: E.smartlading ? ha.on(E.smartlading, false) : null, ferdig: E.smart_ferdig ? String(ha.val(E.smart_ferdig, '')).replace(/^.*T|(:\d\d)(:\d\d).*$/g, '$1').slice(0, 5) : '07:00',
+    lastCost: n(E.sist_lading), price: n(E.strompris), odo: odoKm };
+}
+const nfi = n => Math.round(n).toLocaleString('nb-NO');
+const WD = ['Sø', 'Ma', 'Ti', 'On', 'To', 'Fr', 'Lø'], WDL = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'];
+class Component extends DCLogic {
+  state = { tab: 'charge', battery: 71, limit: 80, charging: false, smart: true, locked: true, sentry: true, climate: false, frunk: false, trunk: false, bump: null, day: 6 };
+  componentDidMount() { this.t = setInterval(() => { if (this.L) return; const s = this.state; if (s.charging) { const b = Math.min(s.limit, s.battery + 0.2); this.setState(b >= s.limit ? { battery: b, charging: false } : { battery: b }); } }, 1000); }
+  componentWillUnmount() { clearInterval(this.t); clearTimeout(this.bt); }
+  tap(k, patch) { this.setState({ ...(this.L ? {} : patch), bump: k }); clearTimeout(this.bt); this.bt = setTimeout(() => this.setState({ bump: null }), 520); }
+  act(k) {
+    const L = this.L; if (!L) return; const E = L.E;
+    const open = (id, isOpen) => { if (!id) return; const d = id.split('.')[0]; return d === 'button' ? ha.press(id) : d === 'cover' ? ha.call('cover', isOpen ? 'close_cover' : 'open_cover', { entity_id: id }) : d === 'lock' ? ha.call('lock', isOpen ? 'lock' : 'unlock', { entity_id: id }) : ha.toggle(id); };
+    if (k === 'lock' && E.laas) return E.laas.startsWith('lock.') ? ha.call('lock', L.locked ? 'unlock' : 'lock', { entity_id: E.laas }) : ha.toggle(E.laas);
+    if (k === 'horn') return E.tut ? ha.press(E.tut) : null;
+    if (k === 'climate' && E.klima) return E.klima.startsWith('climate.') ? ha.call('climate', L.climate ? 'turn_off' : 'turn_on', { entity_id: E.klima }) : ha.toggle(E.klima);
+    if (k === 'frunk') return open(E.frunk, L.frunk);
+    if (k === 'trunk') return open(E.bagasje, L.trunk);
+  }
+  __tabWrap(v) { if (v && Array.isArray(v.tabs)) v.tabs = TABORD(this, 'bil', v.tabs); return v; }
+  renderVals() { return this.__tabWrap(this.__rv()); }
+  __rv() {
+    const L = this.L = loadLive();
+    if (L && L.km7) { KM = L.km7.map(x => x.km); DAYS = L.km7.map(x => WD[x.d.getDay()]); DAYL = L.km7.map((x, i) => i === 6 ? 'I dag' : WDL[x.d.getDay()]); }
+    else { KM = DEMO_KM; DAYS = DEMO_DAYS; DAYL = DEMO_DAYL; }
+    const s = L ? { ...this.state, battery: L.battery ?? 0, limit: L.limit ?? this.state.limit, charging: L.charging, smart: L.smart ?? this.state.smart, locked: L.locked, sentry: L.sentry, climate: L.climate, frunk: L.frunk, trunk: L.trunk } : this.state;
+    const b = Math.floor(s.battery);
+    const cap = L ? L.cap : 75;
+    const need = Math.max(0, s.limit - s.battery) / 100 * cap, mins = Math.round(need / (L && L.kw > 0.5 ? L.kw : 11) * 60);
+    const tile = (k, icon, label, on, col, patch) => ({ icon, label, go: () => { this.tap(k, patch); this.act(k); },
+      style: { aspectRatio: '1', borderRadius: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, background: on ? a(col, 0.16) : '#2f2f2f', boxShadow: on ? `inset 0 0 0 1px ${a(col, 0.45)}` : 'inset 0 0 0 1px rgba(255,255,255,0.04)', transition: 'background .25s, transform .12s' },
+      iconStyle: { fontSize: 28, color: on ? col : '#fafafa', fontVariationSettings: `'FILL' ${on || k === 'lock' ? 1 : 0}`, animation: s.bump === k ? 'bob .5s ease-out' : 'none' } });
+    const seg = (k, label) => ({ label, go: () => this.setState({ tab: k }), style: { height: 38, padding: '0 18px', borderRadius: 19, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: s.tab === k ? PINK : 'transparent', color: s.tab === k ? '#2a1720' : '#afafaf', transition: 'background .2s' } });
+    const ch = sw(s.charging, C.green), sm = sw(s.smart, C.green);
+    const max = Math.max(1, ...KM);
+    const range = L ? (L.range != null ? Math.round(L.range) : Math.round(s.battery * 4.2)) : Math.round(s.battery * 4.2);
+    const chipList = [s.sentry ? { icon: 'videocam', t: 'Sentry på' } : { icon: s.locked ? 'lock' : 'lock_open', t: s.locked ? 'Låst' : 'Ulåst' }];
+    if (L && L.tracker && L.tracker !== 'home') chipList.push({ icon: 'location_on', t: L.tracker === 'not_home' ? 'Borte' : L.tracker, loc: true });
+    const day = Math.min(s.day, KM.length - 1);
+    const weekKm = KM.reduce((x, y) => x + y, 0);
+    const cost = L && L.price != null ? Math.round(need * L.price) : Math.round(need * (s.smart ? 0.55 : 0.9));
+    return {
+      carName: L ? L.name : 'Tesla Model Y',
+      chips: chipList.map(c => ({ ...c, style: { height: 26, padding: '0 10px 0 8px', borderRadius: 13, display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap', background: '#2f2f2f', color: c.loc ? '#afafaf' : s.sentry ? C.red : '#afafaf' } })),
+      battery: L && L.battery == null ? '–' : b, heroSub: `${L && L.battery == null && L.range == null ? '–' : range} km · grense ${s.limit} %`,
+      tiles: [
+        tile('lock', s.locked ? 'lock' : 'lock_open', s.locked ? 'Låst' : 'Ulåst', !s.locked, C.amber, { locked: !s.locked }),
+        tile('horn', 'campaign', 'Tut', s.bump === 'horn', C.blue, {}),
+        tile('climate', 'heat', 'Klima', s.climate, C.orange, { climate: !s.climate }),
+        tile('frunk', 'garage', 'Frunk', s.frunk, C.blue, { frunk: !s.frunk }),
+        tile('trunk', 'luggage', 'Bagasje', s.trunk, C.blue, { trunk: !s.trunk }),
+      ],
+      tabs: [seg('charge', 'Lading'), seg('drive', 'Kjøring')],
+      isCharge: s.tab === 'charge', isDrive: s.tab === 'drive',
+      chargeIcon: { width: 44, height: 44, borderRadius: 22, display: 'grid', placeItems: 'center', background: s.charging ? a(C.green, 0.2) : '#2f2f2f', color: s.charging ? C.green : '#afafaf', animation: s.charging ? 'pulse 1.6s ease-in-out infinite' : 'none' },
+      toggleCharge: () => L ? (L.E.lader ? ha.toggle(L.E.lader) : ha.moreInfo(L.E.ladestatus || L.E.batteri)) : this.setState({ charging: !s.charging && s.battery < s.limit }), chTrack: ch.track, chKnob: ch.knob,
+      chargeState: s.charging ? 'På' : 'Av', kw: nf(L ? (s.charging ? L.kw : 0) : s.charging ? 11 : 0),
+      limits: [50, 60, 70, 80, 100].map(v => { const on = s.limit === v; return { label: `${v}%`, go: () => L ? (L.E.ladegrense ? ha.setNumber(L.E.ladegrense, v) : null) : this.setState({ limit: v, charging: s.charging && s.battery < v }),
+        style: { height: 80, borderRadius: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, background: on ? PINK : '#2f2f2f', color: on ? '#2a1720' : '#fafafa', transition: 'background .2s, transform .12s' },
+        bar: { width: 28, height: 3, borderRadius: 2, background: on ? 'rgba(42,23,32,0.35)' : v <= s.battery ? C.green : '#3a3a3a' } }; }),
+      limit: s.limit, eta: need <= 0 ? '–' : mins >= 60 ? `${Math.floor(mins / 60)} t ${mins % 60} min` : `${mins} min`, cost,
+      lastCost: L ? (L.lastCost != null ? `${Math.round(L.lastCost)} kr` : '– kr') : '69 kr',
+      smartSub: s.smart ? `Lader når strømmen er billigst · ferdig ${L ? L.ferdig : '07:00'}` : 'Lader straks bilen kobles til',
+      smartState: s.smart ? 'På' : 'Av', toggleSmart: () => L ? (L.E.smartlading ? ha.toggle(L.E.smartlading) : null) : this.setState({ smart: !s.smart }), smTrack: sm.track, smKnob: sm.knob,
+      driveStats: [{ icon: 'road', label: 'Rekkevidde', value: range }, { icon: 'speed', label: 'Kilometerstand', value: L ? (L.odo != null ? nfi(L.odo) : '–') : '17 321' }],
+      dayKm: KM[day], dayLabel: DAYL[day],
+      bars: KM.map((km, i) => ({ label: DAYS[i], go: () => this.setState({ day: i }),
+        style: { height: `${Math.max(4, km / max * 100)}%`, borderRadius: 10, background: i === day ? C.blue : a(C.blue, 0.35), transition: 'background .2s, height .3s' },
+        lblStyle: { flex: 1, textAlign: 'center', fontSize: 11, color: i === day ? '#fafafa' : '#696969' } })),
+      weekKm, weekKwh: nf(weekKm * (L ? L.perKm : 0.16), 0),
+    };
+  }
+}
+</script>
+</body>
+</html>

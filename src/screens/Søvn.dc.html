@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#232323;color:#fafafa;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#fafafa}a:hover{color:rgb(173 153 230)}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;user-select:none}
+</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;max-width:420px;min-height:100vh;margin:0 auto;background:#232323;padding:20px 18px 40px;display:flex;flex-direction:column;gap:22px">
+  <header style="display:flex;align-items:center;justify-content:space-between">
+    <div style="font-size:13px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#7f7f7f">Søvn</div>
+    <button style="width:36px;height:36px;border-radius:18px;background:#3a3a3a;display:grid;place-items:center"><span class="ms" style="font-size:20px">close</span></button>
+  </header>
+
+  <section style="display:flex;flex-direction:column;align-items:center;gap:18px">
+    <div style="position:relative;width:200px;height:200px">
+      <sc-for list="{{ ring }}" as="r" hint-placeholder-count="3"><div style="{{ r }}"></div></sc-for>
+      <div style="position:absolute;inset:26px;border-radius:50%;background:#2f2f2f;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
+        <span class="ms" style="{{ coreIcon }}">{{ coreIconName }}</span>
+        <div style="font-size:30px;font-weight:500;letter-spacing:-0.03em;font-variant-numeric:tabular-nums">{{ asleep }}<span style="font-size:15px;color:#7f7f7f;font-weight:400"> / {{ total }}</span></div>
+        <div style="font-size:12px;color:#7f7f7f">sover</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center">
+      <div style="font-size:24px;font-weight:500;letter-spacing:-0.015em">{{ headline }}</div>
+      <div style="font-size:14px;color:#7f7f7f">{{ nextAlarm }}</div>
+    </div>
+  </section>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:4px;border-radius:20px;background:#2f2f2f">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2"><button onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button></sc-for>
+  </div>
+
+  <sc-if value="{{ isSleep }}" hint-placeholder-val="{{ true }}">
+    <section style="display:flex;flex-direction:column">
+      <sc-for list="{{ people }}" as="p" hint-placeholder-count="3">
+        <button onClick="{{ p.toggle }}" style="{{ p.row }}">
+          <span style="{{ p.iconWrap }}"><span class="ms" style="font-size:20px;font-variation-settings:'FILL' 1">{{ p.icon }}</span></span>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;text-align:left">
+            <span style="font-size:15px;font-weight:500;display:flex;align-items:center;gap:6px">{{ p.name }}<span style="{{ p.chip }}">{{ p.chipLabel }}</span></span>
+            <span style="font-size:12px;color:#7f7f7f">{{ p.sub }}</span>
+          </div>
+          <span style="{{ p.track }}"><span style="{{ p.knob }}"></span></span>
+        </button>
+      </sc-for>
+    </section>
+    <section style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;justify-content:space-between;padding:0 4px">
+        <div style="font-size:12px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#7f7f7f">Siste 24 timer</div>
+        <div style="font-size:12px;color:#696969">hvem sov når</div>
+      </div>
+      <sc-for list="{{ timeline }}" as="t" hint-placeholder-count="3">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="width:70px;font-size:12px;color:#979797">{{ t.name }}</span>
+          <div style="position:relative;flex:1;height:16px;border-radius:8px;background:#2f2f2f;overflow:hidden">
+            <sc-for list="{{ t.segs }}" as="g" hint-placeholder-count="1"><span style="{{ g }}"></span></sc-for>
+          </div>
+        </div>
+      </sc-for>
+      <div style="display:flex;justify-content:space-between;padding-left:80px;font-size:10px;color:#696969;font-variant-numeric:tabular-nums"><sc-for list="{{ axis }}" as="x" hint-placeholder-count="5"><span>{{ x }}</span></sc-for></div>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ isWake }}" hint-placeholder-val="{{ false }}">
+    <section style="display:flex;flex-direction:column;gap:8px">
+      <sc-for list="{{ alarms }}" as="w" hint-placeholder-count="3">
+        <div style="{{ w.card }}">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:13px;color:#7f7f7f">{{ w.name }}</span>
+              <div style="display:flex;align-items:center;gap:6px">
+                <button onClick="{{ w.dec }}" style="width:32px;height:32px;border-radius:16px;background:#3a3a3a;display:grid;place-items:center"><span class="ms" style="font-size:18px">remove</span></button>
+                <span style="font-size:34px;font-weight:300;letter-spacing:-0.03em;font-variant-numeric:tabular-nums;min-width:96px;text-align:center">{{ w.time }}</span>
+                <button onClick="{{ w.inc }}" style="width:32px;height:32px;border-radius:16px;background:#3a3a3a;display:grid;place-items:center"><span class="ms" style="font-size:18px">add</span></button>
+              </div>
+            </div>
+            <button onClick="{{ w.toggle }}" style="{{ w.track }}"><span style="{{ w.knob }}"></span></button>
+          </div>
+          <div style="display:flex;gap:4px">
+            <sc-for list="{{ w.days }}" as="d" hint-placeholder-count="7"><button onClick="{{ d.go }}" style="{{ d.style }}">{{ d.l }}</button></sc-for>
+          </div>
+          <span style="font-size:12px;color:#7f7f7f">{{ w.sub }}</span>
+        </div>
+      </sc-for>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:1000}}">
+const MOON = 'rgb(173 153 230)', SUN = 'rgb(242 181 115)';
+const a = (c, o) => c.replace(')', ` / ${o})`);
+const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
+const pad = n => String(n).padStart(2, '0');
+const hm = m => `${pad(Math.floor(m / 60) % 24)}:${pad(m % 60)}`;
+const NOW = 21 * 60 + 26;
+const DAYS = ['M', 'T', 'O', 'T', 'F', 'L', 'S'];
+// ── Live-kobling: KI Søvn (ki_sovn) + KI Vekking (ki_sovn vekking / ki_vekking) ─────
+// Personer: binary_sensor.<navn>_sovn_sover (integrasjon: ki_sovn, type: person).
+// Vekking: sensor.<navn>_vekking_neste_alarm (+ switch/time per ukedag). ki_sovn har ingen søvnscore/faser –
+// «sov X t i natt» og tidslinjen beregnes fra historikken til sensor.<navn>_sovn_sannsynlighet mot terskelen.
+const DAY_KEYS = ['mandag', 'tirsdag', 'onsdag', 'torsdag', 'fredag', 'lordag', 'sondag'];
+const DAY_IDX = { Mandag: 0, Tirsdag: 1, Onsdag: 2, Torsdag: 3, Fredag: 4, 'Lørdag': 5, 'Søndag': 6 };
+const toMin = t => { const m = /^(\d{1,2}):(\d{2})/.exec(String(t || '')); return m ? +m[1] * 60 + +m[2] : null; };
+const clock = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const prefixOf = (id, attr, suffix) => attr || id.split('.')[1].replace(new RegExp(suffix + '$'), '');
+function sleepSegs(probId, thr, from, to, asleepNow, since) {
+  const h = ha.history(probId, 26);
+  const segs = [];
+  if (h && h.length) {
+    let start = null;
+    h.forEach(({ t, v }) => { const ts = Math.max(+t, from); if (v >= thr && start == null) start = ts; else if (v < thr && start != null) { if (ts > from) segs.push([start, ts]); start = null; } });
+    if (start != null) segs.push([start, to]);
+  } else if (asleepNow && since) segs.push([Math.max(from, +since), to]);
+  return segs.filter(([x, y]) => y > from && y > x);
+}
+function loadLive() {
+  const pIds = ha.ki('ki_sovn', a => a.type === 'person').filter(id => id.startsWith('binary_sensor.'));
+  const aIds = [...new Set([...ha.ki('ki_sovn', a => a.type === 'vekking').filter(id => id.startsWith('sensor.')), ...ha.domain('sensor', (st, id) => id.endsWith('_vekking_neste_alarm'))])];
+  if (!pIds.length && !aIds.length) return null;
+  const now = Date.now(), from = now - 24 * 3600e3;
+  const people = pIds.map(id => {
+    const A = ha.state(id).attributes || {}, pre = prefixOf(id, A.prefix, '_sover');
+    const asleep = ha.val(id) === 'on';
+    const thr = ha.num(`number.${pre}_terskel`, 80);
+    const since = A['siden'] ? new Date(A['siden']) : ha.changed(id);
+    const segs = sleepSegs(`sensor.${pre}_sannsynlighet`, thr, from, now, asleep, since);
+    return { id, pre, name: A.navn || ha.name(id, id), asleep, window: A['obs_vindu_åpent'] === true, since, segs,
+      prob: A.sannsynlighet ?? ha.num(`sensor.${pre}_sannsynlighet`, null),
+      btnOn: ha.first(null, `button.${pre}_sett_sover`), btnOff: ha.first(null, `button.${pre}_sett_vaken`) };
+  });
+  const today = (new Date().getDay() + 6) % 7;
+  const alarms = aIds.map(id => {
+    const st = ha.state(id), A = st.attributes || {}, pre = prefixOf(id, A.prefix, '_neste_alarm');
+    const dayIdx = A.neste_dag != null && DAY_IDX[A.neste_dag] != null ? DAY_IDX[A.neste_dag] : today;
+    const tId = `time.${pre}_${DAY_KEYS[dayIdx]}`;
+    const t = toMin(ha.val(tId)) ?? toMin(st.state);
+    const days = DAY_KEYS.map(d => ({ sw: `switch.${pre}_${d}_aktiv`, tid: `time.${pre}_${d}`, on: ha.on(`switch.${pre}_${d}_aktiv`, false), t: toMin(ha.val(`time.${pre}_${d}`)) }));
+    const master = ha.first(null, `switch.${pre}_aktiv`);
+    const nm = A.navn || String(ha.name(id, pre)).replace(/\s*neste alarm$/i, '').replace(/\s*vekking$/i, '');
+    return { id, pre, name: nm, t, dayIdx, days, master, on: master ? ha.on(master, true) : st.state !== 'Av', next: A.neste_tidspunkt && st.state !== 'Av' ? new Date(A.neste_tidspunkt) : null,
+      fade: ha.num(`number.${pre}_fade_opp`, null), lys: (A.lys || []).length, skip: A.hopper_over, person: A.person ? ha.attr(A.person, 'navn', null) : null };
+  });
+  return { people, alarms, now, from };
+}
+class Component extends DCLogic {
+  state = { tab: 'sleep', people: [
+    { name: 'Cybele', asleep: false, window: true, night: [[23.0, 6.4]], alarm: 390, on: true, days: [1,1,1,1,1,0,0], light: true },
+    { name: 'Rune', asleep: false, window: false, night: [[22.8, 7.8]], alarm: 420, on: true, days: [1,1,1,1,1,1,1], light: false },
+    { name: 'Sebastian', asleep: false, window: false, night: [[23.6, 7.2], [15.5, 0.6]], alarm: 435, on: false, days: [1,1,1,1,1,0,0], light: true },
+  ] };
+  upd(i, f) { this.setState(s => ({ people: s.people.map((p, j) => j === i ? { ...p, ...f(p) } : p) })); }
+  pend = {};
+  shiftAlarm(w, delta) {
+    const cur = this.alarmTime(w); if (cur == null) return;
+    const nt = (cur + delta + 1440) % 1440, val = `${hm(nt)}:00`;
+    // flytt alle aktive dager som har samme tid som den viste (typisk alle hverdager); ellers kun den viste dagen
+    const same = w.days.filter(d => d.on && d.t === w.t);
+    const targets = same.length ? same : [w.days[w.dayIdx]];
+    this.pend[w.pre] = { t: nt, at: Date.now() };
+    targets.forEach(d => ha.call('time', 'set_value', { entity_id: d.tid, time: val }));
+    this.forceUpdate();
+  }
+  alarmTime(w) { const p = this.pend[w.pre]; return p && Date.now() - p.at < 4000 ? p.t : w.t; }
+  renderVals() {
+    const L = loadLive();
+    if (L) return this.__live(L);
+    const s = this.state, n = s.people.length, asleep = s.people.filter(p => p.asleep).length;
+    const sw = on => ({ track: { position: 'relative', width: 46, height: 28, borderRadius: 14, flex: 'none', background: on ? MOON : '#3a3a3a', transition: 'background .2s' }, knob: { position: 'absolute', top: 3, left: on ? 21 : 3, width: 22, height: 22, borderRadius: 11, background: '#fafafa', transition: 'left .2s' } });
+    const on = s.people.filter(p => p.on).map(p => p.alarm).sort((x, y) => x - y);
+    const next = on[0];
+    const until = next != null ? ((next + 1440 - NOW) % 1440) : null;
+    return {
+      ring: s.people.map((p, i) => ({ position: 'absolute', inset: 0, borderRadius: '50%', background: `conic-gradient(from ${i * 120 + 4}deg, ${p.asleep ? MOON : '#3a3a3a'} 0 112deg, transparent 112deg)`, WebkitMask: 'radial-gradient(circle, transparent 84px, #000 85px)', mask: 'radial-gradient(circle, transparent 84px, #000 85px)', transition: 'background .4s' })),
+      coreIcon: { fontSize: 28, color: asleep ? MOON : SUN, fontVariationSettings: "'FILL' 1" }, coreIconName: asleep ? 'bedtime' : 'light_mode',
+      asleep, total: n, axis: ['21', '03', '09', '15', '21'],
+      headline: asleep === 0 ? 'Alle er våkne' : asleep === n ? 'Alle sover' : `${s.people.filter(p => p.asleep).map(p => p.name).join(' og ')} sover`,
+      nextAlarm: next != null ? `Neste vekking ${hm(next)} · om ${Math.floor(until / 60)} t ${until % 60} min` : 'Ingen vekking satt',
+      tabs: [['sleep', 'Søvn'], ['wake', 'Vekking']].map(([k, label]) => ({ label, go: () => this.setState({ tab: k }), style: { height: 40, borderRadius: 16, fontSize: 13, fontWeight: 500, background: s.tab === k ? PINK : 'transparent', color: s.tab === k ? '#2a1720' : '#979797' } })),
+      isSleep: s.tab === 'sleep', isWake: s.tab === 'wake',
+      people: s.people.map((p, i) => { const w = sw(p.asleep); return { name: p.name, icon: p.asleep ? 'bedtime' : 'light_mode', track: w.track, knob: w.knob,
+        sub: p.asleep ? 'Sover · lys dimmet, varsler av' : `Våken · sov ${Math.floor(p.night[0][1])} t ${Math.round((p.night[0][1] % 1) * 60)} min i natt`,
+        chipLabel: p.window ? 'Vindu åpent' : '', chip: { display: p.window ? 'inline-flex' : 'none', fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 7, background: a('rgb(115 185 242)', 0.18), color: 'rgb(115 185 242)' },
+        toggle: () => this.upd(i, x => ({ asleep: !x.asleep })),
+        row: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 4px', width: '100%', borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none' },
+        iconWrap: { width: 42, height: 42, borderRadius: 21, flex: 'none', display: 'grid', placeItems: 'center', background: a(p.asleep ? MOON : SUN, 0.18), color: p.asleep ? MOON : SUN, transition: 'background .3s' } }; }),
+      timeline: s.people.map(p => ({ name: p.name, segs: p.night.map(([start, dur]) => { const off = ((start - 21 + 24) % 24) / 24 * 100; return { position: 'absolute', top: 0, bottom: 0, left: `${off}%`, width: `${dur / 24 * 100}%`, borderRadius: 8, background: MOON }; }) })),
+      alarms: s.people.map((p, i) => { const w = sw(p.on); return { name: p.name, time: hm(p.alarm), track: w.track, knob: w.knob,
+        dec: () => this.upd(i, x => ({ alarm: (x.alarm - 15 + 1440) % 1440 })), inc: () => this.upd(i, x => ({ alarm: (x.alarm + 15) % 1440 })),
+        toggle: () => this.upd(i, x => ({ on: !x.on })),
+        sub: p.light ? 'Soloppgang-lys 20 min før · rullegardin opp' : 'Kun lyd på mobil',
+        card: { display: 'flex', flexDirection: 'column', gap: 12, padding: 16, borderRadius: 24, background: '#2f2f2f', opacity: p.on ? 1 : 0.55, transition: 'opacity .2s' },
+        days: DAYS.map((l, k) => ({ l, go: () => this.upd(i, x => ({ days: x.days.map((v, m) => m === k ? 1 - v : v) })), style: { flex: 1, height: 32, borderRadius: 16, fontSize: 12, fontWeight: 600, background: p.days[k] ? a(MOON, 0.9) : '#3a3a3a', color: p.days[k] ? '#232323' : '#7f7f7f' } })) }; }),
+    };
+  }
+  __live(L) {
+    const s = this.state, P = L.people, n = P.length, asleepL = P.filter(p => p.asleep), asleep = asleepL.length;
+    const sw = on => ({ track: { position: 'relative', width: 46, height: 28, borderRadius: 14, flex: 'none', background: on ? MOON : '#3a3a3a', transition: 'background .2s' }, knob: { position: 'absolute', top: 3, left: on ? 21 : 3, width: 22, height: 22, borderRadius: 11, background: '#fafafa', transition: 'left .2s' } });
+    const nexts = L.alarms.filter(w => w.on && w.next && !isNaN(w.next)).map(w => w.next).sort((x, y) => x - y);
+    const next = nexts[0];
+    const until = next ? Math.max(0, Math.round((next - L.now) / 60000)) : null;
+    const span = 24 * 3600e3, seg = n ? 360 / n : 360;
+    const dur = ms => { const m = Math.round(ms / 60000); return `${Math.floor(m / 60)} t ${m % 60} min`; };
+    const axis = [0, 6, 12, 18, 24].map(hh => pad(new Date(L.from + hh * 3600e3).getHours()));
+    return {
+      ring: P.map((p, i) => ({ position: 'absolute', inset: 0, borderRadius: '50%', background: `conic-gradient(from ${i * seg + 4}deg, ${p.asleep ? MOON : '#3a3a3a'} 0 ${Math.max(2, seg - 8)}deg, transparent ${Math.max(2, seg - 8)}deg)`, WebkitMask: 'radial-gradient(circle, transparent 84px, #000 85px)', mask: 'radial-gradient(circle, transparent 84px, #000 85px)', transition: 'background .4s' })),
+      coreIcon: { fontSize: 28, color: asleep ? MOON : SUN, fontVariationSettings: "'FILL' 1" }, coreIconName: asleep ? 'bedtime' : 'light_mode',
+      asleep, total: n, axis,
+      headline: !n ? 'Ingen søvnsensorer' : asleep === 0 ? (n === 1 ? `${P[0].name} er våken` : 'Alle er våkne') : asleep === n ? (n === 1 ? `${P[0].name} sover` : 'Alle sover') : `${asleepL.map(p => p.name).join(' og ')} sover`,
+      nextAlarm: next ? `Neste vekking ${clock(next)} · om ${Math.floor(until / 60)} t ${until % 60} min` : 'Ingen vekking satt',
+      tabs: [['sleep', 'Søvn'], ['wake', 'Vekking']].map(([k, label]) => ({ label, go: () => this.setState({ tab: k }), style: { height: 40, borderRadius: 16, fontSize: 13, fontWeight: 500, background: s.tab === k ? PINK : 'transparent', color: s.tab === k ? '#2a1720' : '#979797' } })),
+      isSleep: s.tab === 'sleep', isWake: s.tab === 'wake',
+      people: P.map((p, i) => { const w = sw(p.asleep);
+        const longest = p.segs.filter(([, y]) => y < L.now - 60000 || !p.asleep).reduce((m, [x, y]) => Math.max(m, y - x), 0);
+        const prob = p.prob != null ? ` · ${Math.round(p.prob)} %` : '';
+        const sub = p.asleep ? `Sover${p.since ? ' siden ' + clock(p.since) : ''}${prob}` : longest > 30 * 60000 ? `Våken · sov ${dur(longest)} i natt` : `Våken${p.since ? ' siden ' + clock(p.since) : ''}${prob}`;
+        return { name: p.name, icon: p.asleep ? 'bedtime' : 'light_mode', track: w.track, knob: w.knob, sub,
+          chipLabel: p.window ? 'Vindu åpent' : '', chip: { display: p.window ? 'inline-flex' : 'none', fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 7, background: a('rgb(115 185 242)', 0.18), color: 'rgb(115 185 242)' },
+          toggle: () => { const b = p.asleep ? p.btnOff : p.btnOn; return b ? ha.press(b) : ha.moreInfo(p.id); },
+          row: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 4px', width: '100%', borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none' },
+          iconWrap: { width: 42, height: 42, borderRadius: 21, flex: 'none', display: 'grid', placeItems: 'center', background: a(p.asleep ? MOON : SUN, 0.18), color: p.asleep ? MOON : SUN, transition: 'background .3s' } }; }),
+      timeline: P.map(p => ({ name: p.name, segs: p.segs.map(([x, y]) => ({ position: 'absolute', top: 0, bottom: 0, left: `${(x - L.from) / span * 100}%`, width: `${Math.max(0.5, (y - x) / span * 100)}%`, borderRadius: 8, background: MOON })) })),
+      alarms: L.alarms.map(w => { const sv = sw(w.on), t = this.alarmTime(w);
+        const lamps = w.lys ? `${w.lys} ${w.lys === 1 ? 'lampe' : 'lamper'}` : null;
+        const bits = [w.fade != null ? `Lys fader opp ${Math.round(w.fade)} min` : null, lamps, w.person ? `vekker ${w.person}` : null,
+          w.skip === 'våken' ? 'hoppes over (våken)' : w.skip === 'betingelser' ? 'betingelser ikke oppfylt' : null].filter(Boolean);
+        return { name: w.name, time: t != null ? hm(t) : '–:–', track: sv.track, knob: sv.knob,
+          dec: () => this.shiftAlarm(w, -15), inc: () => this.shiftAlarm(w, 15),
+          toggle: () => w.master ? ha.toggle(w.master) : ha.moreInfo(w.id),
+          sub: bits.length ? bits.join(' · ') : 'Vekkelys',
+          card: { display: 'flex', flexDirection: 'column', gap: 12, padding: 16, borderRadius: 24, background: '#2f2f2f', opacity: w.on ? 1 : 0.55, transition: 'opacity .2s' },
+          days: DAYS.map((l, k) => { const d = w.days[k]; return { l, go: () => ha.toggle(d.sw), style: { flex: 1, height: 32, borderRadius: 16, fontSize: 12, fontWeight: 600, background: d.on ? a(MOON, 0.9) : '#3a3a3a', color: d.on ? '#232323' : '#7f7f7f', boxShadow: k === w.dayIdx && w.on ? `inset 0 0 0 1.5px ${MOON}` : 'none' } }; }) }; }),
+    };
+  }
+}
+</script>
+</body>
+</html>

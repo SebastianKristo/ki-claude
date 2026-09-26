@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#232323;color:#fafafa;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#fafafa}a:hover{color:rgb(242 133 201)}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;user-select:none}
+</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;max-width:420px;min-height:100vh;margin:0 auto;background:#232323;padding:20px 18px 40px;display:flex;flex-direction:column;gap:16px">
+  <header style="display:flex;align-items:center;gap:12px">
+    <span style="width:40px;height:40px;border-radius:20px;background:#e1e1e1;color:#232323;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">ecg_heart</span></span>
+    <div style="flex:1;font-size:26px;font-weight:500;letter-spacing:-0.02em">Helse</div>
+  </header>
+  <section style="display:flex;align-items:center;gap:18px;padding:18px;border-radius:26px;background:#2f2f2f">
+    <span style="position:relative;width:112px;height:112px;flex:none">
+      <span style="{{ ring.outer }}"></span>
+      <span style="{{ ring.inner }}"></span>
+      <span style="position:absolute;inset:0;display:grid;place-items:center"><span class="ms" style="font-size:28px;color:rgb(242 133 201);font-variation-settings:'FILL' 1">directions_walk</span></span>
+    </span>
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px">
+      <sc-for list="{{ rings }}" as="r" hint-placeholder-count="3">
+        <div style="display:flex;flex-direction:column;gap:1px"><span style="{{ r.lab }}">{{ r.label }}</span><span style="font-size:20px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap">{{ r.val }}<span style="font-size:12px;color:#7f7f7f;font-weight:400"> {{ r.goal }}</span></span></div>
+      </sc-for>
+    </div>
+  </section>
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;padding:4px;border-radius:22px;background:#2f2f2f">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4"><button onPointerDown="{{ t.odown }}" onPointerMove="{{ t.omove }}" onPointerUp="{{ t.oup }}" onPointerCancel="{{ t.oup }}" onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button></sc-for>
+  </div>
+  <sc-if value="{{ isSleep }}" hint-placeholder-val="{{ false }}">
+    <section style="display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:24px;background:#2f2f2f">
+      <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:13px;color:#7f7f7f">Søvn i natt</span><span style="font-size:28px;font-weight:500;font-variant-numeric:tabular-nums">{{ sleepTotal }}</span></div>
+      <div style="display:flex;height:14px;border-radius:7px;overflow:hidden;gap:2px"><sc-for list="{{ phases }}" as="p" hint-placeholder-count="4"><span style="{{ p.bar }}"></span></sc-for></div>
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px"><sc-for list="{{ phases }}" as="p" hint-placeholder-count="4"><span style="display:flex;flex-direction:column;gap:2px"><span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#979797"><span style="{{ p.dot }}"></span>{{ p.label }}</span><span style="font-size:14px;font-weight:500;font-variant-numeric:tabular-nums">{{ p.val }}</span></span></sc-for></div>
+    </section>
+  </sc-if>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <sc-for list="{{ tiles }}" as="g" hint-placeholder-count="6">
+      <div onClick="{{ g.go }}" style="display:flex;flex-direction:column;gap:6px;padding:14px 16px;border-radius:22px;background:#2f2f2f;min-width:0">
+        <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#979797;white-space:nowrap"><span class="ms" style="{{ g.iconStyle }}">{{ g.icon }}</span>{{ g.label }}</span>
+        <span style="font-size:24px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap">{{ g.val }}<span style="font-size:12px;color:#7f7f7f;font-weight:400"> {{ g.unit }}</span></span>
+      </div>
+    </sc-for>
+  </div>
+  <span style="font-size:12px;color:#696969;padding:0 6px">{{ source }}</span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:900}}">
+const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
+const R = 'rgb(242 128 115)', G = 'rgb(102 209 158)', B = 'rgb(115 185 242)', P = 'rgb(173 153 230)', A = 'rgb(242 181 115)';
+const DATA = {
+  akt: [['directions_walk', 'Skritt', '8 412', '', R], ['local_fire_department', 'Aktiv energi', '486', 'kcal', R], ['fitness_center', 'Trening', '34', 'min', G], ['straighten', 'Distanse', '6,2', 'km', B], ['stairs', 'Etasjer opp', '11', '', A], ['stairs_2', 'Etasjer ned', '9', '', A], ['speed', 'Snittfart', '5,4', 'km/t', B], ['bolt', 'Hvileenergi', '1 742', 'kcal', A]],
+  hjerte: [['favorite', 'Puls', '68', 'bpm', R], ['bedtime', 'Hvilepuls', '54', 'bpm', R], ['directions_walk', 'Gangpuls', '96', 'bpm', R], ['monitor_heart', 'HRV', '48', 'ms', P], ['sprint', 'VO2 maks', '44,1', 'ml/kg', G], ['spo2', 'Oksygen', '98', '%', B], ['air', 'Pustefrekvens', '14', '/min', B], ['bloodtype', 'Blodtrykk', '118/76', 'mmHg', R]],
+  sovn: [['hotel', 'I sengen', '7 t 48', 'min', P], ['bedtime', 'Søvn', '7 t 12', 'min', P], ['monitor_heart', 'HRV natt', '52', 'ms', P], ['favorite', 'Hvilepuls', '54', 'bpm', R]],
+  kropp: [['monitor_weight', 'Vekt', '78,4', 'kg', B], ['height', 'Høyde', '184', 'cm', B], ['accessibility_new', 'Mager masse', '64,1', 'kg', G], ['percent', 'Fettprosent', '18,2', '%', A], ['thermometer', 'Kroppstemp', '36,7', '°C', R], ['device_thermostat', 'Basaltemp', '36,4', '°C', R], ['glucose', 'Blodsukker', '5,2', 'mmol/L', P], ['water_drop', 'Vann', '1,6', 'l', B]],
+};
+const ring = (inset, pct, col, w) => { const m = `radial-gradient(farthest-side, transparent calc(100% - ${w}px), #000 calc(100% - ${w}px))`; return { position: 'absolute', inset, borderRadius: '50%', background: `conic-gradient(${col} ${pct * 360}deg, rgba(255,255,255,0.08) 0)`, WebkitMask: m, mask: m }; };
+const TABORD = (comp, key, list) => {
+  const LK = 'tab-order:' + key; let ord = null; try { ord = JSON.parse(localStorage.getItem(LK) || 'null'); } catch (e) {}
+  const st = comp.state.__tdrag; let L = list.map((t, i) => ({ t, k: String(t.label ?? i) }));
+  if (ord) L.sort((a, b) => { const ia = ord.indexOf(a.k), ib = ord.indexOf(b.k); return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib); });
+  const keys = L.map(x => x.k), mine = st && st.key === key;
+  const begin = (el, k, x0) => { const sib = [...el.parentElement.children].filter(c => c.tagName === el.tagName), rects = sib.map(c => c.getBoundingClientRect()), i = sib.indexOf(el);
+    window.__tabReorder = true; if (navigator.vibrate) navigator.vibrate(10); comp.setState({ __tdrag: { key, k, dx: 0 } });
+    const mv = e => { e.preventDefault(); e.stopPropagation(); comp.setState({ __tdrag: { key, k, dx: e.clientX - x0 } }); };
+    const fin = e => { window.removeEventListener('pointermove', mv, true); window.removeEventListener('pointerup', fin, true); window.removeEventListener('pointercancel', fin, true);
+      e.stopPropagation(); setTimeout(() => { window.__tabReorder = false; }, 60);
+      if (e.type === 'pointerup') { const r0 = rects[Math.max(0, i)] || rects[0], cx = r0.left + r0.width / 2 + (e.clientX - x0); let j = rects.findIndex(r => cx >= r.left && cx <= r.right); if (j < 0) j = cx < rects[0].left ? 0 : rects.length - 1;
+        const a2 = keys.filter(x => x !== k); a2.splice(j, 0, k); try { localStorage.setItem(LK, JSON.stringify(a2)); } catch (x) {} }
+      comp._tEat = true; setTimeout(() => { comp._tEat = false; }, 350); comp.setState({ __tdrag: null }); };
+    window.addEventListener('pointermove', mv, { capture: true, passive: false }); window.addEventListener('pointerup', fin, true); window.addEventListener('pointercancel', fin, true); };
+  return L.map(({ t, k }) => { const d = mine && st.k === k;
+    return { ...t,
+      odown: e => { const el = e.currentTarget, x0 = e.clientX, y0 = e.clientY; clearTimeout(comp._tHold); comp._tXY = [x0, y0]; comp._tHold = setTimeout(() => begin(el, k, x0), 380); },
+      omove: e => { const p = comp._tXY; if (p && Math.hypot(e.clientX - p[0], e.clientY - p[1]) > 8) clearTimeout(comp._tHold); },
+      oup: () => clearTimeout(comp._tHold),
+      ...(t.go ? { go: e => { if (comp._tEat) return; t.go(e); } } : {}),
+      style: d ? { ...t.style, position: 'relative', zIndex: 5, transform: `translateX(${st.dx}px) scale(1.06)`, boxShadow: '0 8px 20px rgba(0,0,0,0.45), inset 0 0 0 1.5px rgb(242 133 201)', transition: 'none', touchAction: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }
+        : mine ? { ...t.style, opacity: 0.65, transition: 'opacity .2s' } : { ...t.style, WebkitTouchCallout: 'none', userSelect: 'none' } }; });
+};
+// ── Live-kobling: helsesensorer (iOS/Android companion-app, Withings, Garmin …) ───
+// Alle verdier slås opp med ha.first('helse_<suffiks>', <prefiks><suffiks>). Prefikset er
+// `helse.prefiks` i kortkonfig (standard sensor.sebastian_iphone_17_pro_) eller finnes automatisk
+// fra første sensor.*_steps. Mål: `helse.mal: { skritt, trening, energi }`.
+const SUF = {
+  akt: [['steps', 0], ['active_energy', 0], ['exercise_time', 'dur'], ['walking_running_distance', 1, 'distance'], ['floors_ascended', 0, 'flights_climbed'], ['floors_descended', 0], ['average_active_pace', 1, 'walking_speed'], ['resting_energy', 0, 'basal_energy']],
+  hjerte: [['heart_rate', 0], ['resting_heart_rate', 0], ['walking_heart_rate_average', 0], ['heart_rate_variability', 0], ['vo2_max', 1], ['blood_oxygen', 0, 'oxygen_saturation'], ['respiratory_rate', 0], ['blood_pressure_systolic', 'bp']],
+  sovn: [['in_bed', 'dur'], ['sleep_duration', 'dur', 'asleep'], ['heart_rate_variability_sleep', 0, 'heart_rate_variability'], ['resting_heart_rate', 0]],
+  kropp: [['weight', 1, 'body_mass'], ['height', 0], ['lean_body_mass', 1], ['body_fat_percentage', 1, 'body_fat'], ['body_temperature', 1], ['basal_body_temperature', 1], ['blood_glucose', 1], ['water', 1, 'dietary_water']],
+};
+const PHASES = [['deep_sleep', 'Dyp'], ['core_sleep', 'Kjerne'], ['rem_sleep', 'REM'], ['awake', 'Våken']];
+const nfH = (v, d) => v.toLocaleString('nb-NO', { minimumFractionDigits: d, maximumFractionDigits: d });
+function healthPrefix() {
+  const c = ha.config.helse || {};
+  if (c.prefiks) return c.prefiks.replace(/^(sensor\.)?/, 'sensor.');
+  if (ha.state('sensor.sebastian_iphone_17_pro_steps') || ha.state('sensor.sebastian_iphone_17_pro_heart_rate')) return 'sensor.sebastian_iphone_17_pro_';
+  const hit = ha.domain('sensor', (s, id) => /_steps$/.test(id) && !/_health_steps$/.test(id))[0];
+  return hit ? hit.replace(/steps$/, '') : 'sensor.sebastian_iphone_17_pro_';
+}
+// minutter → [«7 t 12», «min»]
+const durParts = min => { min = Math.round(min); const h = Math.floor(min / 60), m = min % 60; return h ? [`${h} t ${m}`, 'min'] : [`${m}`, 'min']; };
+const minutesOf = id => { const v = ha.num(id, null); if (v == null) return null; const u = String(ha.unit(id, 'min')).toLowerCase(); return u === 'h' || u === 't' ? v * 60 : u === 's' ? v / 60 : u === 'd' ? v * 1440 : v; };
+function loadLive() {
+  if (!ha.live) return null;
+  const pre = healthPrefix();
+  const id = (suf, ...alt) => ha.first('helse_' + suf, pre + suf, ...alt.map(a => pre + a));
+  const found = Object.values(SUF).flat().some(([suf, , alt]) => id(suf, ...(alt ? [alt] : [])));
+  if (!found) return null;
+  const val = ([suf, dec, alt], demo) => {
+    const e = id(suf, ...(alt ? [alt] : []));
+    if (dec === 'bp') { const sy = ha.num(e, null), di = ha.num(id('blood_pressure_diastolic'), null); return { e, v: sy == null ? '–' : `${Math.round(sy)}${di == null ? '' : '/' + Math.round(di)}`, u: demo[3] }; }
+    if (dec === 'dur') { const m = minutesOf(e); return m == null ? { e, v: '–', u: '' } : (([v, u]) => ({ e, v, u }))(durParts(m)); }
+    let v = ha.num(e, null);
+    if (v == null) return { e, v: e ? ha.val(e, '–') : '–', u: e ? '' : '' };
+    const u = String(ha.unit(e, '')).toLowerCase();
+    if (demo[3] === 'km' && u === 'm') v /= 1000;
+    if (demo[3] === 'l' && u === 'ml') v /= 1000;
+    if (demo[3] === 'cm' && u === 'm') v *= 100;
+    if (demo[3] === '%' && v <= 1 && /oxygen|fat/.test(suf)) v *= 100;
+    return { e, v: nfH(v, dec), u: demo[3] };
+  };
+  return { pre, id, val };
+}
+
+class Component extends DCLogic {
+  state = { tab: 'akt' };
+  __tabWrap(v) { if (v && Array.isArray(v.tabs)) v.tabs = TABORD(this, 'helse', v.tabs); return v; }
+  renderVals() { return this.__tabWrap(this.__rv()); }
+  __rv() {
+    const s = this.state, L = loadLive();
+    let ringVals = [['Skritt', '8 412', '/ 10 000', R], ['Trening', '34', '/ 60 min', G], ['Aktiv energi', '486', '/ 600 kcal', A]], pOuter = 0.84, pInner = 0.57;
+    let phases = [['Dyp', '1 t 18', 18, 'rgb(173 153 230)'], ['Kjerne', '3 t 54', 54, 'rgb(173 153 230)'], ['REM', '1 t 40', 23, 'rgb(115 185 242)'], ['Våken', '20 min', 5, A]];
+    let sleepTotal = '7 t 12 min', source = 'Fra Sebastian iPhone 17 Pro · Apple Helse';
+    let tiles = DATA[s.tab].map(([icon, label, val, unit, c]) => ({ icon, label, val, unit, c, go: () => {} }));
+    if (L) {
+      const mal = { skritt: 10000, trening: 60, energi: 600, ...(ha.config.helse?.mal || {}) };
+      const steps = ha.num(L.id('steps'), 0), ex = minutesOf(L.id('exercise_time')) || 0, en = ha.num(L.id('active_energy'), 0);
+      ringVals = [['Skritt', nfH(steps, 0), `/ ${nfH(mal.skritt, 0)}`, R], ['Trening', nfH(ex, 0), `/ ${mal.trening} min`, G], ['Aktiv energi', nfH(en, 0), `/ ${nfH(mal.energi, 0)} kcal`, A]];
+      pOuter = Math.min(1, steps / mal.skritt); pInner = Math.min(1, ex / mal.trening);
+      const ph = PHASES.map(([suf, label], i) => [label, minutesOf(L.id(suf)), phases[i][3]]);
+      const tot = ph.reduce((t, p) => t + (p[1] || 0), 0);
+      if (tot > 0) phases = ph.map(([label, m, c]) => [label, m == null ? '–' : m >= 60 ? durParts(m)[0] : `${Math.round(m)} min`, Math.max(0.5, (m || 0) / tot * 100), c]);
+      const sl = minutesOf(L.id('sleep_duration', 'asleep'));
+      sleepTotal = sl == null ? '–' : (([v, u]) => `${v} ${u}`)(durParts(sl));
+      const dev = ha.device(L.id('steps') || L.id('heart_rate') || '');
+      source = `Fra ${ha.config.helse?.kilde || dev?.name_by_user || dev?.name || L.pre.replace(/^sensor\./, '').replace(/_$/, '').replace(/_/g, ' ')}${ha.config.helse?.app === false ? '' : ' · ' + (ha.config.helse?.app || 'Apple Helse')}`;
+      tiles = DATA[s.tab].map((d, i) => { const r = L.val(SUF[s.tab][i], d); return { icon: d[0], label: d[1], val: r.v, unit: r.u, c: d[4], go: () => r.e && ha.moreInfo(r.e) }; });
+    }
+    return {
+      ring: { outer: ring(0, pOuter, R, 12), inner: ring(17, pInner, G, 12) },
+      rings: ringVals.map(([label, val, goal, c]) => ({ label, val, goal, lab: { fontSize: 12, color: c } })),
+      tabs: [['akt', 'Aktivitet'], ['hjerte', 'Hjerte'], ['sovn', 'Søvn'], ['kropp', 'Kropp']].map(([id, label]) => ({ label, go: () => this.setState({ tab: id }), style: { height: 44, borderRadius: 18, fontSize: 13, fontWeight: 500, background: s.tab === id ? PINK : 'transparent', color: s.tab === id ? '#2a1720' : '#979797' } })),
+      isSleep: s.tab === 'sovn', sleepTotal, source,
+      phases: phases.map(([label, val, w, c]) => ({ label, val, bar: { flex: w, background: c }, dot: { width: 8, height: 8, borderRadius: 4, background: c } })),
+      tiles: tiles.map(({ icon, label, val, unit, c, go }) => ({ icon, label, val, unit, go, iconStyle: { fontSize: 16, color: c, fontVariationSettings: "'FILL' 1" } })),
+    };
+  }
+}
+</script>
+</body>
+</html>

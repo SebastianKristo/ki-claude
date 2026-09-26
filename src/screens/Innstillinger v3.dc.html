@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#232323;color:#fafafa;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#fafafa}a:hover{color:rgb(242 133 201)}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;user-select:none}
+</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;max-width:440px;min-height:100vh;margin:0 auto;background:#232323;padding:20px 12px 40px;display:flex;flex-direction:column;gap:12px">
+  <header style="display:flex;align-items:center;gap:12px;padding:0 8px 6px">
+    <span style="width:40px;height:40px;border-radius:20px;background:#e9e7e2;color:#232323;display:grid;place-items:center"><span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">settings</span></span>
+    <span style="flex:1;font-size:28px;font-weight:500">Innstillinger</span>
+    <button style="width:40px;height:40px;display:grid;place-items:center"><span class="ms" style="font-size:26px">close</span></button>
+  </header>
+
+  <button onClick="{{ toggleNight }}" style="{{ hero }}">
+    <sc-for list="{{ stars }}" as="st" hint-placeholder-count="0"><span style="{{ st }}"></span></sc-for>
+    <span style="{{ orb }}"><span class="ms" style="{{ orbIcon }}">{{ orbGlyph }}</span></span>
+    <span style="position:absolute;right:52px;bottom:18px;width:90px;height:62px;background:#3b3970;clip-path:polygon(0 38%, 50% 0, 100% 38%, 100% 100%, 0 100%)"></span>
+    <span style="position:absolute;right:62px;bottom:62px;width:10px;height:22px;background:#3b3970"></span>
+    <span style="{{ win }}"></span>
+    <span style="position:absolute;right:72px;bottom:18px;width:14px;height:22px;border-radius:7px 7px 0 0;background:#2b2a55"></span>
+    <span style="position:absolute;left:0;right:0;bottom:0;height:22px;background:#1b1a3a;border-radius:60% 60% 0 0 / 100% 100% 0 0"></span>
+    <span style="position:absolute;left:18px;top:18px;font-size:13px;color:#c9c7e8">Nattmodus</span>
+    <span style="position:absolute;left:18px;bottom:20px;display:flex;flex-direction:column;gap:4px;text-align:left">
+      <span style="font-size:32px;font-weight:400;letter-spacing:-0.02em;line-height:1">{{ heroTitle }}</span>
+      <span style="font-size:13px;color:#c9c7e8">{{ heroSub }}</span>
+    </span>
+  </button>
+
+  <div style="display:flex;justify-content:center">
+    <div style="display:flex;gap:2px;padding:4px;border-radius:24px;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.18)">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2"><button onPointerDown="{{ t.odown }}" onPointerMove="{{ t.omove }}" onPointerUp="{{ t.oup }}" onPointerCancel="{{ t.oup }}" onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button></sc-for>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <sc-for list="{{ rows }}" as="r" hint-placeholder-count="2">
+      <button onClick="{{ r.go }}" style="display:flex;align-items:center;gap:14px;height:68px;padding:0 18px 0 6px;border-radius:34px;background:#2f2f2f;text-align:left">
+        <span style="width:56px;height:56px;border-radius:28px;background:#3a3a3a;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:26px">{{ r.icon }}</span></span>
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:500">{{ r.title }}</span><span style="font-size:12px;color:#979797;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.sub }}</span></span>
+        <span style="{{ r.track }}"><span style="{{ r.knob }}"></span></span>
+      </button>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:440,&quot;height&quot;:620}}">
+const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
+const AUTO = [['face', 'face_retouching_natural', 'Ansiktsgjenkjenning', 'Låser opp ved gjenkjent ansikt'], ['ute', 'emoji_objects', 'Utelys automatikk', 'Styrer utelysene etter solhøyden']];
+const PUSH = [['door', 'doorbell', 'Dørklokke', 'Varsel når noen ringer på'], ['motion', 'directions_walk', 'Bevegelse ute', 'Kun når ingen er hjemme'], ['wash', 'local_laundry_service', 'Vaskemaskin ferdig', 'Varsel når programmet er ferdig'], ['price', 'bolt', 'Høy strømpris', 'Over 2 kr/kWh']];
+const STARS = [[8,20],[18,48],[26,14],[34,38],[44,22],[52,56],[60,12],[70,40],[14,70],[40,64],[64,28],[30,6]];
+const TABORD = (comp, key, list) => {
+  const LK = 'tab-order:' + key; let ord = null; try { ord = JSON.parse(localStorage.getItem(LK) || 'null'); } catch (e) {}
+  const st = comp.state.__tdrag; let L = list.map((t, i) => ({ t, k: String(t.label ?? i) }));
+  if (ord) L.sort((a, b) => { const ia = ord.indexOf(a.k), ib = ord.indexOf(b.k); return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib); });
+  const keys = L.map(x => x.k), mine = st && st.key === key;
+  const begin = (el, k, x0) => { const sib = [...el.parentElement.children].filter(c => c.tagName === el.tagName), rects = sib.map(c => c.getBoundingClientRect()), i = sib.indexOf(el);
+    window.__tabReorder = true; if (navigator.vibrate) navigator.vibrate(10); comp.setState({ __tdrag: { key, k, dx: 0 } });
+    const mv = e => { e.preventDefault(); e.stopPropagation(); comp.setState({ __tdrag: { key, k, dx: e.clientX - x0 } }); };
+    const fin = e => { window.removeEventListener('pointermove', mv, true); window.removeEventListener('pointerup', fin, true); window.removeEventListener('pointercancel', fin, true);
+      e.stopPropagation(); setTimeout(() => { window.__tabReorder = false; }, 60);
+      if (e.type === 'pointerup') { const r0 = rects[Math.max(0, i)] || rects[0], cx = r0.left + r0.width / 2 + (e.clientX - x0); let j = rects.findIndex(r => cx >= r.left && cx <= r.right); if (j < 0) j = cx < rects[0].left ? 0 : rects.length - 1;
+        const a2 = keys.filter(x => x !== k); a2.splice(j, 0, k); try { localStorage.setItem(LK, JSON.stringify(a2)); } catch (x) {} }
+      comp._tEat = true; setTimeout(() => { comp._tEat = false; }, 350); comp.setState({ __tdrag: null }); };
+    window.addEventListener('pointermove', mv, { capture: true, passive: false }); window.addEventListener('pointerup', fin, true); window.addEventListener('pointercancel', fin, true); };
+  return L.map(({ t, k }) => { const d = mine && st.k === k;
+    return { ...t,
+      odown: e => { const el = e.currentTarget, x0 = e.clientX, y0 = e.clientY; clearTimeout(comp._tHold); comp._tXY = [x0, y0]; comp._tHold = setTimeout(() => begin(el, k, x0), 380); },
+      omove: e => { const p = comp._tXY; if (p && Math.hypot(e.clientX - p[0], e.clientY - p[1]) > 8) clearTimeout(comp._tHold); },
+      oup: () => clearTimeout(comp._tHold),
+      ...(t.go ? { go: e => { if (comp._tEat) return; t.go(e); } } : {}),
+      style: d ? { ...t.style, position: 'relative', zIndex: 5, transform: `translateX(${st.dx}px) scale(1.06)`, boxShadow: '0 8px 20px rgba(0,0,0,0.45), inset 0 0 0 1.5px rgb(242 133 201)', transition: 'none', touchAction: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }
+        : mine ? { ...t.style, opacity: 0.65, transition: 'opacity .2s' } : { ...t.style, WebkitTouchCallout: 'none', userSelect: 'none' } }; });
+};
+// ── Live-kobling: dashboardinnstillinger ─────────────────────────────────────────────
+// Nattmodus = switch.nattmodus (ki_nattmodus, alias `nattmodus`), vekketid = sensor.*_vekking_neste_alarm
+// (ki_vekking/ki_sovn, alias `vekking`). Hver rad kobles til en bryter via alias (se ROWENT) eller
+// `innstillinger: { automasjoner: [{ entity, navn, ikon, tekst }], push: [...] }` i kortkonfig.
+// Rader uten entitet er rene dashboardvalg og lagres i localStorage per HA-bruker.
+const ROWENT = {
+  face: ['ansiktsgjenkjenning', 'switch.ansiktsgjenkjenning_dorlas_ansiktsgjenkjenning_dorlas'],
+  ute: ['utelys_automatikk', 'switch.ki_utelys_auto'],
+  door: ['varsel_dorklokke', 'switch.dorklokke_varsling', 'switch.dorklokke_varsel'],
+  motion: ['varsel_bevegelse', 'switch.bevegelse_ute_varsling', 'switch.bevegelse_ute_varsel'],
+  wash: ['varsel_vaskemaskin', 'switch.vaskemaskin_ferdig_varsling', 'switch.vaskemaskin_varsling'],
+  price: ['varsel_strompris', 'switch.hoy_strompris_varsling', 'switch.strompris_varsling'],
+};
+const ON0 = { face: true, ute: true, door: true, motion: true, wash: false, price: true };
+const lsKey = () => 'innstillinger-v3:' + (ha.hass?.user?.id || ha.hass?.user?.name || 'lokal');
+const lsLoad = () => { try { return JSON.parse(localStorage.getItem(lsKey()) || 'null'); } catch (e) { return null; } };
+const hhmm = t => String(t || '').slice(0, 5);
+class Component extends DCLogic {
+  state = { night: true, tab: 'auto', on: { ...ON0, ...((lsLoad() || {}).on || {}) } };
+  saveOn(on) { try { localStorage.setItem(lsKey(), JSON.stringify({ on })); } catch (e) {} this.setState({ on }); }
+  __tabWrap(v) { if (v && Array.isArray(v.tabs)) v.tabs = TABORD(this, 'innstillinger', v.tabs); return v; }
+  renderVals() { return this.__tabWrap(this.__rv()); }
+  __rv() {
+    const s = this.state;
+    const nightId = ha.first('nattmodus', 'switch.nattmodus') || ha.domain('switch', (st, id) => ha.hass?.entities?.[id]?.platform === 'ki_nattmodus')[0] || null;
+    const n = nightId ? ha.on(nightId, false) : s.night;
+    const alarmId = ha.first('vekking', 'sensor.soverom_vekking_neste_alarm') || ha.domain('sensor', (st, id) => /_vekking_neste_alarm$/.test(id))[0] || null;
+    const alarm = alarmId ? ha.val(alarmId, null) : null, tidPa = nightId ? ha.attr(nightId, 'tid_pa', null) : null;
+    const hr = new Date().getHours();
+    const heroTitle = !nightId ? (n ? 'God natt' : 'God morgen') : n ? 'God natt' : hr < 5 ? 'God natt' : hr < 12 ? 'God morgen' : hr < 18 ? 'God dag' : 'God kveld';
+    const heroSub = !nightId && !alarmId ? (n ? 'Vekking kl. 07:00' : 'Nattmodus starter kl. 23:00')
+      : n ? (alarm && /^\d{1,2}:\d{2}/.test(alarm) ? `Vekking kl. ${hhmm(alarm)}` : alarmId ? 'Ingen vekking satt' : 'Nattmodus er på')
+      : tidPa ? `Nattmodus starter kl. ${hhmm(tidPa)}` : 'Trykk for å starte nattmodus';
+    const custom = ha.config.innstillinger || {};
+    const rowList = (key, demo) => (custom[key] || []).length ? custom[key].map((r, i) => [`${key}${i}`, r.ikon || 'toggle_on', r.navn || ha.name(r.entity, r.entity), r.tekst || '', r.entity])
+      : demo.map(([k, icon, title, sub]) => [k, icon, title, sub, ha.first(...ROWENT[k])]);
+    return {
+      toggleNight: () => nightId ? ha.toggle(nightId) : this.setState({ night: !n }),
+      hero: { position: 'relative', height: 180, borderRadius: 30, overflow: 'hidden', display: 'block', width: '100%', background: n ? 'linear-gradient(180deg, #1f2150, #3b3478 75%, #4a3c80)' : 'linear-gradient(180deg, #5a7fc0, #9fb6dc 70%, #e6c7a0)', transition: 'background .8s' },
+      stars: n ? STARS.map(([x, y], i) => ({ position: 'absolute', left: `${x}%`, top: `${y}%`, width: i % 3 ? 2 : 3, height: i % 3 ? 2 : 3, borderRadius: 2, background: '#fff', opacity: 0.4 + (i % 4) * 0.15 })) : [],
+      orb: { position: 'absolute', right: 110, top: 18, width: 56, height: 56, borderRadius: 28, display: 'grid', placeItems: 'center', background: n ? 'radial-gradient(circle, rgba(255,240,200,0.35), transparent 70%)' : 'radial-gradient(circle, rgba(255,220,120,0.6), transparent 70%)' },
+      orbIcon: { fontSize: 36, color: n ? '#f7ecc8' : '#ffd66b', fontVariationSettings: "'FILL' 1" }, orbGlyph: n ? 'dark_mode' : 'light_mode',
+      win: { position: 'absolute', right: 108, bottom: 34, width: 14, height: 14, borderRadius: 2, background: n ? '#f3c96a' : '#2b2a55', boxShadow: n ? '0 0 12px rgba(243,201,106,0.7)' : 'none' },
+      heroTitle, heroSub,
+      tabs: [['auto', 'Automasjoner'], ['push', 'Push varsler']].map(([k, label]) => ({ label, go: () => this.setState({ tab: k }), style: { height: 38, padding: '0 18px', borderRadius: 19, fontSize: 14, fontWeight: 500, whiteSpace: 'nowrap', background: s.tab === k ? PINK : 'transparent', color: s.tab === k ? '#2a1720' : '#afafaf' } })),
+      rows: rowList(s.tab === 'auto' ? 'automasjoner' : 'push', s.tab === 'auto' ? AUTO : PUSH).map(([k, icon, title, sub, ent]) => { const on = ent ? ha.on(ent, false) : !!s.on[k]; return { icon, title, sub,
+        go: () => ent ? ha.toggle(ent) : this.saveOn({ ...s.on, [k]: !s.on[k] }),
+        track: { position: 'relative', width: 34, height: 20, borderRadius: 10, flex: 'none', background: on ? '#fafafa' : '#545454', transition: 'background .2s' },
+        knob: { position: 'absolute', top: 4, left: on ? 18 : 4, width: 12, height: 12, borderRadius: 6, background: on ? '#232323' : '#c7c7c7', transition: 'left .2s' } }; }),
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#232323;color:#fafafa;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#fafafa}a:hover{color:rgb(115 185 242)}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;user-select:none}
+</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;max-width:420px;min-height:100vh;margin:0 auto;background:#232323;padding:20px 18px 40px;display:flex;flex-direction:column;gap:22px">
+  <header style="display:flex;align-items:center;justify-content:space-between">
+    <div style="font-size:13px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#7f7f7f">Tilstedeværelse</div>
+    <button style="width:36px;height:36px;border-radius:18px;background:#3a3a3a;display:grid;place-items:center"><span class="ms" style="font-size:20px">close</span></button>
+  </header>
+
+  <section style="display:flex;flex-direction:column;align-items:center;gap:14px">
+    <div style="position:relative;width:132px;height:132px">
+      <div style="{{ halo }}"></div>
+      <div style="{{ avatar }}">{{ initial }}</div>
+      <span style="{{ zoneBadge }}"><span class="ms" style="font-size:18px;font-variation-settings:'FILL' 1">{{ zone.icon }}</span></span>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center">
+      <div style="font-size:26px;font-weight:500;letter-spacing:-0.015em">{{ name }}</div>
+      <div style="{{ zoneLine }}"><span style="{{ zoneDot }}"></span>{{ zone.label }}</div>
+      <div style="font-size:13px;color:#7f7f7f">{{ zone.since }}</div>
+    </div>
+  </section>
+
+  <section style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+    <sc-for list="{{ stats }}" as="t" hint-placeholder-count="3">
+      <div style="display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:18px;background:#2f2f2f">
+        <span class="ms" style="{{ t.iconStyle }}">{{ t.icon }}</span>
+        <div style="display:flex;flex-direction:column;gap:1px">
+          <span style="font-size:17px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap">{{ t.v }}</span>
+          <span style="font-size:11px;color:#7f7f7f;white-space:nowrap">{{ t.label }}</span>
+        </div>
+      </div>
+    </sc-for>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;padding:0 4px">
+      <div style="font-size:12px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#7f7f7f">Søvn i natt</div>
+      <div style="font-size:12px;color:#696969;font-variant-numeric:tabular-nums">{{ sleep.window }}</div>
+    </div>
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:0 4px">
+      <div style="font-size:44px;font-weight:300;letter-spacing:-0.04em;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap">{{ sleep.h }}<span style="font-size:15px;color:#7f7f7f"> t </span>{{ sleep.m }}<span style="font-size:15px;color:#7f7f7f"> min</span></div>
+      <div style="{{ sleep.scoreStyle }}">{{ sleep.score }}</div>
+    </div>
+    <div style="display:flex;height:40px;border-radius:12px;overflow:hidden;gap:2px">
+      <sc-for list="{{ sleep.blocks }}" as="b" hint-placeholder-count="12"><span style="{{ b }}"></span></sc-for>
+    </div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;padding:0 4px">
+      <sc-for list="{{ sleep.legend }}" as="l" hint-placeholder-count="4">
+        <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#979797;white-space:nowrap"><span style="{{ l.dot }}"></span>{{ l.label }}<span style="color:#696969;font-variant-numeric:tabular-nums">{{ l.v }}</span></span>
+      </sc-for>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;height:64px;align-items:end;padding-top:6px">
+      <sc-for list="{{ sleep.week }}" as="w" hint-placeholder-count="7">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end">
+          <div style="{{ w.bar }}"></div>
+          <span style="font-size:10px;color:#696969">{{ w.d }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:8px">
+    <div style="font-size:12px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#7f7f7f;padding:0 4px">Mobil</div>
+    <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:22px;background:#2f2f2f">
+      <span style="width:40px;height:40px;border-radius:20px;background:#3a3a3a;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:22px">smartphone</span></span>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;justify-content:space-between;gap:10px">
+          <span style="font-size:14px;font-weight:500;white-space:nowrap">{{ phone.model }}</span>
+          <span style="font-size:13px;font-weight:500;font-variant-numeric:tabular-nums">{{ phone.bat }} %</span>
+        </div>
+        <div style="height:5px;border-radius:3px;background:#3a3a3a;overflow:hidden"><div style="{{ phone.bar }}"></div></div>
+        <span style="font-size:12px;color:#7f7f7f">{{ phone.sub }}</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <sc-for list="{{ phone.chips }}" as="c" hint-placeholder-count="4">
+        <span style="height:30px;padding:0 11px 0 8px;border-radius:15px;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;background:#2f2f2f;color:#afafaf;white-space:nowrap"><span class="ms" style="font-size:16px;color:#7f7f7f">{{ c.icon }}</span>{{ c.label }}</span>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:8px">
+    <div style="font-size:12px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#7f7f7f;padding:0 4px">Soner i dag</div>
+    <div style="display:flex;flex-direction:column;padding-left:4px">
+      <sc-for list="{{ log }}" as="e" hint-placeholder-count="4">
+        <div style="display:flex;gap:14px;align-items:stretch">
+          <div style="display:flex;flex-direction:column;align-items:center;width:10px;flex:none">
+            <span style="{{ e.dot }}"></span>
+            <span style="{{ e.line }}"></span>
+          </div>
+          <div style="flex:1;display:flex;justify-content:space-between;gap:12px;padding-bottom:14px">
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <div style="font-size:14px">{{ e.text }}</div>
+              <div style="font-size:12px;color:#7f7f7f">{{ e.sub }}</div>
+            </div>
+            <div style="font-size:12px;color:#7f7f7f;font-variant-numeric:tabular-nums">{{ e.time }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:1300},&quot;personId&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;sebastian&quot;,&quot;cybele&quot;,&quot;rune&quot;],&quot;default&quot;:&quot;sebastian&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const C = { green: 'rgb(102 209 158)', blue: 'rgb(115 185 242)', purple: 'rgb(173 153 230)', amber: 'rgb(242 181 115)', pink: 'rgb(242 133 201)' };
+const a = (c, o) => c.replace(')', ` / ${o})`);
+const ZONES = { home: ['Hjemme', 'home', C.green], work: ['Jobb', 'work', C.blue], school: ['Skole', 'school', C.amber], away: ['Borte', 'logout', C.purple], cabin: ['Strømstad', 'cottage', C.amber] };
+const P = {
+  sebastian: { name: 'Sebastian', initial: 'S', bg: 'rgb(242 181 115)', zone: 'home', since: 'Hjemme siden 16:42', place: 'Strømstad',
+    phone: ['iPhone 16 Pro', 64, false, 'Wi-Fi · Hjemme'], steps: '8 412', dist: '0 km', sleep: [23.6, 7.2, 82], wk: [6.8, 7.4, 6.1, 7.9, 7.2, 8.4, 7.2],
+    log: [['Kom hjem', 'Strømstad', '16:42', 'home'], ['Forlot skolen', 'NTNU Gjøvik', '15:58', 'school'], ['Ankom skolen', 'NTNU Gjøvik', '08:12', 'school'], ['Forlot hjemmet', 'Strømstad', '07:40', 'away']] },
+  cybele: { name: 'Cybele', initial: 'C', bg: 'rgb(242 133 201)', zone: 'away', since: 'Borte siden 11:20 · Oslo', place: 'Oslo sentrum',
+    phone: ['iPhone 15', 38, false, 'Mobildata · 5G'], steps: '11 208', dist: '128 km', sleep: [23.0, 6.4, 71], wk: [7.1, 6.2, 6.8, 6.9, 5.8, 7.6, 6.4],
+    log: [['Ankom Oslo', 'Karl Johans gate', '13:05', 'away'], ['Forlot hjemmet', 'Strømstad', '11:20', 'away'], ['Våknet', 'Soverom', '06:24', 'home']] },
+  rune: { name: 'Rune', initial: 'R', bg: 'rgb(115 185 242)', zone: 'home', since: 'Hjemme siden 17:30', place: 'Strømstad',
+    phone: ['Pixel 9', 91, true, 'Lader · Wi-Fi'], steps: '5 930', dist: '46 km', sleep: [22.8, 7.8, 88], wk: [7.6, 8.0, 7.2, 7.4, 7.9, 8.1, 7.8],
+    log: [['Kom hjem', 'Strømstad', '17:30', 'home'], ['Forlot jobb', 'Kontoret', '16:52', 'work'], ['Ankom jobb', 'Kontoret', '08:05', 'work'], ['Forlot hjemmet', 'Strømstad', '07:35', 'away']] },
+};
+const STAGES = [['Våken', '#7f7f7f'], ['Lett', 'rgb(115 185 242)'], ['Dyp', 'rgb(173 153 230)'], ['REM', 'rgb(173 153 230)']];
+const SEQ = [1, 2, 2, 1, 3, 1, 2, 1, 3, 0, 1, 3, 1, 3, 0];
+const hm = x => { const h = Math.floor(x) % 24, m = Math.round((x % 1) * 60); return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`; };
+
+// ── Live-kobling: person.* + mobilens sensorer (mobile_app) + søvn (ki_sovn / Helse-sensorer) + ki_hyttebesok ──
+// personId (sebastian/cybele/rune) → alias `person_<id>` / person.<id> / person.<id>_* ; historikk (i dag + 7 netter) via recorder.
+const PERSON_IDS = { sebastian: ['person.sebastian_kristo_jemtland'], cybele: ['person.cybele_kristo'], rune: ['person.rune_jemtland'] };
+const BADV = v => v == null || ['unknown', 'unavailable', 'none', ''].includes(String(v).toLowerCase());
+const hhmm = d => d.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' });
+const WDL = ['sø', 'ma', 'ti', 'on', 'to', 'fr', 'lø'];
+const nf = (n, d = 0) => Number(n).toLocaleString('nb-NO', { minimumFractionDigits: d, maximumFractionDigits: d });
+const dayStart = (off = 0) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + off); return d; };
+const hours = id => { const v = ha.num(id, null); if (v == null) return null; const u = String(ha.unit(id, '')).toLowerCase(); return u === 'min' ? v / 60 : u === 's' ? v / 3600 : u === 'h' || u === 't' ? v : v > 24 ? v / 60 : v; };
+function hypnogram(mins, n = SEQ.length) {
+  const tot = mins.reduce((p, q) => p + q, 0); if (!tot) return [];
+  const raw = mins.map(m => m / tot * n), cnt = raw.map(Math.floor); let rest = n - cnt.reduce((p, q) => p + q, 0);
+  raw.map((r, i) => [r - Math.floor(r), i]).sort((p, q) => q[0] - p[0]).forEach(([, i]) => { if (rest > 0) { cnt[i]++; rest--; } });
+  const left = cnt.slice(), out = [];
+  for (const want of SEQ.slice(0, n)) { const k = left[want] > 0 ? want : left.indexOf(Math.max(...left)); left[k]--; out.push(k); }
+  return out;
+}
+function personEnt(pid) {
+  return ha.first('person_' + pid, ...(PERSON_IDS[pid] || []), 'person.' + pid)
+    || ha.domain('person', (st, id) => id.split('.')[1].startsWith(pid + '_') || ha.norm(String(st.attributes?.friendly_name || '').split(' ')[0]) === pid)[0] || null;
+}
+const zoneEnt = state => ha.domain('zone', (st, id) => st.attributes?.friendly_name === state || id === 'zone.' + ha.norm(state))[0];
+// Sonetype → [etikett, ikon, farge] som designets ZONES
+function zoneInfo(state) {
+  if (state === 'home') return ['Hjemme', 'home', C.green, 'home'];
+  if (state === 'not_home' || BADV(state)) return [BADV(state) ? 'Ukjent' : 'Borte', 'logout', C.purple, 'away'];
+  const n = ha.norm(state);
+  if (/jobb|work|kontor|office/.test(n)) return [state, 'work', C.blue, 'work'];
+  if (/skole|school|ntnu|uni|hogskole/.test(n)) return [state, 'school', C.amber, 'school'];
+  if (/hytte|cabin|stromstad|toten|fjell/.test(n)) return [state, 'cottage', C.amber, 'cabin'];
+  return [state, 'location_on', C.blue, 'other'];
+}
+const ZONE_KIND_COL = { home: C.green, work: C.blue, school: C.amber, away: C.purple, cabin: C.amber, other: C.blue };
+class Component extends DCLogic {
+  componentWillUnmount() { this._dead = true; }
+  // Rå tilstandshistorikk (person + søvnbryter + søvnvarighet) for de siste 8 døgnene
+  loadHist(ids) {
+    const sig = ids.map(id => ha.state(id)?.last_changed || '').join('|') + '|' + dayStart().getTime(), now = Date.now(), R = this._hReq;
+    if (R && (R.pending || (R.sig === sig && now - R.at < 5 * 60e3))) return this._hist || null;
+    if (!ha.hass?.callWS) return null;
+    const req = this._hReq = { sig, at: now, pending: true };
+    ha.hass.callWS({ type: 'history/history_during_period', start_time: dayStart(-7).toISOString(), entity_ids: ids, minimal_response: true, no_attributes: true, significant_changes_only: false })
+      .then(r => { const out = {}; ids.forEach(id => { out[id] = ((r && r[id]) || []).map(p => ({ t: p.lu != null ? p.lu * 1000 : p.lc != null ? p.lc * 1000 : new Date(p.last_updated || p.last_changed).getTime(), v: p.s != null ? p.s : p.state })); }); this._hist = out; },
+        () => { this._hist = this._hist || {}; })
+      .then(() => { req.pending = false; if (!this._dead) this.setState({ hV: Date.now() }); });
+    return this._hist || null;
+  }
+  loadLive(pid) {
+    const ent = personEnt(pid), pst = ent && ha.state(ent);
+    if (!pst) return null;
+    const demo = P[pid] || P.sebastian, name = String(ha.name(ent, demo.name)).split(' ')[0], state = pst.state;
+    const [zl, zi, zc, zk] = zoneInfo(state);
+    // mobil: prefiks fra personens device_trackers
+    const trs = ha.attr(ent, 'device_trackers', []) || [];
+    let px = null;
+    const mob = ha.config.mobil?.[pid] || ha.config.mobil;
+    if (typeof mob === 'string') px = 'sensor.' + mob.replace(/^sensor\./, '').replace(/_?$/, '_');
+    for (const tr of trs) { if (px) break; const o = String(tr).split('.')[1]; if (o && ha.state(`sensor.${o}_battery_level`)) px = `sensor.${o}_`; }
+    if (!px) { const b = ha.domain('sensor', (st, id) => id.startsWith(`sensor.${pid}_`) && id.endsWith('_battery_level'))[0]; if (b) px = b.replace(/battery_level$/, ''); }
+    const P_ = k => px && ha.state(px + k) ? px + k : null;
+    const geoId = P_('geocoded_location'), geo = geoId ? ha.state(geoId).attributes || {} : {};
+    const loc = geo.Locality || geo.locality || (geoId && !BADV(ha.val(geoId)) ? String(ha.val(geoId)).split(/\n|,/)[0] : '');
+    const hy = ha.ki('ki_hyttebesok', a => a.ki_type === 'helger')[0], hvor = hy ? (ha.attr(hy, 'hvor_er_vi_naa', {}) || {})[name] : null;
+    const home0 = ha.hass?.config?.location_name, home = home0 && !/^(home|hjem|hjemme)$/i.test(home0) ? home0 : null;
+    const place = zk === 'home' ? (home || loc || 'Hjemme') : zk === 'away' ? (geo['Sub Locality'] || hvor || loc || 'Ukjent sted') : (loc && loc !== zl ? loc : '');
+    const since = new Date(pst.last_changed), sinceTxt = `${zl} siden ${since.toDateString() === new Date().toDateString() ? '' : WDL[since.getDay()] + ' '}${hhmm(since)}${zk === 'away' && loc && loc !== place ? ' · ' + loc : ''}`;
+    // aktivitet
+    const steps = ha.num(P_('steps'), null);
+    const distId = P_('distance') || P_('walking_running_distance');
+    let dist = ha.num(distId, null); if (dist != null && String(ha.unit(distId, '')).toLowerCase() === 'm') dist /= 1000;
+    const scoreId = ha.first('sovnscore_' + pid, px && px + 'sleep_score', `sensor.${pid}_sovn_score`, `sensor.${pid}_sleep_score`);
+    const score = ha.num(scoreId, null);
+    // søvn
+    const sovn = ha.first('sovn_' + pid, `binary_sensor.${pid}_sovn_sover`, `switch.homey_logic_${pid}_sovn_vaken`) || ha.ki('ki_sovn', a => a.type === 'person' && ha.norm(a.navn || '') === pid)[0] || null;
+    const durId = ha.first('sovnvarighet_' + pid, px && px + 'sleep_duration');
+    const stMin = ['awake', 'core_sleep', 'deep_sleep', 'rem_sleep'].map(k => { const h = hours(P_(k)); return h == null ? null : h * 60; });
+    const H = this.loadHist([ent, sovn, durId].filter(Boolean)) || {};
+    const spans = [];
+    if (sovn) { let on = null; (H[sovn] || []).forEach(x => { if (x.v === 'on' && on == null) on = x.t; else if (x.v !== 'on' && on != null) { spans.push([on, x.t]); on = null; } }); if (on == null && ha.val(sovn) === 'on') on = +new Date(ha.state(sovn).last_changed); if (on != null) spans.push([on, Date.now()]); }
+    // siste natt: sammenhengende søvnperioder (opphold < 2 t) som slutter etter kl. 18 i går
+    const night = []; spans.filter(sp => sp[1] > dayStart(-1).getTime() + 18 * 3600e3).forEach(sp => { const l = night[night.length - 1]; if (l && sp[0] - l[l.length - 1][1] < 2 * 3600e3) l.push(sp); else night.push([sp]); });
+    const last = night[night.length - 1] || null;
+    let dur = hours(durId);
+    if (dur == null && stMin[1] != null && stMin[2] != null && stMin[3] != null) dur = (stMin[1] + stMin[2] + stMin[3]) / 60;
+    if (dur == null && last) dur = last.reduce((t, sp) => t + (sp[1] - sp[0]), 0) / 3600e3;
+    const win = last ? [last[0][0], last[last.length - 1][1]] : null;
+    const haveStages = stMin.every(x => x != null);
+    let blocks = [], legend = [];
+    if (haveStages) { const seq = hypnogram(stMin); blocks = seq.map((k, i) => ({ flex: 1 + (i % 3) * 0.5, background: STAGES[k][1], opacity: k === 0 ? 0.5 : 1, alignSelf: 'flex-end', height: `${[35, 60, 100, 80][k]}%`, borderRadius: 4 }));
+      legend = STAGES.map(([label, c], k) => ({ label, v: `${Math.round(stMin[k])} min`, dot: { width: 8, height: 8, borderRadius: 4, background: c } })); }
+    else if (win) { const segs = []; last.forEach((sp, i) => { if (i) segs.push([0, sp[0] - last[i - 1][1]]); segs.push([1, sp[1] - sp[0]]); });
+      blocks = segs.map(([on, ms]) => ({ flex: Math.max(0.2, ms / 36e5), background: on ? STAGES[2][1] : STAGES[0][1], opacity: on ? 1 : 0.5, alignSelf: 'flex-end', height: on ? '80%' : '35%', borderRadius: 4 }));
+      const awake = segs.filter(x => !x[0]).reduce((t, x) => t + x[1], 0) / 6e4, slept = segs.filter(x => x[0]).reduce((t, x) => t + x[1], 0) / 6e4;
+      legend = [['Sover', STAGES[2][1], slept], ['Våken', STAGES[0][1], awake]].map(([label, c, v]) => ({ label, v: `${Math.round(v)} min`, dot: { width: 8, height: 8, borderRadius: 4, background: c } })); }
+    // uka: søvn per natt (søvnbryter) eller høyeste søvnvarighet per døgn
+    const uMul = (() => { const u = String(ha.unit(durId, '')).toLowerCase(); return u === 'min' ? 1 / 60 : u === 's' ? 1 / 3600 : 1; })();
+    const wk = Array.from({ length: 7 }, (_, i) => { const d0 = dayStart(i - 6).getTime(), d1 = d0 + 864e5;
+      let v = 0;
+      if (i === 6 && dur != null) v = dur;
+      else if (sovn && spans.length) v = spans.filter(sp => sp[1] >= d0 && sp[1] < d1).reduce((t, sp) => t + (sp[1] - sp[0]), 0) / 3600e3;
+      else if (durId) v = Math.max(0, ...(H[durId] || []).filter(x => x.t >= d0 && x.t < d1).map(x => parseFloat(x.v) * uMul).filter(Number.isFinite));
+      return { v, d: i === 6 ? 'i natt' : WDL[new Date(d0).getDay()] }; });
+    // mobil
+    const bat = ha.num(P_('battery_level'), null), bst = String(ha.val(P_('battery_state'), '')).toLowerCase();
+    const charging = ['charging', 'full', 'lader', 'fulladet'].includes(bst) || (px && ha.val(`binary_sensor.${px.slice(7)}is_charging`) === 'on');
+    const conn = String(ha.val(P_('connection_type'), '') || ''), wifi = /wi-?fi/i.test(conn), cell = /cell|mobil/i.test(conn);
+    const netShort = wifi ? 'Wi-Fi' : cell ? 'Mobildata' : conn;
+    const ssid = ha.val(P_('ssid'), '') || ha.val(P_('wifi_connection'), ''), tech = ha.attr(P_('connection_type'), 'Cellular Technology', '') || ha.attr(P_('connection_type'), 'cellular_technology', '');
+    const tr = trs.find(x => px && String(x).includes(px.slice(7, -1))) || trs[0];
+    const dev = tr && ha.device(tr);
+    let model = dev?.model || '';
+    if (!model && tr) model = String(ha.name(tr, '')).replace(new RegExp(`^${name}s?\\s+`, 'i'), '').trim();
+    if (!model && px) model = px.slice(7, -1).replace(new RegExp(`^${pid}_`), '').split('_').map(w => w === 'iphone' ? 'iPhone' : w === 'ipad' ? 'iPad' : /^\d/.test(w) ? w : w[0].toUpperCase() + w.slice(1)).join(' ');
+    const focusId = px && `binary_sensor.${px.slice(7)}focus`;
+    const net = [charging ? 'Lader' : null, wifi ? `Wi-Fi${!charging && (ssid && !BADV(ssid) ? ' · ' + ssid : zk === 'home' ? ' · Hjemme' : '')}` : cell ? `Mobildata${tech && !charging ? ' · ' + tech : ''}` : netShort].filter(Boolean).join(' · ');
+    // soner i dag (+ våknet/sovnet)
+    const t0 = dayStart().getTime(), kindOf = st => zoneInfo(st)[3], placeOf = st => st === 'home' ? (home || (zk === 'home' && loc) || 'Hjemme') : st === 'not_home' ? (loc || 'Borte') : ha.name(zoneEnt(st), st);
+    const ev = [];
+    const ph = (H[ent] || []).filter(x => !BADV(x.v));
+    for (let i = 1; i < ph.length; i++) { const prev = ph[i - 1].v, cur = ph[i].v, t = ph[i].t; if (prev === cur || t < t0) continue;
+      if (prev !== 'not_home') ev.push([prev === 'home' ? 'Forlot hjemmet' : `Forlot ${String(prev).toLowerCase()}`, placeOf(prev), t, kindOf(prev)]);
+      if (cur !== 'not_home') ev.push([cur === 'home' ? 'Kom hjem' : `Ankom ${String(cur).toLowerCase()}`, placeOf(cur), t + 1, kindOf(cur)]); }
+    if (sovn) spans.forEach(([a0, a1]) => { if (a1 >= t0 && a1 < Date.now() - 60e3 && !spans.some(sp => sp[0] > a1 && sp[0] - a1 < 2 * 3600e3)) ev.push(['Våknet', ha.area(sovn)?.name || 'Soverom', a1, 'home']); });
+    ev.sort((p, q) => q[2] - p[2]);
+    const log = (ev.length ? ev.slice(0, 6) : [[`${zl} hele dagen`, place || zl, t0, zk]]).map(([text, sub, t, k]) => [text, sub, ev.length ? hhmm(new Date(t)) : '', k]);
+    // ki_hyttebesok: netter på hytta i år
+    const nights = ha.ki('ki_hyttebesok', a => a.ki_type === 'person' && ha.norm(a.person || '') === pid).filter(id => !/_oslo_/.test(id)).reduce((t, id) => t + ha.num(id, 0), 0);
+    const hasHy = ha.ki('ki_hyttebesok', a => a.ki_type === 'person' && ha.norm(a.person || '') === pid).length > 0;
+    const statsAll = [steps != null && ['directions_walk', nf(Math.round(steps)), 'skritt', C.green], dist != null && ['route', `${dist < 10 && Math.round(dist * 10) % 10 ? nf(dist, 1) : nf(Math.round(dist))} km`, 'reist i dag', C.blue],
+      score != null ? ['bedtime', `${Math.round(score)}`, 'søvnscore', C.purple] : dur != null && ['bedtime', `${Math.floor(dur)}:${String(Math.round((dur % 1) * 60)).padStart(2, '0')}`, 'søvn i natt', C.purple],
+      hasHy && ['cottage', nf(nights), 'hyttenetter i år', C.amber]].filter(Boolean);
+    const stats = [...statsAll, ['directions_walk', '–', 'skritt', C.green], ['route', '–', 'reist i dag', C.blue], ['bedtime', '–', 'søvnscore', C.purple]].filter((x, i, arr) => arr.findIndex(y => y[2] === x[2]) === i).slice(0, 3);
+    const pic = ha.attr(ent, 'entity_picture', null);
+    return { name, initial: pic ? '' : name[0] || '?', bg: demo.bg, pic: pic ? (ha.hass?.hassUrl ? ha.hass.hassUrl(pic) : pic) : null, zone: [zl, zi, zc], zk, since: sinceTxt, place,
+      phone: [model || 'Ingen mobil funnet', bat == null ? '–' : Math.round(bat), charging, net || 'Ukjent nett'], wifi, cell, netShort, focus: focusId && ha.state(focusId) ? ha.val(focusId) === 'on' : null, tracked: !!tr && !BADV(ha.val(tr)),
+      stats, dur, score, win, blocks, legend, wk, log };
+  }
+  liveVals(p) {
+    const [zl, zi, zc] = p.zone, away = p.zk === 'away';
+    const [model, bat, charging, net] = p.phone;
+    const wmax = Math.max(0.01, ...p.wk.map(x => x.v));
+    const dur = p.dur, score = p.score, good = score != null ? score >= 80 : dur != null && dur >= 7, ok = score != null ? score >= 70 : dur != null && dur >= 6;
+    return {
+      name: p.name, initial: p.initial,
+      halo: { position: 'absolute', inset: -8, borderRadius: '50%', boxShadow: `0 0 0 2px ${a(zc, 0.55)}, 0 0 40px ${a(zc, 0.25)}` },
+      avatar: { width: 132, height: 132, borderRadius: 66, display: 'grid', placeItems: 'center', fontSize: 48, fontWeight: 600, background: p.bg, opacity: away ? 0.75 : 1, ...(p.pic ? { backgroundImage: `url("${p.pic}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}) },
+      zoneBadge: { position: 'absolute', right: 0, bottom: 4, width: 38, height: 38, borderRadius: 19, display: 'grid', placeItems: 'center', background: '#3a3a3a', color: zc, boxShadow: '0 0 0 3px #232323' },
+      zone: { label: p.place && p.place !== zl ? `${zl} · ${p.place}` : zl, icon: zi, since: p.since },
+      zoneLine: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500, color: '#c7c7c7' },
+      zoneDot: { width: 8, height: 8, borderRadius: 4, background: zc, boxShadow: `0 0 10px ${zc}` },
+      stats: p.stats.map(([icon, v, label, col]) => ({ icon, v, label, iconStyle: { fontSize: 20, color: col, fontVariationSettings: "'FILL' 1" } })),
+      sleep: { h: dur == null ? '–' : Math.floor(dur), m: dur == null ? '–' : Math.round((dur % 1) * 60), window: p.win ? `${hhmm(new Date(p.win[0]))}–${hhmm(new Date(p.win[1]))}` : '',
+        score: dur == null && score == null ? 'Ingen data' : good ? 'God natt' : ok ? 'Grei natt' : 'Urolig natt',
+        scoreStyle: { fontSize: 12, fontWeight: 600, padding: '5px 10px', borderRadius: 10, background: a(good ? C.green : dur == null && score == null ? 'rgb(127 127 127)' : C.amber, 0.16), color: good ? C.green : dur == null && score == null ? '#979797' : C.amber, whiteSpace: 'nowrap' },
+        blocks: p.blocks, legend: p.legend,
+        week: p.wk.map((w, i) => ({ d: w.d, bar: { width: '100%', maxWidth: 26, height: `${w.v / wmax * 100}%`, borderRadius: 6, background: i === 6 ? 'rgb(173 153 230)' : a('rgb(173 153 230)', 0.35) } })) },
+      phone: { model, bat, sub: net,
+        bar: { width: `${typeof bat === 'number' ? bat : 0}%`, height: '100%', borderRadius: 3, background: typeof bat === 'number' && bat < 20 ? 'rgb(242 128 115)' : charging ? C.green : '#fafafa' },
+        chips: [[charging ? 'battery_charging_full' : 'battery_5_bar', charging ? 'Lader' : 'På batteri'], [p.wifi ? 'wifi' : 'signal_cellular_alt', p.netShort || 'Ukjent nett'],
+          ...(p.focus != null ? [['do_not_disturb_on', p.focus ? 'Fokus på' : 'Fokus av']] : []), ['location_on', p.tracked ? 'Posisjon deles' : 'Posisjon av']].map(([icon, label]) => ({ icon, label })) },
+      log: p.log.map(([text, sub, time, z], i, arr) => ({ text, sub, time, dot: { width: 9, height: 9, borderRadius: 5, marginTop: 5, background: ZONE_KIND_COL[z] || C.blue, flex: 'none' }, line: { flex: 1, width: 1, background: i < arr.length - 1 ? 'rgba(255,255,255,0.1)' : 'transparent', marginTop: 4 } })),
+    };
+  }
+  renderVals() {
+    const LV = this.loadLive(this.props.personId || 'sebastian');
+    if (LV) return this.liveVals(LV);
+    const p = P[this.props.personId] || P.sebastian;
+    const [zl, zi, zc] = ZONES[p.zone];
+    const [bed, dur, score] = p.sleep;
+    const tot = {}; SEQ.forEach(k => tot[k] = (tot[k] || 0) + 1);
+    const wmax = Math.max(...p.wk);
+    const [model, bat, charging, net] = p.phone;
+    return {
+      name: p.name, initial: p.initial,
+      halo: { position: 'absolute', inset: -8, borderRadius: '50%', boxShadow: `0 0 0 2px ${a(zc, 0.55)}, 0 0 40px ${a(zc, 0.25)}` },
+      avatar: { width: 132, height: 132, borderRadius: 66, display: 'grid', placeItems: 'center', fontSize: 48, fontWeight: 600, background: p.bg, opacity: p.zone === 'away' ? 0.75 : 1 },
+      zoneBadge: { position: 'absolute', right: 0, bottom: 4, width: 38, height: 38, borderRadius: 19, display: 'grid', placeItems: 'center', background: '#3a3a3a', color: zc, boxShadow: '0 0 0 3px #232323' },
+      zone: { label: `${zl} · ${p.place}`, icon: zi, since: p.since },
+      zoneLine: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500, color: '#c7c7c7' },
+      zoneDot: { width: 8, height: 8, borderRadius: 4, background: zc, boxShadow: `0 0 10px ${zc}` },
+      stats: [['directions_walk', p.steps, 'skritt', C.green], ['route', p.dist, 'reist i dag', C.blue], ['bedtime', `${score}`, 'søvnscore', 'rgb(173 153 230)']].map(([icon, v, label, col]) => ({ icon, v, label, iconStyle: { fontSize: 20, color: col, fontVariationSettings: "'FILL' 1" } })),
+      sleep: { h: Math.floor(dur), m: Math.round((dur % 1) * 60), window: `${hm(bed)}–${hm(bed + dur + 0.3)}`, score: score >= 80 ? 'God natt' : score >= 70 ? 'Grei natt' : 'Urolig natt',
+        scoreStyle: { fontSize: 12, fontWeight: 600, padding: '5px 10px', borderRadius: 10, background: a(score >= 80 ? C.green : C.amber, 0.16), color: score >= 80 ? C.green : C.amber, whiteSpace: 'nowrap' },
+        blocks: SEQ.map((k, i) => ({ flex: 1 + (i % 3) * 0.5, background: STAGES[k][1], opacity: k === 0 ? 0.5 : 1, alignSelf: 'flex-end', height: `${[35, 60, 100, 80][k]}%`, borderRadius: 4 })),
+        legend: STAGES.map(([label, c], k) => ({ label, v: `${Math.round((tot[k] || 0) / SEQ.length * dur * 60)} min`, dot: { width: 8, height: 8, borderRadius: 4, background: c } })),
+        week: p.wk.map((v, i) => ({ d: ['fr', 'lø', 'sø', 'ma', 'ti', 'on', 'i n'][i], bar: { width: '100%', maxWidth: 26, height: `${v / wmax * 100}%`, borderRadius: 6, background: i === 6 ? 'rgb(173 153 230)' : a('rgb(173 153 230)', 0.35) } })) },
+      phone: { model, bat, sub: net,
+        bar: { width: `${bat}%`, height: '100%', borderRadius: 3, background: bat < 20 ? 'rgb(242 128 115)' : charging ? C.green : '#fafafa' },
+        chips: [[charging ? 'battery_charging_full' : 'battery_5_bar', charging ? 'Lader' : 'På batteri'], [net.startsWith('Wi') ? 'wifi' : 'signal_cellular_alt', net.split(' · ')[0]], ['do_not_disturb_on', p.zone === 'home' ? 'Fokus av' : 'Jobb-fokus'], ['location_on', 'Posisjon deles']].map(([icon, label]) => ({ icon, label })) },
+      log: p.log.map(([text, sub, time, z], i, arr) => ({ text, sub, time, dot: { width: 9, height: 9, borderRadius: 5, marginTop: 5, background: ZONES[z][2], flex: 'none' }, line: { flex: 1, width: 1, background: i < arr.length - 1 ? 'rgba(255,255,255,0.1)' : 'transparent', marginTop: 4 } })),
+    };
+  }
+}
+</script>
+</body>
+</html>

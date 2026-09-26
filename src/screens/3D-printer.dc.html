@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#232323;color:#fafafa;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#fafafa}a:hover{color:rgb(242 181 115)}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:disabled{cursor:default}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;user-select:none}
+</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;max-width:420px;min-height:100vh;margin:0 auto;background:#232323;padding:20px 18px 40px;display:flex;flex-direction:column;gap:20px">
+  <header style="display:flex;align-items:center;justify-content:space-between">
+    <div style="font-size:13px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#7f7f7f">{{ title }}</div>
+    <button style="width:36px;height:36px;border-radius:18px;background:#3a3a3a;display:grid;place-items:center"><span class="ms" style="font-size:20px">close</span></button>
+  </header>
+
+  <section style="display:flex;flex-direction:column;gap:10px;padding:0 4px">
+    <div style="{{ statusStyle }}"><span style="{{ statusDot }}"></span>{{ status }}</div>
+    <div style="font-size:24px;font-weight:500;letter-spacing:-0.015em">{{ headline }}</div>
+    <div style="font-size:14px;color:#7f7f7f">{{ subline }}</div>
+    <sc-if value="{{ showProg }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;gap:10px;padding-top:4px">
+        <div style="flex:1;height:8px;border-radius:4px;background:#2f2f2f;overflow:hidden"><div style="{{ progBar }}"></div></div>
+        <span style="font-size:13px;font-weight:500;font-variant-numeric:tabular-nums">{{ prog }} %</span>
+      </div>
+    </sc-if>
+  </section>
+
+  <section onClick="{{ openCam }}" style="{{ camStyle }}">
+    <span class="ms" style="font-size:32px;color:#48474a">{{ camIcon }}</span>
+    <span style="font-size:12px;color:#696969">{{ camLabel }}</span>
+    <span style="{{ camLive }}">Live</span>
+  </section>
+
+  <section style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+    <sc-for list="{{ controls }}" as="c" hint-placeholder-count="5">
+      <button onClick="{{ c.go }}" disabled="{{ c.disabled }}" style="{{ c.style }}">
+        <span class="ms" style="{{ c.iconStyle }}">{{ c.icon }}</span>
+        <span style="font-size:11px;font-weight:500">{{ c.label }}</span>
+      </button>
+    </sc-for>
+  </section>
+
+  <sc-if value="{{ canStart }}" hint-placeholder-val="{{ false }}">
+    <button onClick="{{ startJob }}" style="height:56px;border-radius:28px;background:rgb(242 181 115);color:#1a1408;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px"><span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">print</span>{{ startLabel }}</button>
+  </sc-if>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:4px;border-radius:20px;background:#2f2f2f">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2"><button onPointerDown="{{ t.odown }}" onPointerMove="{{ t.omove }}" onPointerUp="{{ t.oup }}" onPointerCancel="{{ t.oup }}" onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button></sc-for>
+  </div>
+
+  <section style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+    <sc-for list="{{ temps }}" as="t" hint-placeholder-count="3">
+      <div style="display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:18px;background:#2f2f2f">
+        <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#7f7f7f"><span class="ms" style="{{ t.iconStyle }}">{{ t.icon }}</span>{{ t.label }}</span>
+        <span style="font-size:20px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap">{{ t.v }}<span style="font-size:11px;color:#696969;font-weight:400"> {{ t.target }}</span></span>
+        <div style="height:3px;border-radius:2px;background:#3a3a3a;overflow:hidden"><div style="{{ t.bar }}"></div></div>
+      </div>
+    </sc-for>
+  </section>
+
+  <sc-if value="{{ isAdv }}" hint-placeholder-val="{{ false }}">
+    <section style="display:flex;flex-direction:column">
+      <sc-for list="{{ adv }}" as="r" hint-placeholder-count="5">
+        <div style="{{ r.row }}"><span class="ms" style="font-size:18px;color:#7f7f7f;width:24px">{{ r.icon }}</span><span style="flex:1;font-size:14px">{{ r.k }}</span><span style="font-size:13px;color:#afafaf;font-variant-numeric:tabular-nums">{{ r.v }}</span></div>
+      </sc-for>
+    </section>
+  </sc-if>
+
+  <section style="display:flex;flex-direction:column;gap:2px">
+    <div style="display:flex;justify-content:space-between;padding:0 4px 8px">
+      <div style="font-size:12px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#7f7f7f">Filament · CFS</div>
+      <div style="font-size:12px;color:#696969">{{ cfsMeta }}</div>
+    </div>
+    <sc-for list="{{ slots }}" as="f" hint-placeholder-count="4">
+      <button onClick="{{ f.pick }}" style="{{ f.row }}">
+        <span style="{{ f.swatch }}">{{ f.n }}</span>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;text-align:left">
+          <div style="display:flex;justify-content:space-between;gap:10px">
+            <span style="font-size:14px;font-weight:500">{{ f.name }}</span>
+            <span style="font-size:12px;color:#7f7f7f;font-variant-numeric:tabular-nums">{{ f.left }}</span>
+          </div>
+          <div style="height:4px;border-radius:2px;background:#3a3a3a;overflow:hidden"><div style="{{ f.bar }}"></div></div>
+        </div>
+      </button>
+    </sc-for>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:1200}}">
+const AMBER = 'rgb(242 181 115)', GREEN = 'rgb(102 209 158)', RED = 'rgb(242 128 115)', BLUE = 'rgb(115 185 242)';
+const a = (c, o) => c.replace(')', ` / ${o})`);
+const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
+const DEMO_SLOTS = [['PLA Hvit', '#ecebe6', 78], ['PLA Svart', '#2b2b2e', 41], ['PETG Oransje', 'rgb(242 181 115)', 63], ['PLA Silk Gull', 'rgb(242 210 111)', 12]];
+const TABORD = (comp, key, list) => {
+  const LK = 'tab-order:' + key; let ord = null; try { ord = JSON.parse(localStorage.getItem(LK) || 'null'); } catch (e) {}
+  const st = comp.state.__tdrag; let L = list.map((t, i) => ({ t, k: String(t.label ?? i) }));
+  if (ord) L.sort((a, b) => { const ia = ord.indexOf(a.k), ib = ord.indexOf(b.k); return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib); });
+  const keys = L.map(x => x.k), mine = st && st.key === key;
+  const begin = (el, k, x0) => { const sib = [...el.parentElement.children].filter(c => c.tagName === el.tagName), rects = sib.map(c => c.getBoundingClientRect()), i = sib.indexOf(el);
+    window.__tabReorder = true; if (navigator.vibrate) navigator.vibrate(10); comp.setState({ __tdrag: { key, k, dx: 0 } });
+    const mv = e => { e.preventDefault(); e.stopPropagation(); comp.setState({ __tdrag: { key, k, dx: e.clientX - x0 } }); };
+    const fin = e => { window.removeEventListener('pointermove', mv, true); window.removeEventListener('pointerup', fin, true); window.removeEventListener('pointercancel', fin, true);
+      e.stopPropagation(); setTimeout(() => { window.__tabReorder = false; }, 60);
+      if (e.type === 'pointerup') { const r0 = rects[Math.max(0, i)] || rects[0], cx = r0.left + r0.width / 2 + (e.clientX - x0); let j = rects.findIndex(r => cx >= r.left && cx <= r.right); if (j < 0) j = cx < rects[0].left ? 0 : rects.length - 1;
+        const a2 = keys.filter(x => x !== k); a2.splice(j, 0, k); try { localStorage.setItem(LK, JSON.stringify(a2)); } catch (x) {} }
+      comp._tEat = true; setTimeout(() => { comp._tEat = false; }, 350); comp.setState({ __tdrag: null }); };
+    window.addEventListener('pointermove', mv, { capture: true, passive: false }); window.addEventListener('pointerup', fin, true); window.addEventListener('pointercancel', fin, true); };
+  return L.map(({ t, k }) => { const d = mine && st.k === k;
+    return { ...t,
+      odown: e => { const el = e.currentTarget, x0 = e.clientX, y0 = e.clientY; clearTimeout(comp._tHold); comp._tXY = [x0, y0]; comp._tHold = setTimeout(() => begin(el, k, x0), 380); },
+      omove: e => { const p = comp._tXY; if (p && Math.hypot(e.clientX - p[0], e.clientY - p[1]) > 8) clearTimeout(comp._tHold); },
+      oup: () => clearTimeout(comp._tHold),
+      ...(t.go ? { go: e => { if (comp._tEat) return; t.go(e); } } : {}),
+      style: d ? { ...t.style, position: 'relative', zIndex: 5, transform: `translateX(${st.dx}px) scale(1.06)`, boxShadow: '0 8px 20px rgba(0,0,0,0.45), inset 0 0 0 1.5px rgb(242 133 201)', transition: 'none', touchAction: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }
+        : mine ? { ...t.style, opacity: 0.65, transition: 'opacity .2s' } : { ...t.style, WebkitTouchCallout: 'none', userSelect: 'none' } }; });
+};
+let SLOTS = DEMO_SLOTS;
+
+// ── Live-kobling: 3D-printer (Creality K2 / Bambu Lab / OctoPrint / PrusaLink / Moonraker) ──
+// Entitetene bygges fra et prefiks: `printer.prefiks` i kortkonfig (standard creality_k2, ellers
+// autodetektert fra sensor.*_print_status / *_current_state / *_print_progress / *_job_percentage).
+// Hver rolle kan overstyres med alias `printer_<rolle>` i `entities:` (se docs/screens/3D-printer.md).
+const ROLES = {
+  status: ['sensor:print_status', 'sensor:current_state', 'sensor:status', 'sensor:'],
+  progress: ['sensor:print_progress', 'sensor:job_percentage', 'sensor:progress'],
+  time_left: ['sensor:print_time_left', 'sensor:remaining_time', 'sensor:time_remaining', 'sensor:print_time_remaining'],
+  layer: ['sensor:working_layer', 'sensor:current_layer'], layers: ['sensor:total_layers', 'sensor:total_layer_count'],
+  file: ['sensor:current_object', 'sensor:task_name', 'sensor:gcode_filename', 'sensor:filename', 'sensor:job_name', 'sensor:current_file'],
+  nozzle: ['sensor:nozzle_temperature', 'sensor:actual_tool0_temp', 'sensor:nozzle_temp', 'sensor:extruder_temperature'],
+  nozzle_target: ['number:nozzle_target', 'sensor:target_nozzle_temperature', 'sensor:target_tool0_temp', 'sensor:nozzle_target_temperature', 'number:nozzle_target_temperature'],
+  bed: ['sensor:bed_temperature', 'sensor:actual_bed_temp', 'sensor:heatbed_temperature', 'sensor:bed_temp'],
+  bed_target: ['number:bed_target', 'sensor:target_bed_temperature', 'sensor:target_bed_temp', 'sensor:bed_target_temperature', 'number:bed_target_temperature'],
+  chamber: ['sensor:chamber_temperature', 'sensor:chamber_temp'],
+  pause: ['button:pause_print', 'button:pause_printing', 'button:pause_job', 'button:pause'],
+  resume: ['button:resume_print', 'button:resume_printing', 'button:resume_job', 'button:resume'],
+  stop: ['button:stop_print', 'button:stop_printing', 'button:stop_job', 'button:cancel_job', 'button:cancel_print', 'button:stop'],
+  light: ['light:light', 'light:chamber_light', 'switch:light', 'switch:chamber_light'],
+  power: ['switch:', 'switch:power'],
+  camera: ['camera:printer_camera', 'camera:camera', 'camera:', 'camera:webcam'],
+  speed: ['sensor:print_speed', 'select:printing_speed', 'number:print_tuning', 'sensor:speed_factor'],
+  part_fan: ['fan:model_fan', 'sensor:cooling_fan_speed', 'fan:cooling_fan', 'sensor:part_fan', 'fan:part_fan'],
+  chamber_fan: ['fan:case_fan', 'fan:side_fan', 'sensor:aux_fan_speed', 'fan:chamber_fan', 'sensor:chamber_fan_speed'],
+  z_offset: ['sensor:z_offset', 'number:z_offset', 'sensor:position_z'],
+  layer_height: ['sensor:layer_height', 'sensor:layer_thickness'],
+  active_slot: ['sensor:active_filament_slot', 'sensor:active_tray'],
+  cfs_temp: ['sensor:cfs_box_1_temperature', 'sensor:ams_1_temperature'], cfs_hum: ['sensor:cfs_box_1_humidity', 'sensor:ams_1_humidity'],
+};
+function printerPrefix() {
+  const c = ha.config.printer || {};
+  if (c.prefiks) return c.prefiks;
+  if (ha.state('sensor.creality_k2_print_status')) return 'creality_k2';
+  const hit = ha.domain('sensor', (s, id) => /_(print_status|current_state|print_progress|job_percentage)$/.test(id))[0];
+  return hit ? hit.split('.')[1].replace(/_(print_status|current_state|print_progress|job_percentage)$/, '') : null;
+}
+const JOB = s => { s = String(s || '').toLowerCase();
+  if (/print|running|busy|druck/.test(s) && !/finish|complete/.test(s)) return 'printing';
+  if (/paus/.test(s)) return 'paused'; if (/heat|preheat/.test(s)) return 'heating';
+  if (/complete|finish|done|ferdig/.test(s)) return 'done';
+  if (/offline|unavailable|off$|disconnected|error|closed/.test(s)) return 'off';
+  return 'idle'; };
+const secsOf = (id) => { const st = ha.state(id); if (!st || ['unknown', 'unavailable'].includes(st.state)) return null;
+  const raw = st.state, u = String(st.attributes.unit_of_measurement || 's');
+  if (/:/.test(raw)) { const d = raw.split(':').map(Number); return d.length === 3 ? d[0] * 3600 + d[1] * 60 + d[2] : d[0] * 60 + d[1]; }
+  if (st.attributes.device_class === 'timestamp' || /^\d{4}-/.test(raw)) return Math.max(0, (new Date(raw) - Date.now()) / 1000);
+  const v = parseFloat(raw); if (!Number.isFinite(v)) return null;
+  return u === 'h' ? v * 3600 : u === 'min' ? v * 60 : v; };
+const colOf = raw => { const s = String(raw || '').trim(); if (/^#?[0-9a-f]{6,8}$/i.test(s)) return '#' + s.replace('#', '').slice(0, 6); if (/^\d{1,3},\s*\d{1,3},\s*\d{1,3}$/.test(s)) return `rgb(${s})`; return null; };
+function loadLive() {
+  const p = printerPrefix(); if (!p) return null;
+  const E = {};
+  for (const k in ROLES) E[k] = ha.first('printer_' + k, ...ROLES[k].map(r => { const [d, suf] = r.split(':'); return `${d}.${p}${suf ? '_' + suf : ''}`; }));
+  if (!E.status && !E.progress) return null;
+  const st = E.status ? ha.val(E.status, 'unavailable') : 'idle';
+  let job = JOB(st);
+  const powerOn = E.power ? ha.on(E.power, false) : job !== 'off';
+  if (!powerOn) job = 'off';
+  const pct = ha.num(E.progress, 0);
+  const n = id => ha.num(id, null);
+  const fanTxt = id => { if (!id) return '–'; if (id.startsWith('fan.')) return ha.on(id, false) ? `${Math.round(ha.attr(id, 'percentage', 100))} %` : '0 %'; const v = n(id); return v == null ? '–' : `${Math.round(v)} %`; };
+  // filament: K2 CFS (cfs_box_1_slot_N_*) eller Bambu AMS (ams_1_tray_N)
+  const slots = [];
+  for (let i = 1; i <= 4; i++) {
+    const f = ha.first(`printer_slot_${i}`, `sensor.${p}_cfs_box_1_slot_${i}_filament`, `sensor.${p}_ams_1_tray_${i}`, `sensor.${p}_tray_${i}`);
+    if (!f) continue;
+    const a = ha.state(f).attributes || {};
+    const name = [a.type || a.filament_type || '', ha.val(f, a.name || '')].filter(Boolean).join(' ').trim() || `Slot ${i}`;
+    const col = colOf(ha.val(`sensor.${p}_cfs_box_1_slot_${i}_color`)) || colOf(a.color) || '#7f7f7f';
+    const rem = ha.num(`sensor.${p}_cfs_box_1_slot_${i}_remaining`, a.remain ?? a.remaining ?? null);
+    slots.push([name.replace(/^(\w+) \1/, '$1'), col, rem == null || rem < 0 ? null : Math.round(rem), f]);
+  }
+  const act = ha.val(E.active_slot, null);
+  const actIdx = act == null ? -1 : slots.findIndex((x, i) => String(i + 1) === String(act).replace(/\D/g, '') || x[3] === act);
+  const title = (ha.config.printer?.navn || ha.device(E.status || E.progress)?.name_by_user || ha.device(E.status || E.progress)?.name || p.replace(/_/g, ' ')).toUpperCase();
+  return { p, E, job, powerOn, pct, st, slots, actIdx, title,
+    light: E.light ? ha.on(E.light, false) : false,
+    nozzle: n(E.nozzle) ?? 0, bed: n(E.bed) ?? 0, chamber: n(E.chamber),
+    tN: n(E.nozzle_target) || 0, tB: n(E.bed_target) || 0,
+    left: secsOf(E.time_left), layer: n(E.layer), layers: n(E.layers),
+    file: E.file ? ha.val(E.file, '') : (ha.attr(E.progress, 'job_name', '') || ''),
+    adv: [E.speed ? (E.speed.startsWith('select.') ? ha.val(E.speed, '–') : `${Math.round(n(E.speed) ?? 0)} ${/mm/.test(ha.unit(E.speed, '')) ? 'mm/s' : '%'}`) : '–', fanTxt(E.part_fan), fanTxt(E.chamber_fan),
+      E.z_offset && n(E.z_offset) != null ? `${n(E.z_offset).toLocaleString('nb-NO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace('-', '−')} mm` : '–',
+      E.layer_height && n(E.layer_height) != null ? `${n(E.layer_height).toLocaleString('nb-NO')} mm` : '–'],
+    cfs: n(E.cfs_temp) != null || n(E.cfs_hum) != null ? `${n(E.cfs_temp) != null ? Math.round(n(E.cfs_temp)) + ' °C' : '–'} · ${n(E.cfs_hum) != null ? Math.round(n(E.cfs_hum)) + ' % RF' : '–'}` : '–',
+    cam: E.camera ? ha.attr(E.camera, 'entity_picture', null) : null };
+}
+const durTxt = sec => { if (sec == null) return null; const m = Math.round(sec / 60); return m >= 60 ? `${Math.floor(m / 60)} t ${m % 60} min` : `${m} min`; };
+
+class Component extends DCLogic {
+  state = { power: false, light: false, job: 'idle', prog: 0, nozzle: 22, bed: 22, chamber: 21, tab: 'simple', slot: 0 };
+  componentDidMount() { this.t = setInterval(() => this.tick(), 1000); }
+  componentWillUnmount() { clearInterval(this.t); }
+  tick() {
+    if (this.L) return;
+    const s = this.state, printing = s.job === 'printing', heat = s.power && (printing || s.job === 'heating');
+    const approach = (v, tgt, k) => v + (tgt - v) * k;
+    const nz = approach(s.nozzle, heat ? 220 : 22, 0.18), bd = approach(s.bed, heat ? 60 : 22, 0.15), ch = approach(s.chamber, heat ? 38 : 21, 0.05);
+    let job = s.job, prog = s.prog;
+    if (job === 'heating' && nz > 212) job = 'printing';
+    if (job === 'printing') { prog = Math.min(100, prog + 1.5); if (prog >= 100) job = 'done'; }
+    this.setState({ nozzle: nz, bed: bd, chamber: ch, job, prog });
+  }
+  __tabWrap(v) { if (v && Array.isArray(v.tabs)) v.tabs = TABORD(this, '3d-printer', v.tabs); return v; }
+  renderVals() { return this.__tabWrap(this.__rv()); }
+  __rv() {
+    const L = this.L = loadLive();
+    SLOTS = L && L.slots.length ? L.slots : DEMO_SLOTS;
+    const s = L ? { ...this.state, power: L.powerOn, light: L.light, job: L.job === 'off' ? 'idle' : L.job, prog: L.pct, nozzle: L.nozzle, bed: L.bed, chamber: L.chamber ?? 0, slot: L.actIdx >= 0 ? L.actIdx : Math.min(this.state.slot, SLOTS.length - 1) } : this.state;
+    const p = s.job === 'printing', paused = s.job === 'paused';
+    const st = !s.power ? ['Av', '#7f7f7f'] : s.job === 'heating' ? ['Varmer opp', AMBER] : p ? ['Skriver ut', GREEN] : paused ? ['Pause', AMBER] : s.job === 'done' ? ['Ferdig', GREEN] : ['Klar', BLUE];
+    const ctrl = (icon, label, col, go, disabled, on) => ({ icon, label, go, disabled,
+      style: { height: 74, borderRadius: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, background: on ? a(col, 0.18) : '#2f2f2f', boxShadow: on ? `inset 0 0 0 1px ${a(col, 0.45)}` : 'none', color: disabled ? '#48474a' : '#fafafa', opacity: disabled ? 0.6 : 1 },
+      iconStyle: { fontSize: 24, color: disabled ? '#48474a' : col, fontVariationSettings: "'FILL' 1" } });
+    const left = Math.round((100 - s.prog) * 0.6);
+    const temp = (icon, label, v, tgt, max, col, missing) => ({ icon, label, v: s.power && !missing ? `${Math.round(v)}°` : '–', target: s.power && tgt ? `/ ${Math.round(tgt)}°` : '',
+      iconStyle: { fontSize: 15, color: col }, bar: { width: `${s.power && !missing ? Math.min(100, v / max * 100) : 0}%`, height: '100%', background: col, transition: 'width 1s' } });
+    const file = L ? (L.file || 'Utskrift') : 'benchy_pla.gcode';
+    const slotName = SLOTS[s.slot] ? SLOTS[s.slot][0] : '';
+    const live = (fn, demo) => L ? fn : demo;
+    const sub = L ? (p ? [L.layer != null && L.layers ? `Lag ${Math.round(L.layer)} av ${Math.round(L.layers)}` : `${Math.round(s.prog)} % ferdig`, durTxt(L.left) ? `ca. ${durTxt(L.left)} igjen` : ''].filter(Boolean).join(' · ')
+      : paused ? 'Satt på pause' : !s.power ? 'Slå på for å varme opp og se kamera' : slotName ? `${slotName} valgt` : L.st)
+      : p ? `Lag ${Math.round(s.prog * 2.4)} av 240 · ca. ${left} min igjen` : paused ? 'Satt på pause' : !s.power ? 'Slå på for å varme opp og se kamera' : `${SLOTS[s.slot][0]} valgt`;
+    const startId = L && ha.first('printer_start', ha.config.printer?.start || null);
+    const confirmOff = () => !(p || paused) || window.confirm('Printeren skriver ut. Slå av strømmen likevel?');
+    return {
+      title: L ? L.title : 'Creality K2',
+      status: st[0], statusStyle: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 500, color: '#afafaf' },
+      statusDot: { width: 8, height: 8, borderRadius: 4, background: st[1], boxShadow: s.power ? `0 0 10px ${st[1]}` : 'none' },
+      headline: !s.power ? 'Printeren er av' : p || paused ? file : s.job === 'heating' ? 'Varmer dyse og plate' : s.job === 'done' ? 'Utskriften er ferdig' : 'Klar til utskrift',
+      subline: sub,
+      showProg: p || paused || s.job === 'done', prog: Math.round(s.prog),
+      progBar: { width: `${s.prog}%`, height: '100%', borderRadius: 4, background: paused ? AMBER : GREEN, transition: 'width 1s' },
+      camStyle: { position: 'relative', height: 200, borderRadius: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, background: s.power ? (s.light ? '#26262a' : '#2f2f2f') : '#18181a', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.05)', transition: 'background .3s',
+        ...(L && L.cam && s.power ? { backgroundImage: `url("${L.cam}")`, backgroundSize: 'cover', backgroundPosition: 'center', cursor: 'pointer' } : {}) },
+      camIcon: L && L.cam && s.power ? '' : s.power ? 'videocam' : 'videocam_off', camLabel: L && L.cam && s.power ? '' : s.power ? 'Kamerastrøm' : 'Kamera er av',
+      openCam: () => L && ha.moreInfo(L.E.camera || L.E.status),
+      camLive: { position: 'absolute', left: 12, top: 12, display: s.power ? 'block' : 'none', fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 8, background: RED, color: '#fff' },
+      controls: [
+        ctrl('pause', 'Pause', AMBER, live(() => ha.press(L.E.pause), () => this.setState({ job: 'paused' })), !p || (L && !L.E.pause)),
+        ctrl('play_arrow', 'Fortsett', GREEN, live(() => ha.press(L.E.resume), () => this.setState({ job: 'printing' })), !paused || (L && !L.E.resume)),
+        ctrl('stop', 'Stopp', RED, live(() => window.confirm('Avbryte utskriften?') && ha.press(L.E.stop), () => this.setState({ job: 'idle', prog: 0 })), !(p || paused || s.job === 'heating') || (L && !L.E.stop)),
+        ctrl('lightbulb', 'Lys', AMBER, live(() => ha.toggle(L.E.light), () => this.setState({ light: !s.light })), !s.power || (L && !L.E.light), s.light),
+        ctrl('power_settings_new', 'Strøm', s.power ? GREEN : '#fafafa', live(() => confirmOff() && ha.toggle(L.E.power), () => this.setState({ power: !s.power, job: 'idle', prog: 0, light: false })), !!L && !L.E.power, s.power),
+      ],
+      canStart: s.power && (s.job === 'idle' || s.job === 'done') && (!L || !!startId),
+      startJob: live(() => { const d = startId.split('.')[0]; return d === 'button' ? ha.press(startId) : d === 'script' ? ha.call('script', 'turn_on', { entity_id: startId }) : ha.toggle(startId); }, () => this.setState({ job: 'heating', prog: 0 })),
+      startLabel: `Skriv ut siste jobb · ${L ? (L.file || ha.name(startId || '', 'siste fil')) : 'benchy_pla.gcode'}`,
+      tabs: [['simple', 'Enkel'], ['adv', 'Avansert']].map(([k, label]) => ({ label, go: () => this.setState({ tab: k }), style: { height: 40, borderRadius: 16, fontSize: 13, fontWeight: 500, background: s.tab === k ? PINK : 'transparent', color: s.tab === k ? '#2a1720' : '#979797' } })),
+      temps: [temp('local_fire_department', 'Dyse', s.nozzle, L ? L.tN : (p || s.job === 'heating' ? 220 : 0), 300, RED), temp('square', 'Plate', s.bed, L ? L.tB : (p || s.job === 'heating' ? 60 : 0), 110, AMBER), temp('home', 'Kammer', s.chamber, 0, 60, BLUE, L && L.chamber == null)],
+      isAdv: s.tab === 'adv',
+      adv: [['speed', 'Hastighet', p ? '100 %' : '–'], ['mode_fan', 'Delkjølevifte', p ? '80 %' : '0 %'], ['air', 'Kammervifte', s.power ? '30 %' : '0 %'], ['height', 'Z-offset', '−0,04 mm'], ['layers', 'Lagtykkelse', '0,2 mm']].map(([icon, k, v], i) => ({ icon, k, v: L ? L.adv[i] : v, row: { display: 'flex', alignItems: 'center', gap: 10, padding: '11px 4px', borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none' } })),
+      cfsMeta: L ? L.cfs : s.power ? '24 °C · 31 % RF' : '–',
+      slots: SLOTS.map(([name, col, pct, ent], i) => { const act = s.slot === i, pv = pct ?? 0; return { n: i + 1, name, left: pct == null ? '–' : `${pct} % · ca. ${Math.round(pct * 10)} g`, pick: () => L ? ha.moreInfo(ent) : this.setState({ slot: i }),
+        row: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 10px', borderRadius: 16, width: '100%', background: act ? '#2f2f2f' : 'transparent', boxShadow: act ? 'inset 0 0 0 1px rgba(255,255,255,0.08)' : 'none' },
+        swatch: { width: 34, height: 34, borderRadius: 10, flex: 'none', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 600, background: col, color: (L ? /^#(0|1|2|3)/.test(col) : i === 1) ? '#fafafa' : '#232323', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.15)' },
+        bar: { width: `${pv}%`, height: '100%', background: pv < 15 ? AMBER : '#afafaf' } }; }),
+    };
+  }
+}
+</script>
+</body>
+</html>

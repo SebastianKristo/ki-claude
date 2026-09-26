@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#0f0f10;color:#fafafa;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#fafafa}a:hover{color:rgb(242 181 115)}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;letter-spacing:normal;text-transform:none;white-space:nowrap;direction:ltr;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;user-select:none}
+</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;height:100vh;min-width:1080px;min-height:760px;padding:18px 20px 20px 18px;display:grid;grid-template-columns:64px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);gap:16px 16px;background:#0f0f10">
+
+  <nav style="grid-row:1 / 3;background:#1b1b1d;border:1px solid rgba(255,255,255,0.05);border-radius:32px;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px">
+    <sc-for list="{{ nav }}" as="n" hint-placeholder-count="11">
+      <button onClick="{{ n.go }}" title="{{ n.label }}" style="{{ n.style }}"><span class="ms" style="font-size:22px">{{ n.icon }}</span></button>
+    </sc-for>
+    <div style="flex:1"></div>
+    <button title="Innstillinger" style="width:44px;height:44px;border-radius:22px;display:grid;place-items:center;color:#7f7f7f"><span class="ms" style="font-size:22px">tune</span></button>
+  </nav>
+
+  <header style="grid-column:2 / 3;display:flex;align-items:center;gap:16px;padding:2px 4px 0 8px">
+    <div style="font-size:76px;font-weight:300;letter-spacing:-0.04em;line-height:0.9;font-variant-numeric:tabular-nums">{{ time }}</div>
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <div style="font-size:18px;font-weight:500;white-space:nowrap">{{ weekday }}</div>
+      <div style="font-size:14px;color:#7f7f7f;white-space:nowrap">{{ date }}</div>
+    </div>
+  </header>
+
+  <div style="grid-column:3 / 5;display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;min-width:0">
+    <sc-for list="{{ chips }}" as="c" hint-placeholder-count="5">
+      <div style="height:40px;padding:0 14px 0 11px;white-space:nowrap;border-radius:20px;background:#1b1b1d;border:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500">
+        <span class="ms" style="{{ c.iconStyle }}">{{ c.icon }}</span>{{ c.label }}
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- Column 1 -->
+  <div style="grid-column:2;display:flex;flex-direction:column;gap:16px;min-height:0">
+    <div style="padding:6px 8px 0;font-size:21px;line-height:1.95;font-weight:400;color:#afafaf;text-wrap:pretty">
+      Ute er det <span style="display:inline-flex;align-items:center;gap:6px;padding:2px 12px;border-radius:14px;background:#232326;color:#fafafa;font-weight:500;line-height:1.4"><span class="ms" style="font-size:18px;color:#7f7f7f">{{ wxIcon }}</span>{{ wxText }}</span>. Strømmen koster <span style="display:inline-flex;align-items:center;gap:6px;padding:2px 12px;border-radius:14px;background:#232326;color:#fafafa;font-weight:500;line-height:1.4"><span style="{{ priceDot }}"></span>{{ price }}</span> og vi bruker <span style="display:inline-flex;padding:2px 12px;border-radius:14px;background:#232326;color:#fafafa;font-weight:500;line-height:1.4;font-variant-numeric:tabular-nums">{{ watts }} W</span> med <span style="display:inline-flex;align-items:center;gap:6px;padding:2px 12px;border-radius:14px;background:rgb(242 181 115 / 0.16);color:rgb(242 181 115);font-weight:500;line-height:1.4"><span class="ms" style="font-size:18px">lightbulb</span>{{ onCount }} lys</span> på. Vi har <span style="display:inline-flex;align-items:center;gap:6px;padding:2px 12px;border-radius:14px;background:#232326;color:#fafafa;font-weight:500;line-height:1.4"><span class="ms" style="font-size:18px;color:#7f7f7f">event</span>{{ eventsLabel }}</span> i dag.
+    </div>
+
+    <div style="background:#1b1b1d;border:1px solid rgba(255,255,255,0.05);border-radius:28px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <div style="font-size:13px;color:#7f7f7f">Familien</div>
+        <div style="font-size:17px;font-weight:500">{{ homeLabel }}</div>
+      </div>
+      <div style="display:flex;gap:14px">
+        <sc-for list="{{ family }}" as="p" hint-placeholder-count="3">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+            <div style="position:relative;width:48px;height:48px">
+              <div style="{{ p.avatarStyle }}">{{ p.initials }}</div>
+              <div style="{{ p.badgeStyle }}"><span class="ms" style="font-size:12px">{{ p.badge }}</span></div>
+            </div>
+            <div style="font-size:12px;color:#979797">{{ p.name }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="flex:1;min-height:0;background:#1b1b1d;border:1px solid rgba(255,255,255,0.05);border-radius:28px;padding:18px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:0 4px">
+        <div style="font-size:13px;color:#7f7f7f">Scener</div>
+        <div style="font-size:12px;color:#7f7f7f">{{ sceneStatus }}</div>
+      </div>
+      <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:10px;min-height:0">
+        <sc-for list="{{ scenes }}" as="s" hint-placeholder-count="6">
+          <button onClick="{{ s.run }}" style="{{ s.style }}">
+            <span style="{{ s.iconWrap }}"><span class="ms" style="font-size:20px">{{ s.icon }}</span></span>
+            <span style="font-size:15px;font-weight:500">{{ s.name }}</span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- Column 2 -->
+  <div style="grid-column:3;display:flex;flex-direction:column;gap:16px;min-height:0">
+    <div style="background:#1b1b1d;border:1px solid rgba(255,255,255,0.05);border-radius:28px;padding:18px;display:flex;gap:16px">
+      <div style="flex:1;display:flex;flex-direction:column;gap:14px;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="height:26px;padding:0 10px 0 8px;border-radius:13px;background:#2a2a2a;white-space:nowrap;flex:none;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500"><span class="ms" style="font-size:15px;color:#979797">speaker</span>{{ mediaName }}</div>
+          <div style="display:flex;gap:4px"><span style="width:14px;height:5px;border-radius:3px;background:#fafafa"></span><span style="width:5px;height:5px;border-radius:3px;background:#48474a"></span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <div style="font-size:22px;font-weight:500">{{ mediaTitle }}</div>
+          <div style="font-size:13px;color:#7f7f7f">{{ mediaSub }}</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:auto">
+          <button onClick="{{ toggleMedia }}" style="{{ mediaPowerStyle }}"><span class="ms" style="font-size:20px">power_settings_new</span></button>
+          <button onClick="{{ toggleMedia }}" style="width:40px;height:40px;border-radius:20px;background:#29292c;display:grid;place-items:center"><span class="ms" style="font-size:20px">{{ playIcon }}</span></button>
+          <button onClick="{{ mediaNext }}" style="width:40px;height:40px;border-radius:20px;background:#29292c;display:grid;place-items:center"><span class="ms" style="font-size:20px">skip_next</span></button>
+        </div>
+      </div>
+      <div style="width:120px;height:120px;border-radius:20px;flex:none;background:repeating-linear-gradient(135deg,#252528 0 6px,#2a2a2d 6px 12px);display:grid;place-items:center;font:10px ui-monospace,Menlo,monospace;color:#696969;text-align:center;position:relative;overflow:hidden">{{ artText }}<sc-if value="{{ artImg }}" hint-placeholder-val="{{ false }}"><img src="{{ artImg }}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></img></sc-if></div>
+    </div>
+
+    <div style="flex:1;min-height:0;background:#1b1b1d;border:1px solid rgba(255,255,255,0.05);border-radius:28px;padding:18px;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:12px;padding-bottom:14px">
+        <div style="width:44px;height:44px;border-radius:22px;background:rgb(242 181 115 / 0.18);color:rgb(242 181 115);display:grid;place-items:center"><span class="ms" style="font-size:22px">home_iot_device</span></div>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div style="font-size:13px;color:#7f7f7f">Varme</div>
+          <div style="font-size:16px;font-weight:500">{{ heatTitle }} · {{ heatCount }}</div>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column">
+        <sc-for list="{{ heaters }}" as="h" hint-placeholder-count="2">
+          <div style="flex:1;display:flex;align-items:center;gap:8px;border-top:1px solid rgba(255,255,255,0.06);min-height:72px">
+            <button onClick="{{ h.toggle }}" style="{{ h.iconStyle }}"><span class="ms" style="font-size:20px">{{ h.icon }}</span></button>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+              <div style="font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ h.name }}</div>
+              <div style="font-size:12px;color:#7f7f7f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ h.sub }}</div>
+            </div>
+            <button onClick="{{ h.dec }}" style="width:40px;height:40px;border-radius:20px;background:#2a2a2a;display:grid;place-items:center"><span class="ms" style="font-size:20px">remove</span></button>
+            <div style="width:64px;flex:none;text-align:center;font-size:26px;font-weight:300;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">{{ h.temp }}<span style="font-size:15px;color:#7f7f7f;vertical-align:top">°</span></div>
+            <button onClick="{{ h.inc }}" style="width:40px;height:40px;border-radius:20px;background:#2a2a2a;display:grid;place-items:center"><span class="ms" style="font-size:20px">add</span></button>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div onClick="{{ plexGo }}" style="background:#1b1b1d;border:1px solid rgba(255,255,255,0.05);border-radius:28px;padding:16px 18px;display:flex;align-items:center;gap:12px">
+      <div style="width:44px;height:44px;border-radius:22px;background:#2a2a2a;display:grid;place-items:center"><span class="ms" style="font-size:22px;color:rgb(242 210 111)">play_circle</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+        <div style="font-size:13px;color:#7f7f7f">Nytt i Plex</div>
+        <div style="font-size:16px;font-weight:500">{{ plexText }}</div>
+      </div>
+      <span class="ms" style="font-size:20px;color:#696969">chevron_right</span>
+    </div>
+  </div>
+
+  <!-- Column 3 -->
+  <div style="grid-column:4;display:flex;flex-direction:column;gap:16px;min-height:0">
+    <div style="flex:1;min-height:0;background:#1b1b1d;border:1px solid rgba(255,255,255,0.05);border-radius:28px;padding:18px 14px 14px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px;padding:0 4px">
+        <div style="{{ lightHeadIcon }}"><span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">lightbulb</span></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+          <div style="font-size:13px;color:#7f7f7f">{{ lightTitle }}</div>
+          <div style="font-size:16px;font-weight:500">{{ onLabel }}</div>
+        </div>
+        <button onClick="{{ allLights }}" style="height:36px;padding:0 14px;border-radius:18px;background:#29292c;font-size:13px;font-weight:500">{{ allLabel }}</button>
+      </div>
+      <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:6px">
+        <sc-for list="{{ lights }}" as="l" hint-placeholder-count="8">
+          <div onPointerDown="{{ l.down }}" onPointerMove="{{ l.move }}" onPointerUp="{{ l.up }}" onPointerCancel="{{ l.up }}" style="{{ l.rowStyle }}">
+            <div style="{{ l.fillStyle }}"></div>
+            <span class="ms" style="{{ l.bulbStyle }}">lightbulb</span>
+            <div style="position:relative;flex:1;min-width:0;font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ l.name }}</div>
+            <div style="{{ l.pctStyle }}">{{ l.pct }}</div>
+            <div style="{{ l.trackStyle }}"><div style="{{ l.knobStyle }}"></div></div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="font-size:11px;color:#696969;text-align:center">Trykk for å slå av/på · dra for lysstyrke</div>
+    </div>
+
+    <div style="background:#1b1b1d;border:1px solid rgba(255,255,255,0.05);border-radius:28px;padding:6px 16px;display:flex;flex-direction:column">
+      <sc-for list="{{ covers }}" as="c" hint-placeholder-count="2">
+        <div style="{{ c.rowStyle }}">
+          <div style="width:44px;height:44px;border-radius:22px;background:#2a2a2a;display:grid;place-items:center"><span class="ms" style="font-size:22px">{{ c.icon }}</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+            <div style="font-size:13px;color:#7f7f7f">{{ c.name }}</div>
+            <div style="font-size:15px;font-weight:500">{{ c.state }}</div>
+          </div>
+          <sc-for list="{{ c.buttons }}" as="b" hint-placeholder-count="3">
+            <button onClick="{{ b.go }}" style="width:40px;height:40px;border-radius:20px;background:#2a2a2a;display:grid;place-items:center"><span class="ms" style="font-size:20px">{{ b.icon }}</span></button>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const AMBER = 'rgb(242 181 115)';
+
+// ── Live-kobling: iPad-oversikt ─────────────────────────────────────────────────────────
+// Hver flis er live når entitetene finnes, ellers vises designets demo for den delen.
+// Alias (entities:): vaer, strompris, effekt, lys_rom (område), las, alarm, stovsuger, ipad_media,
+// markise, gardiner, plex_nytt, scene_filmkveld, scene_middag, nattmodus, scene_natta, kamera.
+// Kortkonfig `ipad: { lys: [...], rom: 'stue', varme: [climate…], scener: [{ entity, navn, ikon }], kalendere: [...], personer: [...] }`.
+const COND = { 'clear-night': ['klart', 'Klart', 'clear_night'], cloudy: ['overskyet', 'Skyet', 'cloud'], fog: ['tåke', 'Tåke', 'foggy'], hail: ['hagl', 'Hagl', 'weather_hail'], lightning: ['torden', 'Torden', 'thunderstorm'], 'lightning-rainy': ['torden og regn', 'Torden', 'thunderstorm'],
+  partlycloudy: ['delvis skyet', 'Delvis skyet', 'partly_cloudy_day'], pouring: ['styrtregn', 'Styrtregn', 'rainy'], rainy: ['regn', 'Regn', 'rainy'], snowy: ['snø', 'Snø', 'weather_snowy'], 'snowy-rainy': ['sludd', 'Sludd', 'weather_mix'], sunny: ['sol', 'Sol', 'sunny'], windy: ['vind', 'Vind', 'air'], 'windy-variant': ['vind', 'Vind', 'air'], exceptional: ['uvanlig vær', 'Uvanlig', 'warning'] };
+const nfd = (v, d) => Number(v).toLocaleString('nb-NO', { minimumFractionDigits: d, maximumFractionDigits: d });
+const hueOf = n => { let h = 0; for (const c of String(n)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+const areaIs = (id, want) => { const ar = ha.area(id); return ar && (ar.area_id === want || ha.norm(ar.name) === ha.norm(want)); };
+function lightIds() {
+  const c = ha.config.ipad || {};
+  if ((c.lys || []).length) return c.lys.filter(id => ha.state(id));
+  const room = c.rom || ha.config.entities?.lys_rom || 'stue';
+  const inRoom = ha.domain('light', (st, id) => areaIs(id, room) && !st.attributes?.entity_id);
+  return (inRoom.length ? inRoom : ha.domain('light', st => !st.attributes?.entity_id)).slice(0, 8);
+}
+function heaterList() {
+  const c = ha.config.ipad || {};
+  if ((c.varme || []).length) return c.varme.filter(id => ha.state(id)).map(id => ({ climate: id }));
+  const laster = ha.attr('sensor.ki_laster', 'laster', null);
+  if (Array.isArray(laster) && laster.length) return laster.filter(z => z.key !== 'vvb').slice(0, 2).map(z => ({ zone: z, climate: [].concat(z.klima || z.styr || (z.entiteter && z.entiteter.climate) || [])[0] || null }));
+  return ha.domain('climate').slice(0, 2).map(id => ({ climate: id }));
+}
+
+class Component extends DCLogic {
+  state = {
+    now: new Date(), nav: 0, scene: null, media: false, awning: 3, curtains: 'open', dragId: null,
+    lights: [
+      { id: 1, name: 'Sofabord', on: true, b: 100 },
+      { id: 2, name: 'Stålampe hjørne', on: false, b: 70 },
+      { id: 3, name: 'Peislampe', on: false, b: 45 },
+      { id: 4, name: 'Spisebord', on: false, b: 80 },
+      { id: 5, name: 'Stålampe piano', on: false, b: 60 },
+      { id: 6, name: 'Stålampe', on: false, b: 60 },
+      { id: 7, name: 'Skjenklampe', on: false, b: 35 },
+      { id: 8, name: 'Taklist', on: false, b: 50 },
+    ],
+    heaters: [
+      { id: 1, name: 'Oljefyr', room: 'Stue', icon: 'local_fire_department', t: 22, on: false },
+      { id: 2, name: 'Panelovn', room: 'Kjøkken', icon: 'heat', t: 22, on: true },
+    ],
+  };
+  componentDidMount() { this.timer = setInterval(() => this.setState({ now: new Date() }), 15000); }
+  sceneRun(sc) { const id = sc.entity; this.setState({ scene: sc.name }); if (sc.lightsOff) return ha.call('light', 'turn_off', { entity_id: sc.lightsOff }); if (!id) return; const d = id.split('.')[0];
+    return d === 'scene' || d === 'script' ? ha.call(d, 'turn_on', { entity_id: id }) : d === 'button' ? ha.press(id) : d === 'camera' ? ha.moreInfo(id) : ha.toggle(id); }
+  componentWillUnmount() { clearInterval(this.timer); }
+  setLight(id, patch) { this.setState(s => ({ lights: s.lights.map(l => l.id === id ? { ...l, ...patch } : l) })); }
+  setHeater(id, fn) { this.setState(s => ({ heaters: s.heaters.map(h => h.id === id ? fn(h) : h) })); }
+  pctFrom(e) { const r = this.drag.rect; return Math.round(Math.max(1, Math.min(100, (e.clientX - r.left) / r.width * 100))); }
+  renderVals() {
+    const s = this.state, now = s.now, cfg = ha.config.ipad || {};
+    // ── live-oppslag (null = demo for den delen) ──
+    const wx = ha.first('vaer', ...ha.domain('weather'));
+    const wxC = wx && (COND[ha.val(wx)] || [ha.val(wx, ''), ha.val(wx, ''), 'cloud']), wxT = wx ? ha.attr(wx, 'temperature', null) : null;
+    const persons = (cfg.personer || ha.domain('person')).filter(id => ha.state(id));
+    const lockId = ha.first('las', ...ha.domain('lock')), alarmId = ha.first('alarm', ...ha.domain('alarm_control_panel')), vacId = ha.first('stovsuger', ...ha.domain('vacuum'));
+    const priceId = ha.first('strompris', 'sensor.norgespris_total_strompris_norgespris', 'sensor.strompris_na', 'sensor.nordpool_kwh_no1_nok_3_10_025');
+    const powerId = ha.first('effekt', ha.attr('sensor.ki_energi_status', 'entiteter', {})?.total_effekt, 'sensor.total_effekt', 'sensor.power_consumption');
+    const LIDS = lightIds(), HEAT = heaterList(), mp = ha.first('ipad_media', 'media_player.rn602_stue', ...ha.domain('media_player', st => st.state === 'playing'), ...ha.domain('media_player'));
+    const coverIds = [ha.first('markise', 'cover.markise', ...ha.domain('cover', (st, id) => /markise|awning/i.test(id))), ha.first('gardiner', 'cover.gardiner', 'cover.stue_gardiner', ...ha.domain('cover', (st, id) => /gardin|curtain/i.test(id)))];
+    const cals = cfg.kalendere || ha.domain('calendar').slice(0, 6);
+    const plexId = ha.first('plex_nytt', 'sensor.plex_recently_added', 'sensor.plex_nylig_lagt_til');
+    const liveLights = LIDS.length > 0, liveHeat = HEAT.length > 0;
+    const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+    const dragB = s.dragB || {};
+    const lightsL = liveLights ? LIDS.map(id => ({ id, name: ha.name(id, id).replace(/^(stue|stua)\s+/i, ''), on: ha.on(id, false) || dragB[id] != null, b: dragB[id] ?? Math.max(1, Math.round(ha.attr(id, 'brightness', 255) / 2.55)) })) : s.lights;
+    const onCount = lightsL.filter(l => l.on).length;
+    const navIcons = [['home','Hjem'],['bolt','Energi'],['music_note','Musikk'],['directions_car','Bil'],['speed','Måler'],['dns','Server'],['receipt_long','Kalender'],['potted_plant','Hage'],['bedtime','Natt'],['computer','PC'],['water_drop','Vann']];
+    const scenesDef = [['movie','Filmkveld'],['restaurant','Middag'],['dark_mode','Nattmodus'],['no_light','Alt lys av'],['power_settings_new','Natta'],['videocam','Kamera']];
+    const circle = (bg, fg) => ({ width: 40, height: 40, borderRadius: 20, background: bg, color: fg, display: 'grid', placeItems: 'center', flex: 'none', transition: 'background .2s, color .2s' });
+    const sceneL = (cfg.scener || []).length ? cfg.scener.map(x => ({ icon: x.ikon || 'auto_awesome', name: x.navn || ha.name(x.entity, x.entity), entity: x.entity }))
+      : [['movie', 'Filmkveld', ha.first('scene_filmkveld', 'scene.filmkveld')], ['restaurant', 'Middag', ha.first('scene_middag', 'scene.middag')], ['dark_mode', 'Nattmodus', ha.first('nattmodus', 'switch.nattmodus')], ['no_light', 'Alt lys av', null], ['power_settings_new', 'Natta', ha.first('scene_natta', 'scene.natta', 'script.natta')], ['videocam', 'Kamera', ha.first('kamera', ...ha.domain('camera'))]]
+        .map(([icon, name, entity]) => ({ icon, name, entity, lightsOff: name === 'Alt lys av' && liveLights ? LIDS : null }));
+    const liveScenes = sceneL.some(x => x.entity || x.lightsOff);
+    const runScene = name => () => {
+      if (liveScenes) { const sc = sceneL.find(x => x.name === name); return sc && this.sceneRun(sc); }
+      this.setState({ scene: name });
+      if (name === 'Alt lys av' || name === 'Natta') this.setState(st => ({ lights: st.lights.map(l => ({ ...l, on: false })) }));
+      if (name === 'Filmkveld') this.setState(st => ({ lights: st.lights.map(l => ({ ...l, on: [1, 3, 7].includes(l.id), b: l.id === 1 ? 25 : l.id === 3 ? 30 : l.b })) }));
+      if (name === 'Middag') this.setState(st => ({ lights: st.lights.map(l => ({ ...l, on: [4, 7].includes(l.id), b: l.id === 4 ? 85 : l.b })) }));
+    };
+    const coverBtn = (icon, go) => ({ icon, go });
+    return {
+      time: now.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' }),
+      weekday: cap(now.toLocaleDateString('nb-NO', { weekday: 'long' })),
+      date: now.toLocaleDateString('nb-NO', { day: 'numeric', month: 'long' }),
+      nav: navIcons.map(([icon, label], i) => ({
+        icon, label, go: () => this.setState({ nav: i }),
+        style: { width: 44, height: 44, borderRadius: 22, display: 'grid', placeItems: 'center', position: 'relative', background: s.nav === i ? '#2c2c2f' : 'transparent', color: s.nav === i ? '#fafafa' : '#7f7f7f' },
+      })),
+      chips: [
+        wx && wxT != null ? { icon: wxC[2], label: `${Math.round(wxT)}° · ${wxC[1]}`, c: '#979797' } : { icon: 'cloud', label: '13° · Skyet', c: '#979797' },
+        persons.length ? { icon: 'group', label: `${persons.filter(id => ha.val(id) === 'home').length} hjemme`, c: '#979797' } : { icon: 'group', label: '2 hjemme', c: '#979797' },
+        lockId ? (v => ({ icon: v === 'locked' ? 'lock' : 'lock_open', label: v === 'locked' ? 'Låst' : v === 'unlocked' ? 'Ulåst' : v === 'jammed' ? 'Fastkjørt' : '–', c: v === 'locked' ? 'rgb(102 209 158)' : 'rgb(242 181 115)' }))(ha.val(lockId)) : { icon: 'lock', label: 'Låst', c: 'rgb(102 209 158)' },
+        alarmId ? (v => ({ icon: v === 'disarmed' ? 'shield_lock' : 'shield', label: { armed_away: 'Borte', armed_home: 'Hjemme', armed_night: 'Natt', armed_vacation: 'Ferie', disarmed: 'Av', triggered: 'Utløst', arming: 'Aktiverer', pending: 'Venter' }[v] || '–', c: v === 'triggered' ? 'rgb(242 128 115)' : v === 'disarmed' ? '#979797' : 'rgb(115 185 242)' }))(ha.val(alarmId)) : { icon: 'shield', label: 'Borte', c: 'rgb(115 185 242)' },
+        vacId ? (v => ({ icon: 'cleaning_services', label: `Støvsuger ${{ docked: 'ladet', cleaning: 'går', returning: 'på vei hjem', idle: 'klar', paused: 'pauset', error: 'feil' }[v] || '–'}`, c: v === 'error' ? 'rgb(242 128 115)' : v === 'cleaning' ? 'rgb(102 209 158)' : '#979797' }))(ha.val(vacId)) : { icon: 'cleaning_services', label: 'Støvsuger ladet', c: '#979797' },
+      ].map(c => ({ ...c, iconStyle: { fontSize: 19, color: c.c } })),
+      wxIcon: wx && wxT != null ? wxC[2] : 'cloud', wxText: wx && wxT != null ? `${wxC[0]} og ${nfd(wxT, 1)}°` : 'overskyet og 13,7°',
+      price: priceId && ha.num(priceId, null) != null ? nfd(ha.num(priceId) > 20 ? ha.num(priceId) / 100 : ha.num(priceId), 2) + ' kr' : '1,31 kr',
+      priceDot: { width: 7, height: 7, borderRadius: 4, background: !priceId || ha.num(priceId, null) == null ? 'rgb(242 128 115)' : (p => p > (cfg.pris_hoy ?? 1) ? 'rgb(242 128 115)' : p > (cfg.pris_middels ?? 0.6) ? 'rgb(242 181 115)' : 'rgb(102 209 158)')(ha.num(priceId) > 20 ? ha.num(priceId) / 100 : ha.num(priceId)) },
+      watts: powerId && ha.num(powerId, null) != null ? Math.round(ha.num(powerId) * (ha.unit(powerId, 'W') === 'kW' ? 1000 : 1)).toLocaleString('nb-NO') : (1840 + onCount * 120 + s.heaters.filter(h => h.on).length * 400).toLocaleString('nb-NO'),
+      eventsLabel: cals.length ? (n => `${n} ${n === 1 ? 'hendelse' : 'hendelser'}`)(cals.reduce((t, id) => t + (ha.events(id, 1) || []).filter(e => { const st = new Date(e.start?.dateTime || e.start?.date || e.start); return st.toDateString() === now.toDateString() || (e.start?.date && !e.start?.dateTime && st <= now); }).length, 0)) : '4 hendelser',
+      homeLabel: persons.length ? `${persons.filter(id => ha.val(id) === 'home').length} av ${persons.length} hjemme` : '2 av 3 hjemme',
+      onCount,
+      family: (persons.length ? persons.slice(0, 4).map(id => { const n = ha.name(id, id.split('.')[1]).split(' ')[0], v = ha.val(id, 'unknown'), home = v === 'home';
+          return { name: n, initials: n.charAt(0).toUpperCase(), badge: home ? 'home' : v === 'not_home' ? 'directions_walk' : 'location_on', tone: home ? 'rgb(115 185 242)' : 'rgb(173 153 230)', hue: hueOf(n), away: !home, pic: ha.attr(id, 'entity_picture', null) }; }) : [
+        { name: 'Sebastian', initials: 'S', badge: 'home', tone: 'rgb(115 185 242)', hue: 240, away: false },
+        { name: 'Cybele', initials: 'C', badge: 'home', tone: 'rgb(115 185 242)', hue: 330, away: false },
+        { name: 'Rune', initials: 'R', badge: 'flight', tone: 'rgb(173 153 230)', hue: 60, away: true },
+      ]).map(p => ({
+        ...p,
+        avatarStyle: { width: 48, height: 48, borderRadius: 24, background: `oklch(0.34 0.04 ${p.hue})`, color: `oklch(0.88 0.06 ${p.hue})`, display: 'grid', placeItems: 'center', fontSize: 17, fontWeight: 600, opacity: p.away ? 0.55 : 1, ...(p.pic ? { backgroundImage: `url("${p.pic}")`, backgroundSize: 'cover', backgroundPosition: 'center', color: 'transparent' } : {}) },
+        badgeStyle: { position: 'absolute', right: -3, top: -3, width: 20, height: 20, borderRadius: 10, background: p.tone, color: '#141415', border: '2px solid #1b1b1d', display: 'grid', placeItems: 'center' },
+      })),
+      sceneStatus: s.scene ? `Aktiv: ${s.scene}` : '',
+      scenes: (liveScenes ? sceneL.map(x => [x.icon, x.name]) : scenesDef).map(([icon, name]) => {
+        const a = s.scene === name;
+        return {
+          icon, name, run: runScene(name),
+          style: { display: 'flex', alignItems: 'center', gap: 12, padding: '0 14px', borderRadius: 20, textAlign: 'left', minHeight: 56, background: a ? 'rgb(242 181 115 / 0.14)' : '#232326', boxShadow: a ? 'inset 0 0 0 1px rgb(242 181 115 / 0.35)' : 'none', transition: 'background .2s' },
+          iconWrap: circle(a ? AMBER : '#2e2e31', a ? '#1a1a1a' : '#c7c7c7'),
+        };
+      }),
+      ...(mp ? (() => { const v = ha.val(mp, 'off'), on = !['off', 'standby', 'unavailable', 'unknown'].includes(v), name = ha.name(mp, mp.split('.')[1]), artist = ha.attr(mp, 'media_artist', '');
+        return { mediaName: name, mediaTitle: v === 'playing' || v === 'paused' ? ha.attr(mp, 'media_title', v === 'playing' ? 'Spiller' : 'Pause') : on ? 'Klar' : 'Av',
+          mediaSub: on ? `${name} · ${artist || (v === 'playing' ? 'spiller' : 'ingen kø')}` : name, playIcon: v === 'playing' ? 'pause' : 'play_arrow',
+          toggleMedia: e => { const pw = e && e.currentTarget && e.currentTarget.querySelector('.ms')?.textContent === 'power_settings_new'; return ha.call('media_player', pw ? 'toggle' : 'media_play_pause', { entity_id: mp }); },
+          mediaNext: () => ha.call('media_player', 'media_next_track', { entity_id: mp }), mediaPowerStyle: { ...circle(on ? '#fafafa' : '#29292c', on ? '#141415' : '#fafafa') },
+          artImg: on ? ha.attr(mp, 'entity_picture', null) : null, artText: on && ha.attr(mp, 'entity_picture', null) ? '' : 'albumcover' }; })() : {
+      mediaName: 'Rn602-stue', mediaTitle: s.media ? 'Klar' : 'Av',
+      mediaSub: s.media ? 'Rn602-stue · ingen kø' : 'Rn602-stue',
+      playIcon: s.media ? 'pause' : 'play_arrow',
+      toggleMedia: () => this.setState({ media: !s.media }), mediaNext: () => {}, artImg: null, artText: 'albumcover',
+      mediaPowerStyle: { ...circle(s.media ? '#fafafa' : '#29292c', s.media ? '#141415' : '#fafafa') } }),
+      plexText: plexId ? (n => Number.isFinite(n) && n > 0 ? `${n} nye titler` : Number.isFinite(n) ? 'Ingenting nytt' : ha.val(plexId, 'Ingenting nytt'))(parseInt(ha.val(plexId, ''), 10)) : 'Ingenting nytt',
+      plexGo: () => plexId && ha.moreInfo(plexId),
+      lightTitle: liveLights && !(cfg.lys || []).length ? (a => a ? `Lys i ${ha.norm(a.name) === 'stue' ? 'stua' : a.name.toLowerCase()}` : 'Lys')(ha.area(LIDS[0])) : cfg.lys_tittel || 'Lys i stua',
+      heatTitle: liveHeat && !HEAT[0].zone ? 'Varme' : 'KI Energi styrer',
+      ...(liveHeat ? (() => { const H = HEAT.map((h, i) => { const z = h.zone, c = h.climate, cs = c && ha.state(c);
+          const t = cs ? ha.attr(c, 'temperature', z ? z.settpunkt ?? z.mal : 20) : (z ? z.settpunkt ?? z.mal ?? 20 : 20);
+          const heating = cs ? ha.attr(c, 'hvac_action', '') === 'heating' || (!ha.attr(c, 'hvac_action') && !['off', 'unavailable'].includes(cs.state)) : !!(z && (z.effekt > 0));
+          const off = cs ? cs.state === 'off' : false;
+          const set = nt => cs ? ha.call('climate', 'set_temperature', { entity_id: c, temperature: nt }) : z ? ha.call('ki_energi', 'overstyr', { sone: z.key, temp: nt, minutter: 120 }) : null;
+          return { id: i, name: z ? z.navn : ha.name(c, c), room: z ? z.rom || '' : ha.area(c)?.name || '', icon: /gulv/i.test(z?.type || z?.navn || '') ? 'heat' : /oljefyr|peis|ovn|fire/i.test(z?.navn || ha.name(c, '')) ? 'local_fire_department' : 'heat', t: Number(t) || 20, on: heating && !off, off, set,
+            toggle: () => cs ? ha.call('climate', off ? 'turn_on' : 'turn_off', { entity_id: c }) : ha.moreInfo('sensor.ki_laster') }; });
+        return { heatCount: `${H.filter(h => h.on).length} varmer`, heaters: H.map(h => ({ ...h, temp: Number(h.t).toFixed(1).replace('.', ','), sub: `${h.room ? h.room + ' · ' : ''}${h.on ? 'Varmer' : h.off ? 'Av' : 'Holder'}`, toggle: h.toggle,
+          dec: () => h.set(Math.max(5, h.t - 0.5)), inc: () => h.set(Math.min(30, h.t + 0.5)),
+          iconStyle: { ...circle(h.on ? 'rgb(242 181 115)' : '#2a2a2a', h.on ? '#1a1a1a' : '#979797'), width: 44, height: 44, borderRadius: 22 } })) }; })() : {
+      heatCount: `${s.heaters.filter(h => h.on).length} varmer`,
+      heaters: s.heaters.map(h => ({
+        ...h,
+        temp: h.t.toFixed(1).replace('.', ','),
+        sub: `${h.room} · ${h.on ? 'Varmer' : 'Av'}`,
+        toggle: () => this.setHeater(h.id, x => ({ ...x, on: !x.on })),
+        dec: () => this.setHeater(h.id, x => ({ ...x, t: Math.max(5, x.t - 0.5) })),
+        inc: () => this.setHeater(h.id, x => ({ ...x, t: Math.min(30, x.t + 0.5) })),
+        iconStyle: { ...circle(h.on ? 'rgb(242 181 115)' : '#2a2a2a', h.on ? '#1a1a1a' : '#979797'), width: 44, height: 44, borderRadius: 22 },
+      })) }),
+      lightHeadIcon: { width: 44, height: 44, borderRadius: 22, display: 'grid', placeItems: 'center', background: onCount ? AMBER : '#2a2a2a', color: onCount ? '#1a1a1a' : '#7f7f7f', boxShadow: onCount ? '0 0 24px rgb(242 181 115 / 0.35)' : 'none', transition: 'all .25s' },
+      onLabel: onCount ? `${onCount} av ${lightsL.length} på` : 'Alle av',
+      allLabel: onCount ? 'Slå av alle' : 'Slå på alle',
+      allLights: () => liveLights ? ha.call('light', onCount ? 'turn_off' : 'turn_on', { entity_id: LIDS }) : this.setState(st => ({ lights: st.lights.map(l => ({ ...l, on: !onCount })) })),
+      lights: lightsL.map(l => {
+        const dragging = s.dragId === l.id;
+        return {
+          name: l.name,
+          pct: l.on ? `${l.b} %` : 'Av',
+          down: e => { const el = e.currentTarget; el.setPointerCapture(e.pointerId); this.drag = { id: l.id, rect: el.getBoundingClientRect(), x: e.clientX, moved: false }; },
+          move: e => {
+            const d = this.drag; if (!d || d.id !== l.id) return;
+            if (!d.moved && Math.abs(e.clientX - d.x) > 6) { d.moved = true; this.setState({ dragId: l.id }); }
+            if (d.moved) { if (liveLights) { d.pct = this.pctFrom(e); this.setState({ dragB: { [l.id]: d.pct } }); } else this.setLight(l.id, { on: true, b: this.pctFrom(e) }); }
+          },
+          up: () => { const d = this.drag; if (!d || d.id !== l.id) return;
+            if (liveLights) { if (!d.moved) ha.toggle(l.id); else if (d.pct) ha.call('light', 'turn_on', { entity_id: l.id, brightness_pct: d.pct }); this.drag = null; this.setState({ dragId: null, dragB: null }); return; }
+            if (!d.moved) this.setLight(l.id, { on: !l.on }); this.drag = null; this.setState({ dragId: null }); },
+          rowStyle: { position: 'relative', flex: 1, minHeight: 42, borderRadius: 16, overflow: 'hidden', display: 'flex', alignItems: 'center', gap: 12, padding: '0 10px 0 14px', background: l.on ? '#26241f' : '#212124', cursor: 'pointer', touchAction: 'none', userSelect: 'none', transition: 'background .25s' },
+          fillStyle: { position: 'absolute', left: 0, top: 0, bottom: 0, width: l.on ? `${l.b}%` : '0%', background: 'linear-gradient(90deg, rgb(242 181 115 / 0.10), rgb(242 181 115 / 0.24))', borderRight: l.on && l.b < 100 ? '2px solid rgb(242 181 115 / 0.7)' : 'none', transition: dragging ? 'none' : 'width .35s cubic-bezier(.2,.8,.2,1)' },
+          bulbStyle: { position: 'relative', fontSize: 20, color: l.on ? AMBER : '#545454', fontVariationSettings: `'FILL' ${l.on ? 1 : 0}`, textShadow: l.on ? '0 0 12px rgb(242 181 115 / 0.6)' : 'none', transition: 'color .25s' },
+          pctStyle: { position: 'relative', fontSize: 13, fontVariantNumeric: 'tabular-nums', color: l.on ? 'rgb(242 181 115)' : '#696969', minWidth: 40, textAlign: 'right' },
+          trackStyle: { position: 'relative', width: 40, height: 24, borderRadius: 12, flex: 'none', background: l.on ? AMBER : '#38383b', transition: 'background .25s' },
+          knobStyle: { position: 'absolute', top: 3, left: l.on ? 19 : 3, width: 18, height: 18, borderRadius: 9, background: l.on ? '#1a1a1a' : '#bdbbb6', transition: 'left .25s cubic-bezier(.2,.8,.2,1), background .25s' },
+        };
+      }),
+      covers: coverIds.some(Boolean) ? coverIds.filter(Boolean).map((id, i) => { const v = ha.val(id, '–'), pos = ha.attr(id, 'current_position', null), isAwn = i === 0 && coverIds[0] === id;
+          const svc = sv => () => ha.call('cover', sv, { entity_id: id });
+          return { name: ha.name(id, isAwn ? 'Markise' : 'Gardiner'), icon: isAwn ? 'roller_shades' : v === 'closed' ? 'curtains_closed' : 'curtains',
+            state: isAwn && pos != null ? (pos >= 100 ? 'Oppe' : `${100 - pos} % nede`) : { open: 'Åpen', closed: 'Lukket', opening: 'Åpner', closing: 'Lukker' }[v] || v,
+            buttons: isAwn ? [coverBtn('keyboard_arrow_up', svc('open_cover')), coverBtn('stop', svc('stop_cover')), coverBtn('keyboard_arrow_down', svc('close_cover'))] : [coverBtn('open_in_full', svc('open_cover')), coverBtn('stop', svc('stop_cover')), coverBtn('close_fullscreen', svc('close_cover'))] }; })
+      .map((c, i) => ({ ...c, rowStyle: { display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', borderTop: i ? '1px solid rgba(255,255,255,0.06)' : 'none' } })) : [
+        { name: 'Markise', icon: 'roller_shades', state: s.awning === 0 ? 'Oppe' : `${s.awning} % nede`, buttons: [coverBtn('keyboard_arrow_up', () => this.setState({ awning: 0 })), coverBtn('stop', () => {}), coverBtn('keyboard_arrow_down', () => this.setState({ awning: 100 }))] },
+        { name: 'Gardiner', icon: s.curtains === 'open' ? 'curtains' : 'curtains_closed', state: s.curtains === 'open' ? 'Åpen' : 'Lukket', buttons: [coverBtn('open_in_full', () => this.setState({ curtains: 'open' })), coverBtn('stop', () => {}), coverBtn('close_fullscreen', () => this.setState({ curtains: 'closed' }))] },
+      ].map((c, i) => ({ ...c, rowStyle: { display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', borderTop: i ? '1px solid rgba(255,255,255,0.06)' : 'none' } })),
+    };
+  }
+}
+</script>
+</body>
+</html>

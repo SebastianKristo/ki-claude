@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#232323;color:#fafafa;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#fafafa}a:hover{color:rgb(242 133 201)}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;user-select:none}
+</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;max-width:420px;min-height:100vh;margin:0 auto;background:#232323;padding:20px 18px 40px;display:flex;flex-direction:column;gap:16px">
+  <header style="display:flex;align-items:center;gap:12px">
+    <span style="width:40px;height:40px;border-radius:20px;background:#e1e1e1;color:#232323;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">volunteer_activism</span></span>
+    <div style="flex:1;font-size:26px;font-weight:500;letter-spacing:-0.02em">Norgespris</div>
+  </header>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:4px;border-radius:22px;background:#2f2f2f">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2"><button onPointerDown="{{ t.odown }}" onPointerMove="{{ t.omove }}" onPointerUp="{{ t.oup }}" onPointerCancel="{{ t.oup }}" onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button></sc-for>
+  </div>
+  <section style="display:flex;flex-direction:column;gap:4px;padding:18px;border-radius:26px;background:#2f2f2f">
+    <span style="font-size:12px;color:#7f7f7f">{{ hero.label }}</span>
+    <span style="{{ hero.valStyle }}">{{ hero.val }}<span style="font-size:16px;color:#7f7f7f;font-weight:400"> kr</span></span>
+    <span style="font-size:13px;color:#979797">{{ hero.sub }}</span>
+  </section>
+  <section style="display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:24px;background:#2f2f2f">
+    <div style="display:flex;gap:14px;font-size:12px;color:#979797"><span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:rgb(242 133 201)"></span>Norgespris</span><span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:#545454"></span>Spot</span></div>
+    <div style="display:flex;align-items:flex-end;gap:3px;height:150px">
+      <sc-for list="{{ bars }}" as="b" hint-placeholder-count="12">
+        <div onClick="{{ b.pick }}" style="flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;cursor:pointer">
+          <div style="width:100%;flex:1;display:flex;align-items:flex-end;gap:1px"><span style="{{ b.n }}"></span><span style="{{ b.s }}"></span></div>
+          <span style="{{ b.lab }}">{{ b.label }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;padding-top:4px;border-top:1px solid rgba(255,255,255,0.06)"><span style="color:#979797">{{ sel.label }}</span><span style="font-variant-numeric:tabular-nums">{{ sel.text }}</span></div>
+  </section>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <sc-for list="{{ facts }}" as="f" hint-placeholder-count="4">
+      <div style="display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-radius:22px;background:#2f2f2f"><span style="font-size:12px;color:#7f7f7f">{{ f.label }}</span><span style="font-size:20px;font-weight:500;font-variant-numeric:tabular-nums">{{ f.val }}</span></div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:900}}">
+// ── LIVE (felles for Strøm-skjermene): ki_energi + pris-/måler-integrasjoner. Se docs/screens/Strøm.md ──
+const LV = (() => {
+  const STAT = new Map(), MEMO = {}, cfg = () => ha.config || {}, num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
+  const dk = d => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`, hk = d => `${dk(d)} ${d.getHours()}`;
+  const sod = (d = new Date()) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+  const E = (alias, key, dom = 'sensor') => ha.first(alias, `${dom}.${key}`) || (ha.hass ? ha.find('ki_energi', key, dom) : null);
+  const status = () => E('status', 'ki_energi_status');
+  const kiEnt = k => { const s = status(); const m = s && ha.attr(s, 'entiteter', null); return m && m[k] || null; };
+  const sensors = f => ha.domain('sensor', s => { try { return f(s.attributes || {}, s.entity_id.toLowerCase(), s); } catch (e) { return false; } });
+  const meterRe = /strommaler|str_mmaler|ams|han_|_han|pulse|tibber|elmaler|power_import|import/;
+  // Effekt nå (W): ki_energi total_effekt → vanlige målere (Tibber Pulse, AMS/HAN).
+  const effekt = () => ha.first('effekt', kiEnt('total_effekt'), 'sensor.strommaler_effekt') || sensors((a, id) => a.device_class === 'power' && meterRe.test(id) && !/export|produksjon|production|solar/.test(id))[0] || null;
+  const watt = () => { const id = effekt(); if (!id) return null; const v = ha.num(id, null); if (v == null) return null; const u = String(ha.unit(id, 'W')); return u === 'kW' ? v * 1000 : v; };
+  // Energiregister (kWh, total_increasing): ki_energi importert_energi → målere.
+  const energi = () => ha.first('energi', kiEnt('importert_energi'), 'sensor.strommaler_imported_energy') || sensors((a, id) => a.device_class === 'energy' && a.state_class === 'total_increasing' && meterRe.test(id) && !/export|produksjon|production|solar|cost/.test(id))[0] || null;
+  // Timepriser: alias `pris`, ellers autodeteksjon (Nord Pool / Energi Data Service / Tibber-lignende attributter), ellers ki_vvb_billige_timer.doegn.
+  const PK = ['raw_today', 'today', 'prices_today', 'today_prices', 'prices'];
+  const hasArr = a => PK.some(k => Array.isArray(a[k]) && a[k].length);
+  const prisId = extra => ha.first('pris', extra, 'sensor.nordpool') || sensors((a, id) => hasArr(a) && /nordpool|nord_pool|spot|energi_data|strompris|tibber|price|pris/.test(id))[0] || sensors(a => hasArr(a))[0] || null;
+  const scale = id => { const u = String(ha.unit(id, '') || ha.attr(id, 'unit', '') || ha.attr(id, 'currency', '')).toLowerCase(); return ha.attr(id, 'price_in_cents', false) || /øre|ore|cent/.test(u) ? 0.01 : /mwh/.test(u) ? 0.001 : 1; };
+  const parse = (arr, base, sc) => {
+    if (!Array.isArray(arr) || !arr.length) return [];
+    const n = arr.length, step = 24 / n * 3600e3;
+    const rows = arr.map((x, i) => {
+      if (x == null) return null;
+      if (typeof x === 'number' || typeof x === 'string') { const v = num(x); return v == null ? null : { t: new Date(+base + i * step), v: v * sc }; }
+      const t = x.start ?? x.hour ?? x.startsAt ?? x.starts_at ?? x.time ?? x.from ?? x.start_time ?? x.datetime;
+      const v = num(x.value ?? x.price ?? x.total ?? x.pris ?? x.v ?? x.price_per_kwh);
+      return v == null ? null : { t: t != null ? new Date(t) : new Date(+base + i * step), v: v * sc };
+    }).filter(r => r && !isNaN(r.t));
+    return rows;
+  };
+  const hourly = rows => { const out = Array(24).fill(null), cnt = Array(24).fill(0); rows.forEach(r => { const h = r.t.getHours(); out[h] = (out[h] || 0) + r.v; cnt[h]++; }); return out.map((v, i) => v == null ? null : v / cnt[i]); };
+  const quarters = rows => { const out = Array(96).fill(null); rows.forEach(r => { const q = r.t.getHours() * 4 + Math.floor(r.t.getMinutes() / 15); if (rows.length >= 90) out[q] = r.v; else for (let k = 0; k < 4; k++) out[r.t.getHours() * 4 + k] = r.v; }); return out; };
+  function priser(extraId, tmrAttr) {
+    const id = prisId(extraId), t0 = sod(), t1 = new Date(+t0 + 864e5);
+    if (id && ha.state(id)) {
+      const a = ha.state(id).attributes || {}, sc = scale(id);
+      const tk = PK.find(k => Array.isArray(a[k]) && a[k].length);
+      let all = parse(a[tk], t0, sc);
+      const tmrK = [tmrAttr, 'raw_tomorrow', 'tomorrow', 'prices_tomorrow', 'tomorrow_prices'].find(k => k && Array.isArray(a[k]) && a[k].length);
+      if (tmrK) all = all.concat(parse(a[tmrK], t1, sc));
+      const td = all.filter(r => r.t >= t0 && r.t < t1), tm = all.filter(r => r.t >= t1 && r.t < new Date(+t1 + 864e5));
+      if (td.length) return { id, today: hourly(td), tomorrow: tm.length ? hourly(tm) : null, qToday: quarters(td), qTomorrow: tm.length ? quarters(tm) : null, now: ha.num(id, null) != null ? ha.num(id) * sc : null };
+    }
+    // Fallback: ki_energi sine Nord Pool-timer (24 timer fra nå) i ki_vvb_billige_timer.
+    const vvb = E('vvb_billige_timer', 'ki_vvb_billige_timer'), d = vvb && ha.attr(vvb, 'doegn', null);
+    if (Array.isArray(d) && d.some(x => x && x.pris != null)) {
+      const today = Array(24).fill(null), tomorrow = Array(24).fill(null); let wrap = false;
+      d.forEach((x, i) => { if (i && x.t === 0) wrap = true; if (x.pris != null) (wrap ? tomorrow : today)[x.t] = +x.pris; });
+      const hasT = tomorrow.some(v => v != null);
+      return { id: vvb, today, tomorrow: hasT ? tomorrow : null, qToday: today.flatMap(v => [v, v, v, v]), qTomorrow: hasT ? tomorrow.flatMap(v => [v, v, v, v]) : null, now: today[new Date().getHours()], partial: true };
+    }
+    return null;
+  }
+  // Nettleie energiledd (kr/kWh) – ki_energi sine konfig-standarder (Elvia/Strømkalkulator) eller input_number.
+  const energiledd = natt => { const id = natt ? ha.first('energiledd_natt', 'input_number.grid_night_hourly_cost', 'sensor.nettleie_elvia_energiledd_natt_helg') : ha.first('energiledd_dag', 'input_number.grid_day_hourly_cost', 'sensor.nettleie_elvia_energiledd_dag'); return id ? ha.num(id, null) : null; };
+  const isNatt = d => { const h = d.getHours(), w = d.getDay(); return h < 6 || h >= 22 || w === 0 || w === 6; };
+  const npId = extra => ha.first('norgespris', extra, 'input_number.norgespris');
+  const norgespris = extra => { const id = npId(extra); const v = id ? ha.num(id, null) : null; return v != null ? (v > 5 ? v / 100 : v) : num(cfg().norgespris) ?? 0.5; };
+  const npAktiv = () => { const id = ha.first('norgespris_aktiv', 'binary_sensor.norgespris_norgespris_aktiv_na'); return id ? ha.on(id, null) : null; };
+  // Langtidsstatistikk (recorder) – timer/døgn/måneder uten å laste rå historikk.
+  function stats(id, period, start, types) {
+    if (!id || !ha.hass || !ha.hass.callWS) return null;
+    const k = `${id}|${period}|${+start}|${types}`, c = STAT.get(k);
+    if (c && (c.pending || Date.now() - c.at < 10 * 60e3)) return c.data;
+    STAT.set(k, { at: c?.at || 0, data: c?.data || null, pending: true });
+    Promise.resolve(ha.hass.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(start).toISOString(), period, statistic_ids: [id], types, units: {} }))
+      .then(r => { const rows = ((r || {})[id] || []).map(x => ({ t: new Date(typeof x.start === 'number' ? x.start : Date.parse(x.start)), change: num(x.change), mean: num(x.mean), state: num(x.state) })).filter(x => !isNaN(x.t)); STAT.set(k, { at: Date.now(), data: rows }); ha.bump(id); })
+      .catch(() => { STAT.set(k, { at: Date.now(), data: [] }); });
+    return c?.data || null;
+  }
+  // Timeforbruk (kWh) og timepris (kr/kWh) fra 1. januar i fjor (dekker år/forrige år), nøkkel = lokal time.
+  function timer() {
+    const eid = energi(); if (!eid) return null;
+    const y0 = new Date(new Date().getFullYear() - 1, 0, 1), P = priser();
+    const es = stats(eid, 'hour', y0, ['change']);
+    if (!es) return { eid, loading: true, kwh: new Map(), pris: new Map() };
+    const pid = P && !P.partial ? P.id : null, ps = pid ? stats(pid, 'hour', y0, ['mean']) : null;
+    if (MEMO.es !== es) { MEMO.es = es; MEMO.kwh = new Map(); es.forEach(r => { if (r.change != null) MEMO.kwh.set(hk(r.t), Math.max(0, r.change)); }); }
+    if (MEMO.ps !== ps) { MEMO.ps = ps; MEMO.pris = new Map(); (ps || []).forEach(r => { if (r.mean != null) MEMO.pris.set(hk(r.t), r.mean * scale(pid)); }); }
+    // Prissensor uten langtidsstatistikk: rå historikk siste 62 døgn (prisen gjelder til neste endring).
+    if (ps && !ps.length && pid) { const h = ha.history(pid, 24 * 62); if (h && h.length && MEMO.ph !== h) { MEMO.ph = h; MEMO.pris = new Map(); const sc = scale(pid);
+      h.forEach((r, i) => { const end = i + 1 < h.length ? +h[i + 1].t : Date.now(); for (let t = +r.t - (+r.t % 3600e3); t < end; t += 3600e3) MEMO.pris.set(hk(new Date(t)), r.v * sc); }); } }
+    const kwh = MEMO.kwh, pris = MEMO.pris;
+    if (P) { const t0 = sod(); P.today.forEach((v, h) => { if (v != null) pris.set(hk(new Date(+t0 + h * 3600e3)), v); }); }
+    // Inneværende time (ikke i statistikken ennå): ki_time_energi.
+    const cur = ha.num(E('time_energi', 'ki_time_energi'), null); if (cur != null) kwh.set(hk(new Date()), cur);
+    return { eid, kwh, pris, fallbackPris: P ? (P.now ?? P.today.find(v => v != null)) : null };
+  }
+  // Summer for en periode [a, b): kWh, strømkost (spot/Norgespris), energiledd.
+  function sum(T, a, b, np) {
+    let kwh = 0, spot = 0, net = 0, n = 0; const ed = energiledd(false), en = energiledd(true);
+    for (let t = +a; t < +b; t += 3600e3) { const d = new Date(t), k = hk(d), e = T.kwh.get(k); if (e == null) continue; n++;
+      kwh += e; const p = T.pris.get(k) ?? T.fallbackPris ?? 0; spot += e * p; const g = isNatt(d) ? (en ?? ed) : (ed ?? en); net += e * (g || 0); }
+    return { kwh, spot, np: kwh * (np ?? norgespris()), net, timer: n };
+  }
+  return { E, status, effekt, watt, energi, priser, energiledd, isNatt, norgespris, npId, npAktiv, stats, timer, sum, dk, hk, sod, num, scale };
+})();
+const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
+const GREEN = 'rgb(102 209 158)', RED = 'rgb(242 128 115)';
+const nf = (n, d = 0) => n.toLocaleString('nb-NO', { minimumFractionDigits: d, maximumFractionDigits: d });
+const MON = ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des'];
+const DEMO_YEAR = [[1240, 1890], [1120, 1610], [980, 1180], [760, 690], [610, 520], [540, 610], [520, 480], [560, 700], [690, 910], [0, 0], [0, 0], [0, 0]];
+const DEMO_MONTH = Array.from({ length: 26 }, (_, i) => { const kwh = 18 + ((i * 7) % 11); const spot = 0.6 + ((i * 13) % 17) / 10; return [kwh * 0.5 * 1.25 + kwh * 0.4, kwh * spot * 1.25 * 0.9 + kwh * 0.4]; });
+const MND = ['januar', 'februar', 'mars', 'april', 'mai', 'juni', 'juli', 'august', 'september', 'oktober', 'november', 'desember'];
+let YEAR = DEMO_YEAR, MONTH = DEMO_MONTH, MNAME = 'september', FACTS = null;
+// Live: timeforbruk (recorder-statistikk for energiregisteret) × timepris (spot) mot Norgespris-fastpris; energiledd legges på begge.
+function loadLive() {
+  const T = LV.timer(); if (!T || T.loading || !T.kwh.size) return null;
+  const now = new Date(), y = now.getFullYear(), m = now.getMonth(), np = LV.norgespris(), cell = r => r.kwh > 0 ? [r.np + r.net, r.spot + r.net] : [0, 0];
+  const days = Array.from({ length: now.getDate() }, (_, i) => LV.sum(T, new Date(y, m, i + 1), new Date(y, m, i + 2), np));
+  const months = Array.from({ length: 12 }, (_, i) => i > m ? { kwh: 0 } : LV.sum(T, new Date(y, i, 1), new Date(y, i + 1, 1), np));
+  const tot = rs => rs.reduce((a, r) => ({ kwh: a.kwh + (r.kwh || 0), spot: a.spot + (r.spot || 0) }), { kwh: 0, spot: 0 });
+  const tm = tot(days), ty = tot(months), td = days[days.length - 1];
+  MONTH = days.map(cell); YEAR = months.map(cell); MNAME = MND[m];
+  FACTS = { fast: `${nf(np * 100)} øre/kWh`, idag: `${nf(td.spot - td.np)} kr`, snittM: `${nf(tm.kwh ? tm.spot / tm.kwh : 0, 2)} kr`, snittY: `${nf(ty.kwh ? ty.spot / ty.kwh : 0, 2)} kr`, kwhM: `${nf(tm.kwh)} kWh`, kwhY: `${nf(ty.kwh)} kWh` };
+  return T;
+}
+const TABORD = (comp, key, list) => {
+  const LK = 'tab-order:' + key; let ord = null; try { ord = JSON.parse(localStorage.getItem(LK) || 'null'); } catch (e) {}
+  const st = comp.state.__tdrag; let L = list.map((t, i) => ({ t, k: String(t.label ?? i) }));
+  if (ord) L.sort((a, b) => { const ia = ord.indexOf(a.k), ib = ord.indexOf(b.k); return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib); });
+  const keys = L.map(x => x.k), mine = st && st.key === key;
+  const begin = (el, k, x0) => { const sib = [...el.parentElement.children].filter(c => c.tagName === el.tagName), rects = sib.map(c => c.getBoundingClientRect()), i = sib.indexOf(el);
+    window.__tabReorder = true; if (navigator.vibrate) navigator.vibrate(10); comp.setState({ __tdrag: { key, k, dx: 0 } });
+    const mv = e => { e.preventDefault(); e.stopPropagation(); comp.setState({ __tdrag: { key, k, dx: e.clientX - x0 } }); };
+    const fin = e => { window.removeEventListener('pointermove', mv, true); window.removeEventListener('pointerup', fin, true); window.removeEventListener('pointercancel', fin, true);
+      e.stopPropagation(); setTimeout(() => { window.__tabReorder = false; }, 60);
+      if (e.type === 'pointerup') { const r0 = rects[Math.max(0, i)] || rects[0], cx = r0.left + r0.width / 2 + (e.clientX - x0); let j = rects.findIndex(r => cx >= r.left && cx <= r.right); if (j < 0) j = cx < rects[0].left ? 0 : rects.length - 1;
+        const a2 = keys.filter(x => x !== k); a2.splice(j, 0, k); try { localStorage.setItem(LK, JSON.stringify(a2)); } catch (x) {} }
+      comp._tEat = true; setTimeout(() => { comp._tEat = false; }, 350); comp.setState({ __tdrag: null }); };
+    window.addEventListener('pointermove', mv, { capture: true, passive: false }); window.addEventListener('pointerup', fin, true); window.addEventListener('pointercancel', fin, true); };
+  return L.map(({ t, k }) => { const d = mine && st.k === k;
+    return { ...t,
+      odown: e => { const el = e.currentTarget, x0 = e.clientX, y0 = e.clientY; clearTimeout(comp._tHold); comp._tXY = [x0, y0]; comp._tHold = setTimeout(() => begin(el, k, x0), 380); },
+      omove: e => { const p = comp._tXY; if (p && Math.hypot(e.clientX - p[0], e.clientY - p[1]) > 8) clearTimeout(comp._tHold); },
+      oup: () => clearTimeout(comp._tHold),
+      ...(t.go ? { go: e => { if (comp._tEat) return; t.go(e); } } : {}),
+      style: d ? { ...t.style, position: 'relative', zIndex: 5, transform: `translateX(${st.dx}px) scale(1.06)`, boxShadow: '0 8px 20px rgba(0,0,0,0.45), inset 0 0 0 1.5px rgb(242 133 201)', transition: 'none', touchAction: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }
+        : mine ? { ...t.style, opacity: 0.65, transition: 'opacity .2s' } : { ...t.style, WebkitTouchCallout: 'none', userSelect: 'none' } }; });
+};
+class Component extends DCLogic {
+  state = { tab: 'mnd', sel: null };
+  __tabWrap(v) { if (v && Array.isArray(v.tabs)) v.tabs = TABORD(this, 'norgespris', v.tabs); return v; }
+  renderVals() { return this.__tabWrap(this.__rv()); }
+  __rv() {
+    const L = loadLive();
+    if (!L) { YEAR = DEMO_YEAR; MONTH = DEMO_MONTH; MNAME = 'september'; FACTS = null; }
+    const s = this.state, yr = s.tab === 'ar', D = yr ? YEAR : MONTH, used = D.filter(x => x[0] > 0);
+    const n = used.reduce((t, x) => t + x[0], 0), sp = used.reduce((t, x) => t + x[1], 0), save = sp - n, max = Math.max(...D.map(x => Math.max(x[0], x[1]))) || 1;
+    const lab = i => yr ? MON[i] : String(i + 1);
+    const i0 = s.sel != null && s.sel < D.length ? s.sel : Math.max(0, D.reduce((k, v, i) => v[0] > 0 ? i : k, -1)), x = D[i0];
+    return {
+      tabs: [['mnd', 'Måned'], ['ar', 'År']].map(([id, label]) => ({ label, go: () => this.setState({ tab: id, sel: null }), style: { height: 46, borderRadius: 18, fontSize: 15, fontWeight: 500, background: s.tab === id ? PINK : 'transparent', color: s.tab === id ? '#2a1720' : '#979797' } })),
+      hero: { label: yr ? 'Spart med Norgespris i år' : `Spart med Norgespris i ${MNAME}`, val: `${save >= 0 ? '' : '−'}${nf(Math.abs(save))}`, sub: `Norgespris ${nf(n)} kr · Spot ville vært ${nf(sp)} kr`,
+        valStyle: { fontSize: 48, fontWeight: 500, letterSpacing: '-0.03em', lineHeight: 1.05, fontVariantNumeric: 'tabular-nums', color: save >= 0 ? GREEN : RED } },
+      bars: D.map((v, i) => { const on = i === i0, empty = !v[0];
+        return { label: yr || i % 5 === 0 ? lab(i) : '', pick: () => !empty && this.setState({ sel: i }),
+          n: { flex: 1, height: `${v[0] / max * 100}%`, minHeight: empty ? 0 : 2, borderRadius: 3, background: 'rgb(242 133 201)', opacity: on || s.sel == null ? 1 : 0.5 },
+          s: { flex: 1, height: `${v[1] / max * 100}%`, minHeight: empty ? 0 : 2, borderRadius: 3, background: '#545454', opacity: on || s.sel == null ? 1 : 0.5 },
+          lab: { fontSize: 10, color: on ? '#fafafa' : '#696969', height: 12 } }; }),
+      sel: { label: yr ? MON[i0].replace(/^./, c => c.toUpperCase()) : `${i0 + 1}. ${MNAME}`, text: x ? `${nf(x[0])} kr · spot ${nf(x[1])} kr · ${x[1] - x[0] >= 0 ? 'spart' : 'tapt'} ${nf(Math.abs(x[1] - x[0]))} kr` : '' },
+      facts: (FACTS ? [['Fastpris', FACTS.fast], ['Besparelse i dag', FACTS.idag], ['Snitt spot', yr ? FACTS.snittY : FACTS.snittM], ['Forbruk', yr ? FACTS.kwhY : FACTS.kwhM]]
+        : [['Fastpris', '50 øre/kWh'], ['Besparelse i dag', '14 kr'], ['Snitt spot', yr ? '1,12 kr' : '1,34 kr'], ['Forbruk', yr ? '9 840 kWh' : '612 kWh']]).map(([label, val]) => ({ label, val })),
+    };
+  }
+}
+</script>
+</body>
+</html>
