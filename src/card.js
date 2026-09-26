@@ -124,8 +124,20 @@ class KiClaudeCardEditor extends HTMLElement {
   }
 }
 
+// Dashboard-strategi: «strategy: { type: custom:ki-claude }» gir Hjem + iPad som panel-visninger.
+class KiClaudeStrategy extends HTMLElement {
+  static async generate(config) {
+    const { type, ...rest } = config || {};
+    return { title: 'KI Claude', views: [
+      { title: 'Hjem', path: 'hjem', icon: 'mdi:home', type: 'panel', cards: [{ type: 'custom:ki-claude-card', ...rest }] },
+      { title: 'iPad', path: 'ipad', icon: 'mdi:tablet', type: 'panel', cards: [{ type: 'custom:ki-claude-ipad-card', ...rest, screen: undefined }] },
+    ] };
+  }
+}
+
 if (!customElements.get('ki-claude-card')) customElements.define('ki-claude-card', KiClaudeCard);
 if (!customElements.get('ki-claude-ipad-card')) customElements.define('ki-claude-ipad-card', KiClaudeIpadCard);
+if (!customElements.get('ll-strategy-dashboard-ki-claude')) customElements.define('ll-strategy-dashboard-ki-claude', KiClaudeStrategy);
 if (!customElements.get('ki-claude-card-editor')) customElements.define('ki-claude-card-editor', KiClaudeCardEditor);
 
 window.customCards = window.customCards || [];
