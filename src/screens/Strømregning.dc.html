@@ -57,15 +57,15 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
   <section style="padding:16px;border-radius:28px;background:#2f2f2f;display:flex;flex-direction:column;gap:14px">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
       <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#afafaf"><span class="ms" style="font-size:18px">speed</span>Effekttrinn</div>
-      <span style="font-size:12px;color:#7f7f7f">5–10 kW · 415 kr/mnd</span>
+      <span style="font-size:12px;color:#7f7f7f">{{ cap.head }}</span>
     </div>
-    <div style="display:flex;align-items:baseline;gap:6px"><span style="font-size:36px;font-weight:300;letter-spacing:-0.04em;line-height:1;font-variant-numeric:tabular-nums">7,0</span><span style="font-size:13px;color:#7f7f7f">kW snitt av 3 topper</span></div>
+    <div style="display:flex;align-items:baseline;gap:6px"><span style="font-size:36px;font-weight:300;letter-spacing:-0.04em;line-height:1;font-variant-numeric:tabular-nums">{{ cap.avg }}</span><span style="font-size:13px;color:#7f7f7f">kW snitt av 3 topper</span></div>
     <div style="display:flex;flex-direction:column;gap:6px">
       <div style="position:relative;height:12px;border-radius:6px;background:#2f2f2f;overflow:hidden">
-        <span style="position:absolute;left:0;top:0;bottom:0;width:70%;border-radius:6px;background:linear-gradient(90deg, rgb(102 209 158), rgb(242 181 115))"></span>
-        <span style="position:absolute;left:50%;top:0;bottom:0;width:2px;background:#232323"></span>
+        <span style="{{ cap.bar }}"></span>
+        <span style="{{ cap.mark }}"></span>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:11px;color:#696969"><span>0 kW</span><span>5 kW</span><span style="color:#afafaf">3,0 kW margin</span><span>10 kW</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#696969"><span>0 kW</span><span>{{ cap.lo }}</span><span style="color:#afafaf">{{ cap.margin }}</span><span>{{ cap.hi }}</span></div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px">
       <sc-for list="{{ peaks }}" as="p" hint-placeholder-count="3">
@@ -76,8 +76,8 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
       </sc-for>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);font-size:12px">
-      <span style="color:#7f7f7f">Neste trinn 10–15 kW</span>
-      <span style="color:rgb(242 128 115);font-variant-numeric:tabular-nums">+330 kr/mnd</span>
+      <span style="color:#7f7f7f">{{ cap.next }}</span>
+      <span style="color:rgb(242 128 115);font-variant-numeric:tabular-nums">{{ cap.nextKr }}</span>
     </div>
   </section>
 
@@ -102,43 +102,198 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:1150}}">
+// ── LIVE (felles for Strøm-skjermene): ki_energi + pris-/måler-integrasjoner. Se docs/screens/Strøm.md ──
+const LV = (() => {
+  const STAT = new Map(), MEMO = {}, cfg = () => ha.config || {}, num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
+  const dk = d => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`, hk = d => `${dk(d)} ${d.getHours()}`;
+  const sod = (d = new Date()) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+  const E = (alias, key, dom = 'sensor') => ha.first(alias, `${dom}.${key}`) || (ha.hass ? ha.find('ki_energi', key, dom) : null);
+  const status = () => E('status', 'ki_energi_status');
+  const kiEnt = k => { const s = status(); const m = s && ha.attr(s, 'entiteter', null); return m && m[k] || null; };
+  const sensors = f => ha.domain('sensor', s => { try { return f(s.attributes || {}, s.entity_id.toLowerCase(), s); } catch (e) { return false; } });
+  const meterRe = /strommaler|str_mmaler|ams|han_|_han|pulse|tibber|elmaler|power_import|import/;
+  // Effekt nå (W): ki_energi total_effekt → vanlige målere (Tibber Pulse, AMS/HAN).
+  const effekt = () => ha.first('effekt', kiEnt('total_effekt'), 'sensor.strommaler_effekt') || sensors((a, id) => a.device_class === 'power' && meterRe.test(id) && !/export|produksjon|production|solar/.test(id))[0] || null;
+  const watt = () => { const id = effekt(); if (!id) return null; const v = ha.num(id, null); if (v == null) return null; const u = String(ha.unit(id, 'W')); return u === 'kW' ? v * 1000 : v; };
+  // Energiregister (kWh, total_increasing): ki_energi importert_energi → målere.
+  const energi = () => ha.first('energi', kiEnt('importert_energi'), 'sensor.strommaler_imported_energy') || sensors((a, id) => a.device_class === 'energy' && a.state_class === 'total_increasing' && meterRe.test(id) && !/export|produksjon|production|solar|cost/.test(id))[0] || null;
+  // Timepriser: alias `pris`, ellers autodeteksjon (Nord Pool / Energi Data Service / Tibber-lignende attributter), ellers ki_vvb_billige_timer.doegn.
+  const PK = ['raw_today', 'today', 'prices_today', 'today_prices', 'prices'];
+  const hasArr = a => PK.some(k => Array.isArray(a[k]) && a[k].length);
+  const prisId = extra => ha.first('pris', extra, 'sensor.nordpool') || sensors((a, id) => hasArr(a) && /nordpool|nord_pool|spot|energi_data|strompris|tibber|price|pris/.test(id))[0] || sensors(a => hasArr(a))[0] || null;
+  const scale = id => { const u = String(ha.unit(id, '') || ha.attr(id, 'unit', '') || ha.attr(id, 'currency', '')).toLowerCase(); return ha.attr(id, 'price_in_cents', false) || /øre|ore|cent/.test(u) ? 0.01 : /mwh/.test(u) ? 0.001 : 1; };
+  const parse = (arr, base, sc) => {
+    if (!Array.isArray(arr) || !arr.length) return [];
+    const n = arr.length, step = 24 / n * 3600e3;
+    const rows = arr.map((x, i) => {
+      if (x == null) return null;
+      if (typeof x === 'number' || typeof x === 'string') { const v = num(x); return v == null ? null : { t: new Date(+base + i * step), v: v * sc }; }
+      const t = x.start ?? x.hour ?? x.startsAt ?? x.starts_at ?? x.time ?? x.from ?? x.start_time ?? x.datetime;
+      const v = num(x.value ?? x.price ?? x.total ?? x.pris ?? x.v ?? x.price_per_kwh);
+      return v == null ? null : { t: t != null ? new Date(t) : new Date(+base + i * step), v: v * sc };
+    }).filter(r => r && !isNaN(r.t));
+    return rows;
+  };
+  const hourly = rows => { const out = Array(24).fill(null), cnt = Array(24).fill(0); rows.forEach(r => { const h = r.t.getHours(); out[h] = (out[h] || 0) + r.v; cnt[h]++; }); return out.map((v, i) => v == null ? null : v / cnt[i]); };
+  const quarters = rows => { const out = Array(96).fill(null); rows.forEach(r => { const q = r.t.getHours() * 4 + Math.floor(r.t.getMinutes() / 15); if (rows.length >= 90) out[q] = r.v; else for (let k = 0; k < 4; k++) out[r.t.getHours() * 4 + k] = r.v; }); return out; };
+  function priser(extraId, tmrAttr) {
+    const id = prisId(extraId), t0 = sod(), t1 = new Date(+t0 + 864e5);
+    if (id && ha.state(id)) {
+      const a = ha.state(id).attributes || {}, sc = scale(id);
+      const tk = PK.find(k => Array.isArray(a[k]) && a[k].length);
+      let all = parse(a[tk], t0, sc);
+      const tmrK = [tmrAttr, 'raw_tomorrow', 'tomorrow', 'prices_tomorrow', 'tomorrow_prices'].find(k => k && Array.isArray(a[k]) && a[k].length);
+      if (tmrK) all = all.concat(parse(a[tmrK], t1, sc));
+      const td = all.filter(r => r.t >= t0 && r.t < t1), tm = all.filter(r => r.t >= t1 && r.t < new Date(+t1 + 864e5));
+      if (td.length) return { id, today: hourly(td), tomorrow: tm.length ? hourly(tm) : null, qToday: quarters(td), qTomorrow: tm.length ? quarters(tm) : null, now: ha.num(id, null) != null ? ha.num(id) * sc : null };
+    }
+    // Fallback: ki_energi sine Nord Pool-timer (24 timer fra nå) i ki_vvb_billige_timer.
+    const vvb = E('vvb_billige_timer', 'ki_vvb_billige_timer'), d = vvb && ha.attr(vvb, 'doegn', null);
+    if (Array.isArray(d) && d.some(x => x && x.pris != null)) {
+      const today = Array(24).fill(null), tomorrow = Array(24).fill(null); let wrap = false;
+      d.forEach((x, i) => { if (i && x.t === 0) wrap = true; if (x.pris != null) (wrap ? tomorrow : today)[x.t] = +x.pris; });
+      const hasT = tomorrow.some(v => v != null);
+      return { id: vvb, today, tomorrow: hasT ? tomorrow : null, qToday: today.flatMap(v => [v, v, v, v]), qTomorrow: hasT ? tomorrow.flatMap(v => [v, v, v, v]) : null, now: today[new Date().getHours()], partial: true };
+    }
+    return null;
+  }
+  // Nettleie energiledd (kr/kWh) – ki_energi sine konfig-standarder (Elvia/Strømkalkulator) eller input_number.
+  const energiledd = natt => { const id = natt ? ha.first('energiledd_natt', 'input_number.grid_night_hourly_cost', 'sensor.nettleie_elvia_energiledd_natt_helg') : ha.first('energiledd_dag', 'input_number.grid_day_hourly_cost', 'sensor.nettleie_elvia_energiledd_dag'); return id ? ha.num(id, null) : null; };
+  const isNatt = d => { const h = d.getHours(), w = d.getDay(); return h < 6 || h >= 22 || w === 0 || w === 6; };
+  const npId = extra => ha.first('norgespris', extra, 'input_number.norgespris');
+  const norgespris = extra => { const id = npId(extra); const v = id ? ha.num(id, null) : null; return v != null ? (v > 5 ? v / 100 : v) : num(cfg().norgespris) ?? 0.5; };
+  const npAktiv = () => { const id = ha.first('norgespris_aktiv', 'binary_sensor.norgespris_norgespris_aktiv_na'); return id ? ha.on(id, null) : null; };
+  // Langtidsstatistikk (recorder) – timer/døgn/måneder uten å laste rå historikk.
+  function stats(id, period, start, types) {
+    if (!id || !ha.hass || !ha.hass.callWS) return null;
+    const k = `${id}|${period}|${+start}|${types}`, c = STAT.get(k);
+    if (c && (c.pending || Date.now() - c.at < 10 * 60e3)) return c.data;
+    STAT.set(k, { at: c?.at || 0, data: c?.data || null, pending: true });
+    Promise.resolve(ha.hass.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(start).toISOString(), period, statistic_ids: [id], types, units: {} }))
+      .then(r => { const rows = ((r || {})[id] || []).map(x => ({ t: new Date(typeof x.start === 'number' ? x.start : Date.parse(x.start)), change: num(x.change), mean: num(x.mean), state: num(x.state) })).filter(x => !isNaN(x.t)); STAT.set(k, { at: Date.now(), data: rows }); ha.bump(id); })
+      .catch(() => { STAT.set(k, { at: Date.now(), data: [] }); });
+    return c?.data || null;
+  }
+  // Timeforbruk (kWh) og timepris (kr/kWh) fra 1. januar i fjor (dekker år/forrige år), nøkkel = lokal time.
+  function timer() {
+    const eid = energi(); if (!eid) return null;
+    const y0 = new Date(new Date().getFullYear() - 1, 0, 1), P = priser();
+    const es = stats(eid, 'hour', y0, ['change']);
+    if (!es) return { eid, loading: true, kwh: new Map(), pris: new Map() };
+    const pid = P && !P.partial ? P.id : null, ps = pid ? stats(pid, 'hour', y0, ['mean']) : null;
+    if (MEMO.es !== es) { MEMO.es = es; MEMO.kwh = new Map(); es.forEach(r => { if (r.change != null) MEMO.kwh.set(hk(r.t), Math.max(0, r.change)); }); }
+    if (MEMO.ps !== ps) { MEMO.ps = ps; MEMO.pris = new Map(); (ps || []).forEach(r => { if (r.mean != null) MEMO.pris.set(hk(r.t), r.mean * scale(pid)); }); }
+    // Prissensor uten langtidsstatistikk: rå historikk siste 62 døgn (prisen gjelder til neste endring).
+    if (ps && !ps.length && pid) { const h = ha.history(pid, 24 * 62); if (h && h.length && MEMO.ph !== h) { MEMO.ph = h; MEMO.pris = new Map(); const sc = scale(pid);
+      h.forEach((r, i) => { const end = i + 1 < h.length ? +h[i + 1].t : Date.now(); for (let t = +r.t - (+r.t % 3600e3); t < end; t += 3600e3) MEMO.pris.set(hk(new Date(t)), r.v * sc); }); } }
+    const kwh = MEMO.kwh, pris = MEMO.pris;
+    if (P) { const t0 = sod(); P.today.forEach((v, h) => { if (v != null) pris.set(hk(new Date(+t0 + h * 3600e3)), v); }); }
+    // Inneværende time (ikke i statistikken ennå): ki_time_energi.
+    const cur = ha.num(E('time_energi', 'ki_time_energi'), null); if (cur != null) kwh.set(hk(new Date()), cur);
+    return { eid, kwh, pris, fallbackPris: P ? (P.now ?? P.today.find(v => v != null)) : null };
+  }
+  // Summer for en periode [a, b): kWh, strømkost (spot/Norgespris), energiledd.
+  function sum(T, a, b, np) {
+    let kwh = 0, spot = 0, net = 0, n = 0; const ed = energiledd(false), en = energiledd(true);
+    for (let t = +a; t < +b; t += 3600e3) { const d = new Date(t), k = hk(d), e = T.kwh.get(k); if (e == null) continue; n++;
+      kwh += e; const p = T.pris.get(k) ?? T.fallbackPris ?? 0; spot += e * p; const g = isNatt(d) ? (en ?? ed) : (ed ?? en); net += e * (g || 0); }
+    return { kwh, spot, np: kwh * (np ?? norgespris()), net, timer: n };
+  }
+  return { E, status, effekt, watt, energi, priser, energiledd, isNatt, norgespris, npId, npAktiv, stats, timer, sum, dk, hk, sod, num, scale };
+})();
 const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
 const C = { blue: 'rgb(115 185 242)', orange: 'rgb(242 181 115)', purple: 'rgb(173 153 230)', amber: 'rgb(242 181 115)', red: 'rgb(242 128 115)', green: 'rgb(102 209 158)' };
 const nf = (n, d = 0) => n.toLocaleString('nb-NO', { minimumFractionDigits: d, maximumFractionDigits: d });
-const P = {
+const DEMO_P = {
   day:   { t: ['i dag', 'i går'], kwh: [38, 44], s: [19, 22], n: [27, 31], a: [4, 5], est: true, sub: ['Anslått for hele døgnet', 'Hele døgnet'] },
   week:  { t: ['uke 39', 'uke 38'], kwh: [262, 281], s: [131, 140], n: [186, 199], a: [28, 30], est: true, sub: ['Anslått for hele uken', 'Hele uken'] },
   month: { t: ['september', 'august'], kwh: [1180, 960], s: [590, 480], n: [840, 634], a: [130, 106], est: true, sub: ['Hele måneden, anslått · hittil 1 352 kr', 'Faktura mottatt 3. september'] },
   year:  { t: ['2026', '2025'], kwh: [14200, 15900], s: [7100, 12400], n: [9400, 10200], a: [1560, 1750], est: true, sub: ['Hele året, anslått · hittil 11 870 kr', 'Hele året · før Norgespris'] },
 };
-const CAP = [560, 560, 415, 415, 290, 290, 290, 290, 415, null, null, null];
+const DEMO_CAP = [560, 560, 415, 415, 290, 290, 290, 290, 415, null, null, null];
 const ML = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
 const MN = ['Januar', 'Februar', 'Mars', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Desember'];
-const TRINN = { 290: '2–5 kW', 415: '5–10 kW', 560: '10–15 kW' };
+const DEMO_TRINN = { 290: '2–5 kW', 415: '5–10 kW', 560: '10–15 kW' };
+const DEMO_PEAKS = [[7.8, '12. sep 18–19'], [6.9, '3. sep 17–18'], [6.4, '21. sep 19–20']];
+const DEMO_CAPI = { head: '5–10 kW · 415 kr/mnd', avg: 7, fra: 5, til: 10, next: 'Neste trinn 10–15 kW', nextKr: '+330 kr/mnd' };
+let P = DEMO_P, CAP = DEMO_CAP, TRINN = DEMO_TRINN, PEAKS = DEMO_PEAKS, CAPI = DEMO_CAPI, CUR_M = 8;
+const MS = ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des'];
+const hh2 = h => String(h).padStart(2, '0');
+// Live: sensor.ki_nettleie (kapasitetsledd, topper, tarifftabell + historikk per måned) og regning fra timeforbruk × timepris.
+function loadNett() {
+  const id = LV.E('nettleie', 'ki_nettleie'), st = id && ha.state(id); if (!st) return false;
+  const a = st.attributes || {}, tab = Array.isArray(a.tabell) ? a.tabell.map(r => [+r[0], +r[1]]) : [], now = new Date(), y = now.getFullYear();
+  const kr = LV.num(st.state), snitt = LV.num(a.registrert_snitt);
+  const row = v => tab.findIndex(r => r[1] === v), span = v => { const i = row(v); return i < 0 ? '' : `${i ? tab[i - 1][0] : 0}–${tab[i][0]} kW`; };
+  TRINN = new Proxy({}, { get: (_, k) => span(+k) || `${k} kr` });
+  CUR_M = now.getMonth(); CAP = Array(12).fill(null);
+  (ha.history(id, 24 * 366) || []).forEach(r => { if (r.t.getFullYear() === y) CAP[r.t.getMonth()] = r.v; });
+  if (kr != null) CAP[CUR_M] = kr;
+  const fra = LV.num(a.registrert_trinn_fra) ?? 0, til = LV.num(a.registrert_trinn_til), i = kr != null ? row(kr) : -1, nx = i >= 0 ? tab[i + 1] : null;
+  CAPI = { head: til != null && kr != null ? `${nf(fra)}–${nf(til)} kW · ${nf(kr)} kr/mnd` : kr != null ? `${nf(kr)} kr/mnd` : 'ukjent trinn', avg: snitt, fra, til: til ?? Math.max(fra + 1, snitt || 0),
+    next: nx ? `Neste trinn ${nf(tab[i][0])}–${nf(nx[0])} kW` : 'Høyeste trinn', nextKr: nx ? `+${nf(nx[1] - kr)} kr/mnd` : '' };
+  PEAKS = (Array.isArray(a.topp_tre) ? a.topp_tre : []).slice(0, 3).map(p => { const d = p.dato ? new Date(p.dato + 'T12:00') : null, h = parseInt(p.time, 10);
+    return [+p.kwh || 0, `${d && !isNaN(d) ? `${d.getDate()}. ${MS[d.getMonth()]} ` : ''}${Number.isFinite(h) ? `${hh2(h)}–${hh2((h + 1) % 24)}` : ''}`.trim() || '–']; });
+  return true;
+}
+function loadBill() {
+  const T = LV.timer(); if (!T || T.loading || !T.kwh.size) return null;
+  const now = new Date(), sod = LV.sod(now), y = now.getFullYear(), m = now.getMonth(), np = LV.npAktiv(), npk = LV.norgespris();
+  const cfgA = LV.num(ha.config.avgift_kr_kwh), avg = cfgA != null ? cfgA : 0.1691;
+  const nettId = LV.E('nettleie', 'ki_nettleie'), capNow = LV.num(ha.val(nettId)) ?? 0;
+  const wk = d => { const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const dn = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - dn); const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1)); return Math.ceil(((t - y0) / 864e5 + 1) / 7); };
+  const mon = new Date(sod); mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));
+  const R = { day: [[sod, new Date(+sod + 864e5)], [new Date(+sod - 864e5), sod]], week: [[mon, new Date(+mon + 7 * 864e5)], [new Date(+mon - 7 * 864e5), mon]],
+    month: [[new Date(y, m, 1), new Date(y, m + 1, 1)], [new Date(y, m - 1, 1), new Date(y, m, 1)]], year: [[new Date(y, 0, 1), new Date(y + 1, 0, 1)], [new Date(y - 1, 0, 1), new Date(y, 0, 1)]] };
+  const MNL = ['januar', 'februar', 'mars', 'april', 'mai', 'juni', 'juli', 'august', 'september', 'oktober', 'november', 'desember'];
+  const T2 = { day: ['i dag', 'i går'], week: [`uke ${wk(now)}`, `uke ${wk(new Date(+now - 7 * 864e5))}`], month: [MNL[m], MNL[(m + 11) % 12]], year: [String(y), String(y - 1)] };
+  const SUB = { day: ['Anslått for hele døgnet', 'Hele døgnet'], week: ['Anslått for hele uken', 'Hele uken'], month: ['Hele måneden, anslått', 'Hele måneden'], year: ['Hele året, anslått', 'Hele året'] };
+  const out = {};
+  for (const k in R) {
+    const o = { t: T2[k], kwh: [], s: [], n: [], a: [], est: true, sub: [] };
+    R[k].forEach(([a, b], i) => {
+      const end = i === 0 ? now : b, r = LV.sum(T, a, end, npk);
+      const f = i === 0 ? Math.max(1, (b - a) / Math.max(3600e3, now - a)) : 1;
+      // Kapasitetsledd: kr/mnd fordelt på døgn i perioden (historisk måned fra CAP der den finnes).
+      let cap = 0; for (let t = +a; t < +b; t += 864e5) { const d = new Date(t), dim = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); cap += ((d.getFullYear() === y ? CAP[d.getMonth()] : null) ?? capNow) / dim; }
+      const strom = (np ? r.np : r.spot) * f, nett = r.net * f + cap, avgift = r.kwh * avg * f, tot = strom + nett + avgift;
+      o.kwh.push(r.kwh * f); o.s.push(strom); o.n.push(nett); o.a.push(avgift);
+      o.sub.push(i === 0 && (k === 'month' || k === 'year') ? `${SUB[k][0]} · hittil ${nf(tot / f)} kr` : SUB[k][i]);
+    });
+    out[k] = o;
+  }
+  return { P: out, strSub: np ? `Norgespris ${nf(npk * 100)} øre/kWh` : 'Spotpris time for time' };
+}
 class Component extends DCLogic {
   state = { period: 'month', prev: false, month: 8 };
   renderVals() {
-    const s = this.state, d = P[s.period], i = s.prev ? 1 : 0;
+    P = DEMO_P; CAP = DEMO_CAP; TRINN = DEMO_TRINN; PEAKS = DEMO_PEAKS; CAPI = DEMO_CAPI; CUR_M = 8;
+    const nett = loadNett(), B = loadBill(); if (B) P = B.P;
+    const s = this.state, d = P[s.period], i = s.prev ? 1 : 0, selM = s.mPicked || !nett ? s.month : CUR_M;
     const vals = [d.s[i], d.n[i], d.a[i]], total = vals.reduce((x, y) => x + y, 0);
     const est = !s.prev;
     const seg = (k, label) => ({ label, go: () => this.setState({ period: k, prev: false }), style: { height: 38, padding: '0 16px', borderRadius: 19, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: s.period === k ? PINK : 'transparent', color: s.period === k ? '#2a1720' : '#afafaf', transition: 'background .2s' } });
     const done = CAP.filter(v => v != null);
-    const cm = CAP[s.month];
+    const cm = CAP[selM], capMax = Math.max(600, ...CAP.filter(v => v != null));
     return {
       periods: [seg('day', 'Dag'), seg('week', 'Uke'), seg('month', 'Måned'), seg('year', 'År')],
       togglePrev: () => this.setState({ prev: !s.prev }),
       calBtn: { width: 46, height: 46, borderRadius: 23, display: 'grid', placeItems: 'center', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.14)', background: s.prev ? '#2f2f2f' : 'transparent', color: s.prev ? 'rgb(242 133 201)' : '#afafaf' },
       billTitle: `Strømregning · ${d.t[i]}`, badge: est ? 'estimat' : 'faktisk',
       total: nf(total), totalSub: d.sub[i],
-      parts: [['Strøm', 'Norgespris 50 øre/kWh', C.blue], ['Nettleie', 'Energiledd og effektledd', C.orange], ['Avgifter', 'Elavgift og Enova-avgift', C.purple]].map(([label, sub, col], k) => ({ label, sub, kr: nf(vals[k]),
+      parts: [['Strøm', B ? B.strSub : 'Norgespris 50 øre/kWh', C.blue], ['Nettleie', 'Energiledd og effektledd', C.orange], ['Avgifter', 'Elavgift og Enova-avgift', C.purple]].map(([label, sub, col], k) => ({ label, sub, kr: nf(vals[k]),
         bar: { flex: vals[k], borderRadius: 6, background: col, transition: 'flex .4s' },
         dot: { width: 10, height: 10, borderRadius: 5, background: col, flex: 'none' } })),
-      kwh: nf(d.kwh[i]), perKwh: nf(total / d.kwh[i], 2),
-      peaks: [[7.8, '12. sep 18–19', C.red], [6.9, '3. sep 17–18', C.amber], [6.4, '21. sep 19–20', C.blue]].map(([kw, when, col], k) => ({ n: k + 1, kw: nf(kw, 1), when, numStyle: { color: col, fontWeight: 600 } })),
+      kwh: nf(d.kwh[i]), perKwh: d.kwh[i] ? nf(total / d.kwh[i], 2) : '–',
+      cap: { head: CAPI.head, avg: CAPI.avg != null ? nf(CAPI.avg, 1) : '–', lo: `${nf(CAPI.fra)} kW`, hi: `${nf(CAPI.til)} kW`, next: CAPI.next, nextKr: CAPI.nextKr,
+        margin: CAPI.avg != null ? `${nf(Math.max(0, CAPI.til - CAPI.avg), 1)} kW margin` : '',
+        bar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: `${Math.min(100, Math.max(0, (CAPI.avg || 0) / CAPI.til * 100))}%`, borderRadius: 6, background: 'linear-gradient(90deg, rgb(102 209 158), rgb(242 181 115))' },
+        mark: { position: 'absolute', left: `${CAPI.fra / CAPI.til * 100}%`, top: 0, bottom: 0, width: 2, background: '#232323' } },
+      peaks: PEAKS.map(([kw, when], k) => [kw, when, [C.red, C.amber, C.blue][k]]).map(([kw, when, col], k) => ({ n: k + 1, kw: nf(kw, 1), when, numStyle: { color: col, fontWeight: 600 } })),
       yearCap: nf(done.reduce((x, y) => x + y, 0)),
-      capKr: cm == null ? '–' : nf(cm), capSub: cm == null ? `${MN[s.month]} · ingen data` : `${MN[s.month]}${s.month === 8 ? ' (nå)' : ''} · ${TRINN[cm]}`,
-      months: ML.map((l, k) => { const v = CAP[k], act = k === s.month; return { l, go: () => this.setState({ month: k }),
-        bar: { height: v == null ? 4 : `${v / 600 * 100}%`, borderRadius: 8, background: v == null ? '#2f2f2f' : act ? (k === 8 ? C.amber : '#fafafa') : k === 8 ? 'rgb(242 181 115 / 0.45)' : '#3a3a3a', transition: 'background .2s' },
+      capKr: cm == null ? '–' : nf(cm), capSub: cm == null ? `${MN[selM]} · ingen data` : `${MN[selM]}${selM === CUR_M ? ' (nå)' : ''} · ${TRINN[cm]}`,
+      months: ML.map((l, k) => { const v = CAP[k], act = k === selM; return { l, go: () => this.setState({ month: k, mPicked: true }),
+        bar: { height: v == null ? 4 : `${v / capMax * 100}%`, borderRadius: 8, background: v == null ? '#2f2f2f' : act ? (k === CUR_M ? C.amber : '#fafafa') : k === CUR_M ? 'rgb(242 181 115 / 0.45)' : '#3a3a3a', transition: 'background .2s' },
         lbl: { flex: 1, textAlign: 'center', fontSize: 11, color: act ? '#fafafa' : '#696969' } }; }),
     };
   }

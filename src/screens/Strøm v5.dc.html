@@ -177,7 +177,7 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
   <sc-if value="{{ isKurs }}" hint-placeholder-val="{{ false }}">
     <div style="display:flex;flex-direction:column;gap:12px">
       <div style="border-radius:28px;background:#2f2f2f;padding:16px;display:flex;flex-direction:column;gap:14px">
-        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px;color:#afafaf;white-space:nowrap">Hovedsikring 3 × 40 A</span><span style="font-size:12px;color:#7f7f7f;white-space:nowrap;font-variant-numeric:tabular-nums">{{ mainPct }} % belastet</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px;color:#afafaf;white-space:nowrap">{{ fuseLabel }}</span><span style="font-size:12px;color:#7f7f7f;white-space:nowrap;font-variant-numeric:tabular-nums">{{ mainPct }} % belastet</span></div>
         <sc-for list="{{ phases }}" as="p" hint-placeholder-count="3">
           <div style="display:flex;align-items:center;gap:12px">
             <span style="width:22px;font-size:12px;color:#7f7f7f">{{ p.name }}</span>
@@ -203,73 +203,230 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:1100}}">
+// ── LIVE (felles for Strøm-skjermene): ki_energi + pris-/måler-integrasjoner. Se docs/screens/Strøm.md ──
+const LV = (() => {
+  const STAT = new Map(), MEMO = {}, cfg = () => ha.config || {}, num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
+  const dk = d => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`, hk = d => `${dk(d)} ${d.getHours()}`;
+  const sod = (d = new Date()) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+  const E = (alias, key, dom = 'sensor') => ha.first(alias, `${dom}.${key}`) || (ha.hass ? ha.find('ki_energi', key, dom) : null);
+  const status = () => E('status', 'ki_energi_status');
+  const kiEnt = k => { const s = status(); const m = s && ha.attr(s, 'entiteter', null); return m && m[k] || null; };
+  const sensors = f => ha.domain('sensor', s => { try { return f(s.attributes || {}, s.entity_id.toLowerCase(), s); } catch (e) { return false; } });
+  const meterRe = /strommaler|str_mmaler|ams|han_|_han|pulse|tibber|elmaler|power_import|import/;
+  // Effekt nå (W): ki_energi total_effekt → vanlige målere (Tibber Pulse, AMS/HAN).
+  const effekt = () => ha.first('effekt', kiEnt('total_effekt'), 'sensor.strommaler_effekt') || sensors((a, id) => a.device_class === 'power' && meterRe.test(id) && !/export|produksjon|production|solar/.test(id))[0] || null;
+  const watt = () => { const id = effekt(); if (!id) return null; const v = ha.num(id, null); if (v == null) return null; const u = String(ha.unit(id, 'W')); return u === 'kW' ? v * 1000 : v; };
+  // Energiregister (kWh, total_increasing): ki_energi importert_energi → målere.
+  const energi = () => ha.first('energi', kiEnt('importert_energi'), 'sensor.strommaler_imported_energy') || sensors((a, id) => a.device_class === 'energy' && a.state_class === 'total_increasing' && meterRe.test(id) && !/export|produksjon|production|solar|cost/.test(id))[0] || null;
+  // Timepriser: alias `pris`, ellers autodeteksjon (Nord Pool / Energi Data Service / Tibber-lignende attributter), ellers ki_vvb_billige_timer.doegn.
+  const PK = ['raw_today', 'today', 'prices_today', 'today_prices', 'prices'];
+  const hasArr = a => PK.some(k => Array.isArray(a[k]) && a[k].length);
+  const prisId = extra => ha.first('pris', extra, 'sensor.nordpool') || sensors((a, id) => hasArr(a) && /nordpool|nord_pool|spot|energi_data|strompris|tibber|price|pris/.test(id))[0] || sensors(a => hasArr(a))[0] || null;
+  const scale = id => { const u = String(ha.unit(id, '') || ha.attr(id, 'unit', '') || ha.attr(id, 'currency', '')).toLowerCase(); return ha.attr(id, 'price_in_cents', false) || /øre|ore|cent/.test(u) ? 0.01 : /mwh/.test(u) ? 0.001 : 1; };
+  const parse = (arr, base, sc) => {
+    if (!Array.isArray(arr) || !arr.length) return [];
+    const n = arr.length, step = 24 / n * 3600e3;
+    const rows = arr.map((x, i) => {
+      if (x == null) return null;
+      if (typeof x === 'number' || typeof x === 'string') { const v = num(x); return v == null ? null : { t: new Date(+base + i * step), v: v * sc }; }
+      const t = x.start ?? x.hour ?? x.startsAt ?? x.starts_at ?? x.time ?? x.from ?? x.start_time ?? x.datetime;
+      const v = num(x.value ?? x.price ?? x.total ?? x.pris ?? x.v ?? x.price_per_kwh);
+      return v == null ? null : { t: t != null ? new Date(t) : new Date(+base + i * step), v: v * sc };
+    }).filter(r => r && !isNaN(r.t));
+    return rows;
+  };
+  const hourly = rows => { const out = Array(24).fill(null), cnt = Array(24).fill(0); rows.forEach(r => { const h = r.t.getHours(); out[h] = (out[h] || 0) + r.v; cnt[h]++; }); return out.map((v, i) => v == null ? null : v / cnt[i]); };
+  const quarters = rows => { const out = Array(96).fill(null); rows.forEach(r => { const q = r.t.getHours() * 4 + Math.floor(r.t.getMinutes() / 15); if (rows.length >= 90) out[q] = r.v; else for (let k = 0; k < 4; k++) out[r.t.getHours() * 4 + k] = r.v; }); return out; };
+  function priser(extraId, tmrAttr) {
+    const id = prisId(extraId), t0 = sod(), t1 = new Date(+t0 + 864e5);
+    if (id && ha.state(id)) {
+      const a = ha.state(id).attributes || {}, sc = scale(id);
+      const tk = PK.find(k => Array.isArray(a[k]) && a[k].length);
+      let all = parse(a[tk], t0, sc);
+      const tmrK = [tmrAttr, 'raw_tomorrow', 'tomorrow', 'prices_tomorrow', 'tomorrow_prices'].find(k => k && Array.isArray(a[k]) && a[k].length);
+      if (tmrK) all = all.concat(parse(a[tmrK], t1, sc));
+      const td = all.filter(r => r.t >= t0 && r.t < t1), tm = all.filter(r => r.t >= t1 && r.t < new Date(+t1 + 864e5));
+      if (td.length) return { id, today: hourly(td), tomorrow: tm.length ? hourly(tm) : null, qToday: quarters(td), qTomorrow: tm.length ? quarters(tm) : null, now: ha.num(id, null) != null ? ha.num(id) * sc : null };
+    }
+    // Fallback: ki_energi sine Nord Pool-timer (24 timer fra nå) i ki_vvb_billige_timer.
+    const vvb = E('vvb_billige_timer', 'ki_vvb_billige_timer'), d = vvb && ha.attr(vvb, 'doegn', null);
+    if (Array.isArray(d) && d.some(x => x && x.pris != null)) {
+      const today = Array(24).fill(null), tomorrow = Array(24).fill(null); let wrap = false;
+      d.forEach((x, i) => { if (i && x.t === 0) wrap = true; if (x.pris != null) (wrap ? tomorrow : today)[x.t] = +x.pris; });
+      const hasT = tomorrow.some(v => v != null);
+      return { id: vvb, today, tomorrow: hasT ? tomorrow : null, qToday: today.flatMap(v => [v, v, v, v]), qTomorrow: hasT ? tomorrow.flatMap(v => [v, v, v, v]) : null, now: today[new Date().getHours()], partial: true };
+    }
+    return null;
+  }
+  // Nettleie energiledd (kr/kWh) – ki_energi sine konfig-standarder (Elvia/Strømkalkulator) eller input_number.
+  const energiledd = natt => { const id = natt ? ha.first('energiledd_natt', 'input_number.grid_night_hourly_cost', 'sensor.nettleie_elvia_energiledd_natt_helg') : ha.first('energiledd_dag', 'input_number.grid_day_hourly_cost', 'sensor.nettleie_elvia_energiledd_dag'); return id ? ha.num(id, null) : null; };
+  const isNatt = d => { const h = d.getHours(), w = d.getDay(); return h < 6 || h >= 22 || w === 0 || w === 6; };
+  const npId = extra => ha.first('norgespris', extra, 'input_number.norgespris');
+  const norgespris = extra => { const id = npId(extra); const v = id ? ha.num(id, null) : null; return v != null ? (v > 5 ? v / 100 : v) : num(cfg().norgespris) ?? 0.5; };
+  const npAktiv = () => { const id = ha.first('norgespris_aktiv', 'binary_sensor.norgespris_norgespris_aktiv_na'); return id ? ha.on(id, null) : null; };
+  // Langtidsstatistikk (recorder) – timer/døgn/måneder uten å laste rå historikk.
+  function stats(id, period, start, types) {
+    if (!id || !ha.hass || !ha.hass.callWS) return null;
+    const k = `${id}|${period}|${+start}|${types}`, c = STAT.get(k);
+    if (c && (c.pending || Date.now() - c.at < 10 * 60e3)) return c.data;
+    STAT.set(k, { at: c?.at || 0, data: c?.data || null, pending: true });
+    Promise.resolve(ha.hass.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(start).toISOString(), period, statistic_ids: [id], types, units: {} }))
+      .then(r => { const rows = ((r || {})[id] || []).map(x => ({ t: new Date(typeof x.start === 'number' ? x.start : Date.parse(x.start)), change: num(x.change), mean: num(x.mean), state: num(x.state) })).filter(x => !isNaN(x.t)); STAT.set(k, { at: Date.now(), data: rows }); ha.bump(id); })
+      .catch(() => { STAT.set(k, { at: Date.now(), data: [] }); });
+    return c?.data || null;
+  }
+  // Timeforbruk (kWh) og timepris (kr/kWh) fra 1. januar i fjor (dekker år/forrige år), nøkkel = lokal time.
+  function timer() {
+    const eid = energi(); if (!eid) return null;
+    const y0 = new Date(new Date().getFullYear() - 1, 0, 1), P = priser();
+    const es = stats(eid, 'hour', y0, ['change']);
+    if (!es) return { eid, loading: true, kwh: new Map(), pris: new Map() };
+    const pid = P && !P.partial ? P.id : null, ps = pid ? stats(pid, 'hour', y0, ['mean']) : null;
+    if (MEMO.es !== es) { MEMO.es = es; MEMO.kwh = new Map(); es.forEach(r => { if (r.change != null) MEMO.kwh.set(hk(r.t), Math.max(0, r.change)); }); }
+    if (MEMO.ps !== ps) { MEMO.ps = ps; MEMO.pris = new Map(); (ps || []).forEach(r => { if (r.mean != null) MEMO.pris.set(hk(r.t), r.mean * scale(pid)); }); }
+    // Prissensor uten langtidsstatistikk: rå historikk siste 62 døgn (prisen gjelder til neste endring).
+    if (ps && !ps.length && pid) { const h = ha.history(pid, 24 * 62); if (h && h.length && MEMO.ph !== h) { MEMO.ph = h; MEMO.pris = new Map(); const sc = scale(pid);
+      h.forEach((r, i) => { const end = i + 1 < h.length ? +h[i + 1].t : Date.now(); for (let t = +r.t - (+r.t % 3600e3); t < end; t += 3600e3) MEMO.pris.set(hk(new Date(t)), r.v * sc); }); } }
+    const kwh = MEMO.kwh, pris = MEMO.pris;
+    if (P) { const t0 = sod(); P.today.forEach((v, h) => { if (v != null) pris.set(hk(new Date(+t0 + h * 3600e3)), v); }); }
+    // Inneværende time (ikke i statistikken ennå): ki_time_energi.
+    const cur = ha.num(E('time_energi', 'ki_time_energi'), null); if (cur != null) kwh.set(hk(new Date()), cur);
+    return { eid, kwh, pris, fallbackPris: P ? (P.now ?? P.today.find(v => v != null)) : null };
+  }
+  // Summer for en periode [a, b): kWh, strømkost (spot/Norgespris), energiledd.
+  function sum(T, a, b, np) {
+    let kwh = 0, spot = 0, net = 0, n = 0; const ed = energiledd(false), en = energiledd(true);
+    for (let t = +a; t < +b; t += 3600e3) { const d = new Date(t), k = hk(d), e = T.kwh.get(k); if (e == null) continue; n++;
+      kwh += e; const p = T.pris.get(k) ?? T.fallbackPris ?? 0; spot += e * p; const g = isNatt(d) ? (en ?? ed) : (ed ?? en); net += e * (g || 0); }
+    return { kwh, spot, np: kwh * (np ?? norgespris()), net, timer: n };
+  }
+  return { E, status, effekt, watt, energi, priser, energiledd, isNatt, norgespris, npId, npAktiv, stats, timer, sum, dk, hk, sod, num, scale };
+})();
 const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
 const C = { green: 'rgb(102 209 158)', amber: 'rgb(242 181 115)', red: 'rgb(242 128 115)', blue: 'rgb(115 185 242)', teal: 'rgb(115 185 242)', purple: 'rgb(173 153 230)', orange: 'rgb(242 181 115)' };
 const a = (c, o) => c.replace(')', ` / ${o})`);
 const nf = (n, d = 0) => n.toLocaleString('nb-NO', { minimumFractionDigits: d, maximumFractionDigits: d });
-const TODAY = [98,95,92,90,93,105,132,160,172,165,150,140,128,115,108,112,135,170,205,232,225,200,170,140];
-const TOM = [85,80,78,77,80,95,120,150,158,148,132,120,110,100,96,102,125,160,190,210,198,176,150,120];
+const DEMO_TODAY = [98,95,92,90,93,105,132,160,172,165,150,140,128,115,108,112,135,170,205,232,225,200,170,140];
+const DEMO_TOM = [85,80,78,77,80,95,120,150,158,148,132,120,110,100,96,102,125,160,190,210,198,176,150,120];
 const q15 = arr => Array.from({ length: 96 }, (_, i) => { const h = Math.floor(i / 4), f = (i % 4) / 4, n = arr[Math.min(23, h + 1)]; return arr[h] + (n - arr[h]) * f + Math.sin(i * 1.7) * 6 + Math.sin(i * 0.61) * 4; });
-const Q_TODAY = q15(TODAY), Q_TOM = q15(TOM);
-const USE = [0.62,0.64,0.82,0.78,0.52,0.64,1.98,2.06,2.06,1.42,1.1,0.94,0.88,0.8,0.86,1.1,1.6,2.2,2.4,2.1,1.7,1.3,0.9,0.7];
+const DQ_TODAY = q15(DEMO_TODAY), DQ_TOM = q15(DEMO_TOM);
+const DEMO_USE = [0.62,0.64,0.82,0.78,0.52,0.64,1.98,2.06,2.06,1.42,1.1,0.94,0.88,0.8,0.86,1.1,1.6,2.2,2.4,2.1,1.7,1.3,0.9,0.7];
+const MONTHS_L = ['Januar', 'Februar', 'Mars', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Desember'];
 const MONTHS = ['jan.','feb.','mars','apr.','mai','juni','juli','aug.','sep.','okt.','nov.','des.'];
 const CIRC = [['heat_pump', 'Varmepumpe', 16, 780, 'L1'], ['water_heater', 'Varmtvannsbereder', 16, 0, 'L2'], ['ev_station', 'Elbillader', 32, 0, 'L1–L3'], ['kitchen', 'Kjøkken', 16, 410, 'L3'], ['local_laundry_service', 'Vaskerom', 16, 520, 'L2'], ['living', 'Stue og gang', 10, 180, 'L1'], ['bed', 'Soverom', 10, 60, 'L3'], ['garage', 'Garasje og ute', 10, 124, 'L2']];
 const EX = [['shower', 'Dusj 10 min', '≈ 4 kWh varmtvann', 4, 1], ['local_laundry_service', 'Vaskemaskin 40°', '≈ 0,9 kWh', 0.9, 2], ['dishwasher', 'Oppvaskmaskin', '≈ 1,1 kWh', 1.1, 2], ['ev_station', 'Lade bilen 20–80 %', '≈ 45 kWh', 45, 5], ['oven_gen', 'Stekeovn 1 time', '≈ 1,5 kWh', 1.5, 1]];
+let TODAY = DEMO_TODAY, TOM = DEMO_TOM, Q_TODAY = DQ_TODAY, Q_TOM = DQ_TOM, USE = DEMO_USE, DISP = DEMO_TODAY;
+const fillA = a => { const o = a.slice(); let last = o.find(v => v != null) ?? 0; for (let i = 0; i < o.length; i++) { if (o[i] == null) o[i] = last; else last = o[i]; } return o; };
+const ZICON = { panel: 'heat', gulv: 'floor', vannbaaren: 'water', varmepumpe: 'heat_pump', bryter: 'water_heater' };
+const powerW = id => { const v = ha.num(id, null); return v == null ? null : String(ha.unit(id, 'W')) === 'kW' ? v * 1000 : v; };
+// kWh fra en effektsensor (W) i [a, b) ved å integrere rå historikk.
+const integ = (id, a, b) => { const h = id && ha.history(id, Math.ceil((Date.now() - a) / 3600e3) + 1); if (!h || !h.length) return null; const unit = String(ha.unit(id, 'W')) === 'kW' ? 1000 : 1; let e = 0;
+  h.forEach((r, i) => { const t0 = Math.max(+r.t, +a), t1 = Math.min(i + 1 < h.length ? +h[i + 1].t : Date.now(), +b); if (t1 > t0) e += r.v * unit * (t1 - t0) / 3600e3; }); return e / 1000; };
+// Live: effekt (ki_energi total_effekt / målere), timepriser (alias `pris`), timeforbruk (recorder-statistikk), ki_energi-sensorer og config `kurser`/`hovedsikring`.
+function loadLive() {
+  const L = { watt: LV.watt() }, P = LV.priser(), inkl = ha.config.pris_inkl_mva !== false, ex = v => v * 100 / (inkl ? 1.25 : 1);
+  if (P) { L.P = P; TODAY = fillA(P.today).map(ex); DISP = fillA(P.today).map(v => v * 100); Q_TODAY = fillA(P.qToday).map(ex); TOM = P.tomorrow ? fillA(P.tomorrow).map(ex) : null; Q_TOM = P.qTomorrow ? fillA(P.qTomorrow).map(ex) : null; L.ex = ex; }
+  const ed = LV.energiledd(false), en = LV.energiledd(true), sur = ha.num(ha.first('paaslag', 'input_number.el_company_surcharge'), null);
+  if (ed != null || en != null) L.net = [(ed ?? en) * 100 / 1.25, (en ?? ed) * 100 / 1.25];
+  if (sur != null) L.co = sur * 100;
+  const T = LV.timer(); if (T && !T.loading && T.kwh.size) L.T = T;
+  L.np = LV.norgespris(); L.sparing = LV.E('sparing', 'ki_sparing'); L.prognose = LV.E('prognose', 'ki_prognose');
+  // Faser: alias fase_l1..3 eller strømsensorer (A) med L1/L2/L3 i navnet.
+  const cur = ha.domain('sensor', st => (st.attributes || {}).device_class === 'current');
+  L.phases = [1, 2, 3].map(n => ha.first(`fase_l${n}`) || cur.find(id => new RegExp(`(l${n}|phase_?${n}|fase_?${n})(\\b|_|$)`).test(id))).filter(Boolean);
+  if (L.phases.length !== 3) L.phases = null;
+  L.fuse = LV.num(ha.config.hovedsikring) || 40;
+  // Kurser: config `kurser` → ki_energi-lastene (sensor.ki_laster) med egne effektsensorer.
+  const K = Array.isArray(ha.config.kurser) ? ha.config.kurser : null, lid = LV.E('laster', 'ki_laster'), laster = lid && ha.attr(lid, 'laster', null);
+  if (K && K.length) L.circ = K.map(k => ({ icon: k.ikon || k.icon || 'electrical_services', name: k.navn || k.name || ha.name(k.entity, k.entity), amp: +(k.ampere || k.a || 16), ph: k.fase || k.phase || '', w: powerW(k.entity), id: k.entity }));
+  else if (Array.isArray(laster) && laster.length) {
+    const ber = LV.E('bereder', 'ki_bereder'), berW = ber && ha.attr(ber, 'effekt_sensor', null);
+    L.circ = laster.map(z => { const ids = (z.key === 'vvb' && berW ? [berW] : (z.entiteter || [])).filter(e => typeof e === 'string' && e.startsWith('sensor.')); const ws = ids.map(powerW).filter(v => v != null);
+      return { icon: ZICON[z.type] || 'heat', name: z.navn || z.rom || z.key, amp: +(z.ampere || (z.type === 'bryter' || (z.effekt || 0) > 1.5 ? 16 : 10)), ph: [z.rom, z.handling && z.handling !== 'normal' ? z.handling : ''].filter(Boolean).join(' · '), w: ws.length ? ws.reduce((a, b) => a + b, 0) : null, id: ids[0] || lid }; });
+  }
+  L.src = [['Oppvarming', LV.E('styrt_effekt', 'ki_styrt_effekt'), C.blue], ['Varmtvannsbereder', ha.first('vvb_effekt', (() => { const b = LV.E('bereder', 'ki_bereder'); return b && ha.attr(b, 'effekt_sensor', null); })()), C.teal], ['Hvitevarer', LV.E('hvitevarer_effekt', 'ki_hvitevarer_effekt'), C.green]].filter(x => x[1] && ha.state(x[1]));
+  return L.watt != null || L.P || L.T || L.circ || L.phases ? L : null;
+}
 class Component extends DCLogic {
   state = { tab: 'pris', sub: 'today', page: 0, watt: 2074, inc: { net: true, co: true, vat: true }, scrub: null, dayOff: 0, hourSel: null };
   componentDidMount() {
     this.hist = Array.from({ length: 48 }, (_, i) => 2074 + Math.sin(i * 0.5) * 260 + Math.sin(i * 1.3) * 120);
-    this.t = setInterval(() => this.setState(s => { const w = Math.max(900, Math.min(4200, Math.round(s.watt + (Math.random() - 0.48) * 220 + (Math.random() < 0.06 ? 900 : 0) - (s.watt > 2800 ? 160 : 0)))); this.hist = [...this.hist.slice(1), w]; return { watt: w }; }), 900);
+    this.t = setInterval(() => !this.L && this.setState(s => { const w = Math.max(900, Math.min(4200, Math.round(s.watt + (Math.random() - 0.48) * 220 + (Math.random() < 0.06 ? 900 : 0) - (s.watt > 2800 ? 160 : 0)))); this.hist = [...this.hist.slice(1), w]; return { watt: w }; }), 900);
   }
   componentWillUnmount() { clearInterval(this.t); }
-  price(spot, h) { const i = this.state.inc; return (spot + (i.net ? (h >= 6 && h < 22 ? 36.4 : 28.4) : 0) + (i.co ? 4.9 : 0)) * (i.vat ? 1.25 : 1); }
+  price(spot, h, d) { const i = this.state.inc, L = this.L, day = d ? !LV.isNatt(d) : h >= 6 && h < 22;
+    return (spot + (i.net ? (L && L.net ? L.net[day ? 0 : 1] : day ? 36.4 : 28.4) : 0) + (i.co ? (L && L.co != null ? L.co : 4.9) : 0)) * (i.vat ? 1.25 : 1); }
+  // Kostnad (kr) og kWh for [a, b) fra timeforbruk × timepris (med valgte tillegg).
+  cost(a, b) { const T = this.L && this.L.T; if (!T) return null; let kwh = 0, kr = 0;
+    for (let t = +a; t < +b; t += 3600e3) { const d = new Date(t), k = LV.hk(d), e = T.kwh.get(k); if (e == null) continue; const p = T.pris.get(k) ?? T.fallbackPris; kwh += e; if (p != null) kr += e * this.price(this.L.ex ? this.L.ex(p) : p * 80, d.getHours(), d) / 100; }
+    return { kwh, kr }; }
+  dayUse(off) { const T = this.L.T, d0 = LV.sod(); d0.setDate(d0.getDate() + off); const now = Date.now();
+    return Array.from({ length: 24 }, (_, h) => { const d = new Date(+d0 + h * 3600e3); if (+d > now) return null; const v = T.kwh.get(LV.hk(d)); return v == null ? (+d + 3600e3 < now ? 0 : null) : v; }); }
   pos(e) { const r = e.currentTarget.getBoundingClientRect(); return Math.max(0, Math.min(95, Math.round((e.clientX - r.left) / r.width * 95))); }
   renderVals() {
-    const s = this.state, d = new Date(), nowH = d.getHours() + d.getMinutes() / 60, nowQ = Math.min(95, Math.floor(nowH * 4)), nowHi = Math.floor(nowH);
+    const L = this.L = loadLive();
+    if (!L || !L.P) { TODAY = DEMO_TODAY; TOM = DEMO_TOM; Q_TODAY = DQ_TODAY; Q_TOM = DQ_TOM; DISP = DEMO_TODAY; }
+    const s = this.state, watt = L && L.watt != null ? L.watt : s.watt, d = new Date(), nowH = d.getHours() + d.getMinutes() / 60, nowQ = Math.min(95, Math.floor(nowH * 4)), nowHi = Math.floor(nowH);
     const seg = (cur, k, label, set) => ({ label, go: set, style: { height: 38, padding: '0 16px', borderRadius: 19, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: cur === k ? PINK : 'transparent', color: cur === k ? '#2a1720' : '#afafaf', transition: 'background .2s' } });
     const sorted = [...TODAY].sort((x, y) => x - y), lo = sorted[8], hi = sorted[16];
     const lvl = v => v <= lo ? ['billig', C.green] : v >= hi ? ['dyr', C.red] : ['middels', C.amber];
     const spotNow = Q_TODAY[nowQ], [lvlLabel, lvlCol] = lvl(TODAY[nowHi]);
-    const fl = Math.max(0.6, 3.2 - s.watt / 1500);
+    const fl = Math.max(0.6, 3.2 - watt / 1500);
     const cable = del => ({ stroke: C.amber, strokeWidth: 1.6, strokeDasharray: '3 5', animation: `flow ${fl}s linear ${del}s infinite`, filter: `drop-shadow(0 0 2px ${a(C.amber, 0.8)})` });
     const win = del => ({ fill: 'rgb(242 181 115)', filter: 'drop-shadow(0 0 5px rgb(242 181 115 / 0.8))', animation: `glow 3s ease-in-out ${del}s infinite` });
-    const q = s.sub === 'tom' ? Q_TOM : Q_TODAY, pr = q.map((v, i) => this.price(v, Math.floor(i / 4)));
-    const mn = Math.floor(Math.min(...pr) / 10) * 10, mx = Math.ceil(Math.max(...pr) / 10) * 10;
+    const noTom = s.sub === 'tom' && !Q_TOM, dTom = new Date(d); dTom.setDate(d.getDate() + 1);
+    const q = s.sub === 'tom' ? Q_TOM || Q_TODAY : Q_TODAY, pr = q.map((v, i) => this.price(v, Math.floor(i / 4), L && L.P ? new Date((s.sub === 'tom' ? +LV.sod(dTom) : +LV.sod(d)) + Math.floor(i / 4) * 3600e3) : undefined));
+    const mn = Math.floor(Math.min(...pr) / 10) * 10, mx = Math.max(mn + 10, Math.ceil(Math.max(...pr) / 10) * 10);
     const X = i => (i / 95 * 300).toFixed(1), Y = v => (100 - (v - mn) / (mx - mn) * 100).toFixed(1);
     const line = pr.map((v, i) => `${X(i)},${Y(v)}`).join(' ');
-    const sel = s.scrub ?? (s.sub === 'today' ? nowQ : null);
+    const sel = noTom ? null : s.scrub ?? (s.sub === 'today' ? nowQ : null);
     const hhmm = i => `${String(Math.floor(i / 4)).padStart(2, '0')}:${String((i % 4) * 15).padStart(2, '0')}`;
+    USE = L && L.T ? this.dayUse(0).map(v => v || 0) : DEMO_USE;
     const useToday = USE.slice(0, nowHi + 1), kwhToday = useToday.reduce((x, y) => x + y, 0) + USE[nowHi] * (nowH - nowHi) - USE[nowHi];
-    const krToday = USE.slice(0, nowHi + 1).reduce((x, y, i) => x + y * (i === nowHi ? nowH - nowHi : 1) * this.price(TODAY[i], i) / 100, 0);
-    const dayUse = s.dayOff === 0 ? USE.map((v, i) => i < nowHi ? v : i === nowHi ? v * (nowH - nowHi) : null) : USE.map((v, i) => v * (0.85 + ((i * 7 + s.dayOff * 13) % 10) / 30));
-    const kMax = 2.5, dd = new Date(d); dd.setDate(d.getDate() + s.dayOff);
-    const dayKwh = dayUse.reduce((x, y) => x + (y || 0), 0), dayKr = dayUse.reduce((x, y, i) => x + (y || 0) * this.price(TODAY[i], i) / 100, 0);
-    const srcSplit = [['Varmepumpe', 0.38, C.blue], ['Varmtvannsbereder', 0.24, C.teal], ['Elbillader', 0.18, C.green], ['Øvrig forbruk', 0.2, '#7f7f7f']];
+    let krToday = USE.slice(0, nowHi + 1).reduce((x, y, i) => x + y * (i === nowHi ? nowH - nowHi : 1) * this.price(TODAY[i], i) / 100, 0);
+    let kwhT = kwhToday;
+    if (L && L.T) { kwhT = USE.reduce((x, y) => x + y, 0); krToday = USE.reduce((x, y, i) => x + y * this.price(TODAY[i], i, d) / 100, 0); }
+    const dayUse = L && L.T ? this.dayUse(s.dayOff) : s.dayOff === 0 ? USE.map((v, i) => i < nowHi ? v : i === nowHi ? v * (nowH - nowHi) : null) : USE.map((v, i) => v * (0.85 + ((i * 7 + s.dayOff * 13) % 10) / 30));
+    const kMax = L && L.T ? Math.max(2.5, Math.ceil(Math.max(...dayUse.map(v => v || 0)) * 2) / 2) : 2.5, dd = new Date(d); dd.setDate(d.getDate() + s.dayOff);
+    const dayKwh = dayUse.reduce((x, y) => x + (y || 0), 0);
+    let dayKr = dayUse.reduce((x, y, i) => x + (y || 0) * this.price(TODAY[i], i) / 100, 0);
+    const d0 = LV.sod(dd), d1 = new Date(+d0 + 864e5);
+    if (L && L.T) dayKr = (this.cost(d0, d1) || { kr: 0 }).kr;
+    let srcSplit = [['Varmepumpe', 0.38, C.blue], ['Varmtvannsbereder', 0.24, C.teal], ['Elbillader', 0.18, C.green], ['Øvrig forbruk', 0.2, '#7f7f7f']];
+    if (L && (L.T || L.watt != null)) { // Live: ki_energi-effektsensorer integrert over døgnet; resten er øvrig forbruk.
+      const parts = (L.src || []).map(([n, id, col]) => [n, integ(id, d0, d1), col]).filter(x => x[1] != null && dayKwh > 0);
+      const used = parts.reduce((x, y) => x + y[1], 0);
+      srcSplit = parts.length ? [...parts.map(([n, e, col]) => [n, Math.min(1, e / dayKwh), col]), ['Øvrig forbruk', Math.max(0, 1 - used / dayKwh), '#7f7f7f']] : [];
+    }
     const incRow = (k, icon, label) => { const on = s.inc[k]; return { icon, label, sub: on ? 'Inkludert' : 'Ikke inkludert', go: () => this.setState(x => ({ inc: { ...x.inc, [k]: !x.inc[k] } })),
       style: { height: 64, borderRadius: 32, padding: '0 16px 0 8px', display: 'flex', alignItems: 'center', gap: 12, background: on ? PINK : '#2f2f2f', color: on ? '#2a1720' : '#fafafa', transition: 'background .2s, transform .12s' },
       iconWrap: { width: 48, height: 48, borderRadius: 24, flex: 'none', display: 'grid', placeItems: 'center', background: on ? 'rgba(42,23,32,0.12)' : '#2f2f2f' } }; };
-    const loads = CIRC.map(([, , amp, w], i) => i === 0 ? w + (s.watt - 2074) * 0.4 : i === 4 ? w + (s.watt - 2074) * 0.3 : w);
-    const pages = [[{ icon: 'bolt', label: 'Pris nå', value: nf(this.price(spotNow, nowHi) / 100, 2), unit: 'kr/kWh' }, { icon: 'receipt_long', label: 'Strømregning sep.', value: nf(1560), unit: 'kr' }],
-      [{ icon: 'trending_down', label: 'Billigst i dag', value: nf(this.price(Math.min(...Q_TODAY), 3) / 100, 2), unit: 'kr/kWh' }, { icon: 'shield', label: 'Norgespris', value: '0,50', unit: 'kr/kWh' }]];
+    const loads = CIRC.map(([, , amp, w], i) => i === 0 ? w + (watt - 2074) * 0.4 : i === 4 ? w + (watt - 2074) * 0.3 : w);
+    const circs = L && L.circ ? L.circ.map(c => [c.icon, c.name, c.amp, c.w, c.ph]) : CIRC, cLoads = L && L.circ ? L.circ.map(c => c.w || 0) : loads;
+    const mon0 = new Date(d.getFullYear(), d.getMonth(), 1), yr0 = new Date(d.getFullYear(), 0, 1);
+    const cM = L && L.T ? this.cost(mon0, d) : null, cY = L && L.T ? this.cost(yr0, d) : null;
+    const pages = [[{ icon: 'bolt', label: 'Pris nå', value: nf(this.price(spotNow, nowHi) / 100, 2), unit: 'kr/kWh' }, { icon: 'receipt_long', label: cM ? `Strømregning ${MONTHS[d.getMonth()]}` : 'Strømregning sep.', value: nf(cM ? cM.kr : 1560), unit: 'kr' }],
+      [{ icon: 'trending_down', label: 'Billigst i dag', value: nf(this.price(Math.min(...Q_TODAY), 3) / 100, 2), unit: 'kr/kWh' }, { icon: 'shield', label: 'Norgespris', value: L ? nf(L.np, 2) : '0,50', unit: 'kr/kWh' }]];
+    if (L && (L.sparing || L.prognose)) pages.push([...(L.sparing ? [{ icon: 'savings', label: 'Spart denne mnd.', value: nf(ha.num(L.sparing, 0)), unit: 'kr' }] : []), ...(L.prognose ? [{ icon: 'query_stats', label: 'Prognose 15 min', value: nf(ha.num(L.prognose, 0), 1), unit: 'kW' }] : [])]);
     return {
       heroCard: { position: 'relative', height: 184, borderRadius: 28, overflow: 'hidden', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.05)', transition: 'background 1s',
         background: lvlLabel === 'dyr' ? 'linear-gradient(180deg, #2a1a1c, #3a2226 70%, #4a2a2c)' : lvlLabel === 'billig' ? 'linear-gradient(180deg, #16241e, #1d3028 70%, #243a30)' : 'linear-gradient(180deg, #26211a, #332b1f 70%, #413524)' },
-      sparks: [[14,0],[26,1.2],[38,0.5],[50,2],[62,0.8],[72,1.6],[82,0.3],[90,2.4],[44,3],[68,2.8],[20,2.2],[56,3.4]].map(([x, del], i) => ({ position: 'absolute', left: `${x}%`, bottom: -4, width: i % 3 ? 2 : 3, height: i % 3 ? 2 : 3, borderRadius: 2, background: lvlCol, boxShadow: `0 0 6px ${lvlCol}`, animation: `rise ${Math.max(1.6, 4.6 - s.watt / 1200) + (i % 3) * 0.5}s linear ${del}s infinite` })),
+      sparks: [[14,0],[26,1.2],[38,0.5],[50,2],[62,0.8],[72,1.6],[82,0.3],[90,2.4],[44,3],[68,2.8],[20,2.2],[56,3.4]].map(([x, del], i) => ({ position: 'absolute', left: `${x}%`, bottom: -4, width: i % 3 ? 2 : 3, height: i % 3 ? 2 : 3, borderRadius: 2, background: lvlCol, boxShadow: `0 0 6px ${lvlCol}`, animation: `rise ${Math.max(1.6, 4.6 - watt / 1200) + (i % 3) * 0.5}s linear ${del}s infinite` })),
       heroBolt: { position: 'absolute', right: 86, top: 34, fontSize: 38, color: lvlCol, fontVariationSettings: "'FILL' 1", filter: `drop-shadow(0 0 14px ${a(lvlCol, 0.7)})`, animation: 'boltglow 2.4s ease-in-out infinite' },
       heroGlow: { position: 'absolute', inset: 0, background: `radial-gradient(60% 90% at 72% 62%, ${a(lvlCol, 0.22)}, rgba(28,28,31,0) 70%)`, transition: 'background 1s' },
-      ...(() => { const hs = this.hist || [s.watt], n = hs.length, lo2 = Math.min(...hs) - 200, hi2 = Math.max(...hs) + 200, px = i => (i / (n - 1) * 100).toFixed(2), py = v => (100 - (v - lo2) / (hi2 - lo2) * 100).toFixed(2);
+      ...(() => { const hs = this.hist || [watt], n = hs.length, lo2 = Math.min(...hs) - 200, hi2 = Math.max(...hs) + 200, px = i => (i / (n - 1) * 100).toFixed(2), py = v => (100 - (v - lo2) / (hi2 - lo2) * 100).toFixed(2);
         const pts = hs.map((v, i) => `${px(i)},${py(v)}`).join(' '), ly = py(hs[n - 1]);
         return { traceLine: pts, traceArea: `0,100 ${pts} 100,100`,
           traceStroke: { stroke: lvlCol, transition: 'stroke 1s' }, traceFill: { fill: a(lvlCol, 0.12), stroke: 'none', transition: 'fill 1s' },
           traceDot: { position: 'absolute', right: -5, top: `calc(${ly}% - 5px)`, width: 10, height: 10, borderRadius: 5, background: lvlCol, boxShadow: `0 0 12px ${lvlCol}`, transition: 'top .8s ease' },
           traceRing: { position: 'absolute', right: -11, top: `calc(${ly}% - 11px)`, width: 22, height: 22, borderRadius: 11, boxShadow: `inset 0 0 0 1.5px ${lvlCol}`, animation: 'ping 1.8s ease-out infinite', transition: 'top .8s ease' } }; })(),
-      heroPrice: nf(this.price(spotNow, nowHi) / 100, 2), costPerHour: nf(s.watt / 1000 * this.price(spotNow, nowHi) / 100, 2),
+      heroPrice: nf(this.price(spotNow, nowHi) / 100, 2), costPerHour: nf(watt / 1000 * this.price(spotNow, nowHi) / 100, 2),
       costRate: { fontSize: 11, color: lvlCol, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' },
-      spark: TODAY.map((v, i) => ({ flex: 1, height: `${25 + (v - 90) / 145 * 75}%`, borderRadius: 1, background: lvl(v)[1], opacity: i === nowHi ? 1 : i < nowHi ? 0.35 : 0.7, animation: i === nowHi ? 'blink 1.6s ease-in-out infinite' : 'none' })),
-      spotRange: `${nf(Math.min(...TODAY) / 100, 2)}–${nf(Math.max(...TODAY) / 100, 2)} kr`,
+      spark: TODAY.map((v, i) => ({ flex: 1, height: L && L.P ? `${25 + (v - Math.min(...TODAY)) / Math.max(1, Math.max(...TODAY) - Math.min(...TODAY)) * 75}%` : `${25 + (v - 90) / 145 * 75}%`, borderRadius: 1, background: lvl(v)[1], opacity: i === nowHi ? 1 : i < nowHi ? 0.35 : 0.7, animation: i === nowHi ? 'blink 1.6s ease-in-out infinite' : 'none' })),
+      spotRange: `${nf(Math.min(...DISP) / 100, 2)}–${nf(Math.max(...DISP) / 100, 2)} kr`,
       lvlChip: { height: 26, padding: '0 10px 0 9px', borderRadius: 13, display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap', background: a(lvlCol, 0.18), color: lvlCol },
       lvlDot: { width: 7, height: 7, borderRadius: 4, background: lvlCol }, lvlLabel,
-      watt: nf(s.watt), todayKr: nf(krToday), todayKwh: nf(kwhToday, 1),
+      watt: nf(watt), todayKr: nf(krToday), todayKwh: nf(kwhT, 1),
       tabs: [seg(s.tab, 'pris', 'Priser', () => this.setState({ tab: 'pris' })), seg(s.tab, 'bruk', 'Forbruk', () => this.setState({ tab: 'bruk' })), seg(s.tab, 'kurs', 'Kurser', () => this.setState({ tab: 'kurs' }))],
       isPris: s.tab === 'pris', isForbruk: s.tab === 'bruk', isKurs: s.tab === 'kurs',
       cardPages: pages.map(cards => ({ cards })),
@@ -278,18 +435,19 @@ class Component extends DCLogic {
       subTabs: [seg(s.sub, 'today', 'Time for time', () => this.setState({ sub: 'today', scrub: null })), seg(s.sub, 'tom', 'I morgen', () => this.setState({ sub: 'tom', scrub: null })), seg(s.sub, 'ex', 'Eksempler', () => this.setState({ sub: 'ex' }))],
       showChart: s.sub !== 'ex', showEx: s.sub === 'ex',
       chartTitle: `${s.sub === 'tom' ? 'I morgen' : 'I dag'} · øre/kWh`,
-      chartHint: sel != null ? `${hhmm(sel)} · ${nf(pr[sel] / 100, 2)} kr` : `snitt ${nf(pr.reduce((x, y) => x + y, 0) / 9600, 2)} kr`,
+      chartHint: noTom ? 'ikke publisert ennå' : sel != null ? `${hhmm(sel)} · ${nf(pr[sel] / 100, 2)} kr` : `snitt ${nf(pr.reduce((x, y) => x + y, 0) / 9600, 2)} kr`,
       yTicks: [0, 1, 2, 3].map(k => ({ label: nf(mx - (mx - mn) * k / 3), line: { position: 'absolute', left: 0, right: 0, top: `${k / 3 * 100}%`, borderTop: k === 3 ? '1px solid #3a3a3a' : '1px dashed #444446' } })),
-      linePts: line, areaPts: `0,100 ${line} 300,100`,
+      linePts: noTom ? '' : line, areaPts: noTom ? '' : `0,100 ${line} 300,100`,
       showNow: sel != null,
       nowLine: sel == null ? {} : { position: 'absolute', top: 0, bottom: 0, left: `${sel / 95 * 100}%`, borderLeft: `1px dashed ${C.amber}`, pointerEvents: 'none' },
       nowDot: sel == null ? {} : { position: 'absolute', left: -6, top: `calc(${Y(pr[sel])}% - 5px)`, width: 10, height: 10, borderRadius: 5, background: '#fafafa', boxShadow: `0 0 0 3px ${a(C.blue, 0.5)}` },
       scrub: e => this.setState({ scrub: this.pos(e) }), scrubMove: e => { if (e.buttons || e.pointerType === 'mouse') this.setState({ scrub: this.pos(e) }); }, scrubEnd: () => this.setState({ scrub: null }),
-      examples: EX.map(([icon, name, sub, kwh, dur], i) => { const now = kwh * this.price(spotNow, nowHi) / 100; let best = 1e9, bh = 0; for (let h = nowHi; h <= 24 - dur; h++) { const c = TODAY.slice(h, h + dur).reduce((x, y, j) => x + this.price(y, h + j), 0) / dur; if (c < best) { best = c; bh = h; } }
+      examples: EX.map(([icon, name, sub, kwh, dur], i) => { const now = kwh * this.price(spotNow, nowHi) / 100; let best = 1e9, bh = 0; const H48 = TOM && L && L.P ? TODAY.concat(TOM) : TODAY; for (let h = nowHi; h <= H48.length - dur; h++) { const c = H48.slice(h, h + dur).reduce((x, y, j) => x + this.price(y, (h + j) % 24), 0) / dur; if (c < best) { best = c; bh = h; } }
+        if (bh >= 24) { bh -= 24; return { icon, name, sub, now: nf(now, 2), best: `${nf(kwh * best / 100, 2)} kr i morgen ${String(bh).padStart(2, '0')}`, row: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none' } }; }
         return { icon, name, sub, now: nf(now, 2), best: `${nf(kwh * best / 100, 2)} kr kl. ${String(bh).padStart(2, '0')}`, row: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none' } }; }),
       incl: [incRow('net', 'electric_meter', 'Nettleie'), incRow('co', 'storefront', 'Strømselskap'), incRow('vat', 'account_balance', 'Moms')],
-      useCards: [{ icon: 'home', label: 'Forbruk nå', value: nf(s.watt), unit: 'W' }, { icon: 'bolt', label: 'Dagens forbruk', value: nf(kwhToday, 1), unit: 'kWh' }],
-      sums: [['I dag', kwhToday, krToday], ['September', 312 + kwhToday, 548 + krToday], ['2026', 11480, 11870]].map(([label, kwh, kr], i) => ({ label, kwh: nf(kwh, i ? 0 : 1), kr: nf(kr), row: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none' } })),
+      useCards: [{ icon: 'home', label: 'Forbruk nå', value: nf(watt), unit: 'W' }, { icon: 'bolt', label: 'Dagens forbruk', value: nf(kwhT, 1), unit: 'kWh' }],
+      sums: (cM ? [['I dag', kwhT, krToday], [MONTHS_L[d.getMonth()], cM.kwh, cM.kr], [String(d.getFullYear()), cY.kwh, cY.kr]] : [['I dag', kwhToday, krToday], ['September', 312 + kwhToday, 548 + krToday], ['2026', 11480, 11870]]).map(([label, kwh, kr], i) => ({ label, kwh: nf(kwh, i ? 0 : 1), kr: nf(kr), row: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none' } })),
       dayLabel: `${dd.getDate()}. ${MONTHS[dd.getMonth()]}${s.dayOff === 0 ? ' · i dag' : ''}`,
       goToday: () => this.setState({ dayOff: 0, hourSel: null }), dayPrev: () => this.setState({ dayOff: s.dayOff - 1, hourSel: null }), dayNext: () => s.dayOff < 0 && this.setState({ dayOff: s.dayOff + 1, hourSel: null }),
       nowChip: { height: 34, padding: '0 14px', borderRadius: 17, fontSize: 13, fontWeight: 600, background: s.dayOff === 0 ? a(C.blue, 0.18) : '#2f2f2f', color: s.dayOff === 0 ? C.blue : '#afafaf' },
@@ -299,9 +457,10 @@ class Component extends DCLogic {
       hours: dayUse.map((v, i) => ({ go: () => this.setState({ hourSel: s.hourSel === i ? null : i }), bar: { height: v == null ? 0 : `${Math.min(100, v / kMax * 100)}%`, borderRadius: 4, background: i === s.hourSel ? '#fafafa' : s.dayOff === 0 && i === nowHi ? C.amber : a(C.blue, 0.75), transition: 'height .3s, background .2s' } })),
       sources: [...srcSplit.map(([name, f, col]) => ({ name, kwh: nf(dayKwh * f, 2), kr: nf(dayKr * f, 2), dot: { width: 10, height: 10, borderRadius: 5, background: col, flex: 'none' }, nameStyle: { fontSize: 13 } })),
         { name: 'Strømnett totalt', kwh: nf(dayKwh, 2), kr: nf(dayKr, 2), dot: { width: 10, height: 10, flex: 'none' }, nameStyle: { fontSize: 13, fontWeight: 600 } }].map((r, i) => ({ ...r, row: { display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 72px 72px', gap: 8, alignItems: 'center', fontSize: 13, padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.05)' } })),
-      mainPct: Math.round(s.watt / (230 * 40 * 3 * 0.58) * 100),
-      phases: [['L1', 0.42], ['L2', 0.34], ['L3', 0.24]].map(([name, f]) => { const amp = s.watt * f / 230; return { name, a: nf(amp, 1), bar: { display: 'block', height: '100%', width: `${amp / 40 * 100}%`, borderRadius: 5, background: amp > 32 ? C.red : C.green, transition: 'width .6s' } }; }),
-      circuits: CIRC.map(([icon, name, amp, , ph], i) => { const w = Math.max(0, Math.round(loads[i])), f = w / (amp * 230), on = w > 0; return { icon, name, w: nf(w), sub: `${amp} A · ${ph}${on ? ` · ${Math.round(f * 100)} % av kursen` : ' · ingen last'}`,
+      fuseLabel: `Hovedsikring 3 × ${L ? L.fuse : 40} A`,
+      mainPct: L && L.phases ? Math.round(Math.max(...L.phases.map(id => ha.num(id, 0))) / L.fuse * 100) : Math.round(watt / (230 * (L ? L.fuse : 40) * 3 * 0.58) * 100),
+      phases: (L && L.phases ? L.phases.map((id, k) => [`L${k + 1}`, null, ha.num(id, 0)]) : [['L1', 0.42], ['L2', 0.34], ['L3', 0.24]]).map(([name, f, live]) => { const F = L ? L.fuse : 40, amp = live != null ? live : watt * f / 230; return { name, a: nf(amp, 1), bar: { display: 'block', height: '100%', width: `${Math.min(100, amp / F * 100)}%`, borderRadius: 5, background: amp > F * 0.8 ? C.red : C.green, transition: 'width .6s' } }; }),
+      circuits: circs.map(([icon, name, amp, , ph], i) => { const w = Math.max(0, Math.round(cLoads[i])), f = w / (amp * 230), on = w > 0; return { icon, name, w: nf(w), sub: `${amp} A${ph ? ` · ${ph}` : ''}${on ? ` · ${Math.round(f * 100)} % av kursen` : ' · ingen last'}`,
         bar: { display: 'block', height: '100%', width: `${Math.max(on ? 2 : 0, f * 100)}%`, borderRadius: 3, background: f > 0.8 ? C.red : f > 0.5 ? C.amber : C.blue, transition: 'width .6s' },
         iconWrap: { width: 48, height: 48, borderRadius: 24, flex: 'none', display: 'grid', placeItems: 'center', background: '#2f2f2f', color: on ? '#fafafa' : '#696969' } }; }),
     };
