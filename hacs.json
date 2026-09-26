@@ -1,0 +1,6 @@
+{
+  "name": "KI Claude",
+  "filename": "ki-claude.js",
+  "render_readme": true,
+  "homeassistant": "2024.4.0"
+}

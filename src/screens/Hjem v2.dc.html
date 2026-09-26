@@ -1011,10 +1011,11 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 const C = { amber: 'rgb(242 181 115)', green: 'rgb(102 209 158)', yellow: 'rgb(242 210 111)', red: 'rgb(242 128 115)', blue: 'rgb(115 185 242)', pink: 'rgb(242 133 201)' };
 const a = (c, o) => c.replace(')', ` / ${o})`);
 const PINK = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
-const NOW_H = 21;
-const SPOT = [62,58,55,54,56,68,118,142,138,125,110,98,92,88,90,104,128,156,188,204,176,140,112,86].map(v => v / 100);
-const TMR = [70,66,63,61,64,74,102,121,115,104,96,90,86,84,88,97,112,131,149,158,139,118,98,80].map(v => v / 100);
-const price = sp => sp * 1.25 + 0.45 - Math.max(0, (sp - 0.75) * 0.9) * 1.25;
+let NOW_H = 21;
+let SPOT = [62,58,55,54,56,68,118,142,138,125,110,98,92,88,90,104,128,156,188,204,176,140,112,86].map(v => v / 100);
+let TMR = [70,66,63,61,64,74,102,121,115,104,96,90,86,84,88,97,112,131,149,158,139,118,98,80].map(v => v / 100);
+const price0 = sp => sp * 1.25 + 0.45 - Math.max(0, (sp - 0.75) * 0.9) * 1.25;
+let price = price0;
 const nf = (n, d = 2) => n.toLocaleString('nb-NO', { minimumFractionDigits: d, maximumFractionDigits: d });
 const hh = h => String(h).padStart(2, '0');
 const SERVERS = [['Oslo','apartment','rgb(102 209 158)'],['Strømstad','sailing','rgb(115 185 242)'],['Toten','agriculture','rgb(242 210 111)']];
@@ -1048,11 +1049,11 @@ const ZCOLS = ['rgb(173 153 230)', 'rgb(242 128 115)', 'rgb(115 185 242)', 'rgb(
 const ZDEF = [{ zone: 'zone.mormor', icon: 'location_city', color: 'rgb(173 153 230)' }, { zone: 'zone.oslo_revmatologipraksis', icon: 'stethoscope', color: 'rgb(242 128 115)' }, { zone: 'zone.oslo', icon: 'apartment', color: 'rgb(115 185 242)' }, { zone: 'zone.toten', icon: 'agriculture', color: 'rgb(242 210 111)' }];
 const BINS = [['binary_sensor.lavt_batteri', 'Lavt batteri'], ['binary_sensor.batteri_lavt_noen', 'Batteri lavt – noen enheter'], ['binary_sensor.battery_low_any', 'Battery low (any)'], ['binary_sensor.dorlas_batteri_lavt', 'Dørlås batteri lavt'], ['binary_sensor.roykvarsler_batteri', 'Røykvarsler batteri'], ['binary_sensor.sir_sweeps_batteri', 'Sir Sweeps batteri']];
 const slugE = n => n.toLowerCase().replace(/æ/g, 'ae').replace(/ø/g, 'o').replace(/å/g, 'a').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-const batOn = t => !!t.bAlways || BATS.some(b => b[3] < (t.bLimit ?? 20));
+const batOn = t => !!t.bAlways || BATSL().some(b => b[3] < (t.bLimit ?? 20));
 const APPL0 = { dish: { run: true, left: 42, prog: 'Eco 50°' }, wash: { done: true, left: 0, prog: 'Bomull 40°' }, dry: { run: false, left: 0, prog: '' } };
 const badgeDef = r => [...(r.id === 'gang' ? [{ type: 'door', text: 'Inngangsdøren er åpen' }] : []), ...(r.floor !== 'ute' ? [{ type: 'hum', op: '>', val: 60, text: 'Høy luftfuktighet' }, { type: 'temp', op: '>', val: 25, text: 'Høy temperatur' }] : [])];
-const entVal = (e, s) => { const v = ((s && s.entVals) || {})[e]; return v != null ? v : /liter_per_minutt|vannforbruk|flow/.test(e || '') ? 2.4 : 0; };
-const entStr = (e, s) => { const v = ((s && s.entStates) || {})[e]; return v != null ? v : /charging_state/.test(e || '') ? 'plugged_in' : /^(light|switch|input_boolean|binary_sensor)\./.test(e || '') ? 'on' : e ? 'unknown' : ''; };
+const entVal = (e, s) => { if (LIVE && e && ha.hass.states[e]) { const n = parseFloat(ha.hass.states[e].state); return Number.isFinite(n) ? n : 0; } const v = ((s && s.entVals) || {})[e]; return v != null ? v : /liter_per_minutt|vannforbruk|flow/.test(e || '') ? 2.4 : 0; };
+const entStr = (e, s) => { if (LIVE && e) return ha.hass.states[e] ? ha.hass.states[e].state : 'unknown'; const v = ((s && s.entStates) || {})[e]; return v != null ? v : /charging_state/.test(e || '') ? 'plugged_in' : /^(light|switch|input_boolean|binary_sensor)\./.test(e || '') ? 'on' : e ? 'unknown' : ''; };
 const badgeHit = (x, r, s) => { if (x.type === 'entState') { if (!x.ent) return false; const vals = String(x.val ?? '').split(/[,|]/).map(v => v.trim()).filter(Boolean), m = vals.includes(entStr(x.ent, s)); return x.op === '!=' ? !m : m; } const cmp = (v, op, t) => op === '<' ? v < t : op === '=' ? v == t : op === '>' ? v > t : v >= t; if (x.type === 'entNum') return !!x.ent && cmp(parseFloat(entVal(x.ent, s)), x.op || '>', isNaN(parseFloat(String(x.val ?? '').replace(',', '.'))) ? 0 : parseFloat(String(x.val).replace(',', '.'))); const n = parseFloat(String(x.val ?? '').replace(',', '.'));
   return x.type === 'temp' ? cmp(r.temp, x.op, n) : x.type === 'hum' ? cmp(r.hum, x.op, n) : x.type === 'door' ? (x.ent && x.ent !== 'binary_sensor.inngangsdor' ? !!(s.doorsX || {})[x.ent] : !!(s.doorOpen ?? true)) : x.type === 'light' ? !!r.lights : x.type === 'ent' ? !!x.test : x.type === 'price' ? cmp(r.price ?? 1.47, x.op, n) : x.type === 'watt' ? cmp(r.watt ?? 1515, x.op, n) : x.type === 'lightsN' ? cmp(r.lightsN ?? 0, x.op, n) : x.type === 'unlocked' ? !(s.locked ?? true) : x.type === 'alarmOff' ? !(s.armed ?? true) : false; };
 const BTYPES = [['temp', 'Temperatur', 'thermometer', '°C'], ['hum', 'Luftfuktighet', 'humidity_percentage', '%'], ['door', 'Dør åpen', 'door_open', ''], ['light', 'Lys på', 'lightbulb', ''], ['ent', 'Egen entitet', 'link', ''], ['entNum', 'Entitet-verdi', 'data_thresholding', ''], ['entState', 'Entitet-tilstand', 'rule', ''], ['price', 'Strømpris', 'bolt', 'kr'], ['watt', 'Effekt', 'electric_meter', 'W'], ['lightsN', 'Antall lys på', 'lightbulb', 'stk'], ['unlocked', 'Dør ulåst', 'lock_open', ''], ['alarmOff', 'Alarm av', 'shield', '']];
@@ -1072,6 +1073,135 @@ const DEF_PROSE = [
   { id: 'p3', pre: 'og vi bruker', src: 'watt', fmt: '{v}', post: '', icon: '', color: 'hvit', link: '', cop: 'alltid' },
   { id: 'p4', pre: 'med', src: 'lights', fmt: '{v}', post: 'på.', icon: '💡', color: 'hvit', link: 'lys', cop: 'alltid' },
   { id: 'p5', pre: 'Vi har', src: 'events', fmt: '{v}', post: 'i dag.', icon: '⏰', color: 'hvit', link: 'cal', cop: 'alltid' }];
+
+// ── Live-kobling: Home Assistant + ki-integrasjonene ─────────────────────────
+// Uten hass (eller uten states) vises designets demo-data uendret. Med hass hentes
+// rom fra HA-områder (+ ki_rom sensor.<rom>_oversikt), personer fra person.*, søvn fra
+// ki_sovn, pris/effekt/vær/lås/alarm/garasje/TV/støvsuger/hvitevarer/gjøremål fra
+// entiteter (alias kan overstyres i kortkonfig: entities: { las: lock.x, … }).
+let LIVE = null;
+const PMETA0 = { sebastian: ['S', 'Sebastian', 'rgb(242 181 115)', 12], cybele: ['C', 'Cybele', 'rgb(242 133 201)', 47], rune: ['R', 'Rune', 'rgb(115 185 242)', 59] };
+const PCOLS = ['rgb(242 181 115)', 'rgb(242 133 201)', 'rgb(115 185 242)', 'rgb(102 209 158)', 'rgb(173 153 230)', 'rgb(242 210 111)', 'rgb(242 128 115)'];
+const RCOLS = [C.green, C.yellow, C.blue, C.amber, C.pink, C.red, 'rgb(173 153 230)', 'rgb(115 215 220)'];
+const PM = id => (LIVE && LIVE.pmeta[id]) || PMETA0[id] || [String(id || '?')[0].toUpperCase(), String(id || ''), '#7f7f7f', 0];
+const ME = () => (LIVE && LIVE.me) || 'sebastian';
+const avatarBg = (id, bg) => { const p = LIVE && LIVE.persons[id]; return p ? (p.pic ? `${bg} url("${p.pic}") center/cover` : bg) : `${bg} url(https://i.pravatar.cc/120?img=${PM(id)[3]}) center/cover`; };
+const cap1 = t => t ? String(t)[0].toUpperCase() + String(t).slice(1) : t;
+const parseV = v => { const t = String(v).trim(); if (/^-?\d+([.,]\d+)?$/.test(t)) return parseFloat(t.replace(',', '.')); if (/^[\[{]/.test(t)) { try { return JSON.parse(t); } catch (e) { return t; } } return t === 'true' ? true : t === 'false' ? false : t; };
+const fmtT = v => typeof v === 'number' && !Number.isInteger(v) ? nf(v, 1) : v ?? '–';
+const WX = { 'clear-night': 'klart', cloudy: 'skyet', exceptional: 'uvær', fog: 'tåke', hail: 'hagl', lightning: 'torden', 'lightning-rainy': 'tordenbyger', partlycloudy: 'delvis skyet', pouring: 'kraftig regn', rainy: 'regn', snowy: 'snø', 'snowy-rainy': 'sludd', sunny: 'sol', windy: 'vind', 'windy-variant': 'vind og skyer' };
+const iconForRoom = name => { const w = slugE(name).split('_'); const hit = ROOM_ICONS.find(([, kw]) => kw.split(' ').some(k => w.includes(slugE(k)) || slugE(name).includes(slugE(k)))); return hit ? hit[0] : 'meeting_room'; };
+const batIcon = n => /las|lock/.test(n) ? 'lock' : /beveg|motion|pir/.test(n) ? 'sensor_occupied' : /temp|klima/.test(n) ? 'thermometer' : /vindu|window/.test(n) ? 'window' : /royk|smoke/.test(n) ? 'detector_smoke' : /fjern|remote/.test(n) ? 'settings_remote' : /phone|iphone|mobil|pixel|galaxy/.test(n) ? 'smartphone' : /lekk|leak|vann/.test(n) ? 'water_damage' : /dor|door/.test(n) ? 'door_front' : /robot|vac|stov/.test(n) ? 'robot_2' : /knapp|button|switch/.test(n) ? 'radio_button_checked' : /termostat|thermostat/.test(n) ? 'thermostat' : 'battery_full';
+const RUN_ST = /^(on|run|running|kjører|kjorer|vasker|torker|tørker|drying|washing|in_progress|active|aktiv|program)/i, DONE_ST = /^(finished|ferdig|end|done|complete|completed|klar)/i, PAUSE_ST = /^(pause|paused|pauset)/i;
+const BATSL = () => (LIVE && LIVE.bats) || BATS;
+const BINSL = () => (LIVE && LIVE.bins.length ? LIVE.bins : BINS);
+const ZALLL = () => (LIVE && LIVE.zones.length ? LIVE.zones : ZALL);
+const BENTSL = () => (LIVE ? LIVE.ids : BENTS);
+
+function homeLive(prevRooms) {
+  const h = ha.hass;
+  if (!h || !h.states || !Object.keys(h.states).length) return null;
+  ha.watchAll();
+  if (LIVE && LIVE._states === h.states && LIVE._areas === h.areas) return LIVE;
+  const S = h.states, E = h.entities || {}, D = h.devices || {}, ids = Object.keys(S).sort();
+  const A = id => (S[id] || {}).attributes || {};
+  const dc = id => A(id).device_class;
+  const num = (id, fb = null) => { const v = parseFloat((S[id] || {}).state); return Number.isFinite(v) ? v : fb; };
+  const areaOf = id => { const e = E[id]; return e ? e.area_id || (e.device_id && D[e.device_id] && D[e.device_id].area_id) || null : null; };
+  const pick = (alias, test, ...cands) => ha.first(alias, ...cands) || ids.find(test) || null;
+  const L = { _states: S, _areas: h.areas, ids };
+  // personer
+  const persons = ids.filter(id => id.startsWith('person.'));
+  const sleepOf = name => { const k = slugE(name || ''); return ids.find(id => id.startsWith('binary_sensor.') && A(id).integrasjon === 'ki_sovn' && (id.includes(k + '_sovn_sover') || slugE(A(id).friendly_name || '').startsWith(k))) || null; };
+  L.persons = {}; L.pmeta = {}; L.order = [];
+  persons.forEach((id, i) => {
+    const k = id.slice(7), a = A(id), name = a.friendly_name || k, st = S[id].state, sl = sleepOf(name);
+    L.order.push(k);
+    L.pmeta[k] = [name[0].toUpperCase(), name.split(' ')[0], PMETA0[k] ? PMETA0[k][2] : PCOLS[i % PCOLS.length], 0];
+    const zone = st !== 'home' && st !== 'not_home' ? ids.find(z => z.startsWith('zone.') && (A(z).friendly_name === st || z === 'zone.' + slugE(st))) || null : null;
+    L.persons[k] = { home: st === 'home', sleep: !!(sl && S[sl].state === 'on'), zone, place: st === 'home' ? 'Hjemme' : st === 'not_home' ? 'Borte' : st, pic: a.entity_picture || null, ent: id, sleepEnt: sl };
+  });
+  const uname = String((h.user && h.user.name) || '').split(' ')[0].toLowerCase();
+  L.me = L.order.find(k => L.pmeta[k][1].toLowerCase() === uname) || L.order.find(k => (A('person.' + k).user_id || '') === (h.user && h.user.id)) || L.order[0] || 'sebastian';
+  L.userName = (h.user && h.user.name ? h.user.name.split(' ')[0] : L.pmeta[L.me] ? L.pmeta[L.me][1] : 'deg');
+  L.zones = ids.filter(id => id.startsWith('zone.')).map(id => [id, A(id).friendly_name || id.slice(5)]);
+  // rom fra HA-områder
+  const areas = Object.values(h.areas || {});
+  const byArea = {};
+  ids.forEach(id => { const ar = areaOf(id); if (ar) (byArea[ar] = byArea[ar] || []).push(id); });
+  const floors = h.floors || {};
+  const avg = list => { const v = list.map(x => num(x)).filter(x => x != null); return v.length ? v.reduce((t, x) => t + x, 0) / v.length : null; };
+  L.rooms = areas.length ? areas.map((ar, i) => {
+    const ov = ids.find(id => A(id).integrasjon === 'ki_rom' && A(id).area_id === ar.area_id && id.endsWith('_oversikt'));
+    const oa = ov ? A(ov) : null, list = byArea[ar.area_id] || [];
+    const temps = oa && oa.temperatur && oa.temperatur.length ? oa.temperatur : list.filter(id => id.startsWith('sensor.') && dc(id) === 'temperature');
+    const hums = oa && oa.fuktighet && oa.fuktighet.length ? oa.fuktighet : list.filter(id => id.startsWith('sensor.') && dc(id) === 'humidity');
+    const lights = oa && oa.lys ? oa.lys : list.filter(id => id.startsWith('light.'));
+    const media = oa && oa.media ? oa.media : list.filter(id => id.startsWith('media_player.'));
+    const clim = [...new Set([...((oa && oa.klima) || []).map(x => x.entity || x), ...list.filter(id => id.startsWith('climate.'))])].filter(id => S[id]);
+    const t = avg(temps) ?? (clim[0] ? A(clim[0]).current_temperature ?? null : null), hu = avg(hums);
+    const fl = ar.floor_id && floors[ar.floor_id];
+    const outside = /\b(ute|hage|utendors|utvendig|outdoor|outside|garden|yard|terrasse|veranda|balkong|garasje|garage)\b/.test(slugE(ar.name + ' ' + ((fl && fl.name) || '')).replace(/_/g, ' '));
+    const lvl = fl && fl.level != null ? fl.level : oa && oa.etasje_niva != null ? oa.etasje_niva : 0;
+    const old = (prevRooms || []).find(r => r.id === ar.area_id || slugE(r.name) === slugE(ar.name)) || null;
+    const setT = clim[0] ? A(clim[0]).temperature : null;
+    return { id: ar.area_id, name: ar.name, floor: outside ? 'ute' : String(Math.max(0, lvl) + 1), fav: old ? !!old.fav : i < 4, icon: old ? old.icon : iconForRoom(ar.name), col: old ? old.col : RCOLS[i % RCOLS.length],
+      temp: t == null ? '–' : Math.round(t * 10) / 10, hum: hu == null ? '–' : Math.round(hu), set: typeof setT === 'number' ? setT : null,
+      lights: lights.some(id => (S[id] || {}).state === 'on'), media: media.some(id => (S[id] || {}).state === 'playing'), pc: false, size: old ? old.size : 'M', side: old ? old.side : (i % 2 ? 'R' : 'L'), skjul: old ? old.skjul : false,
+      E: { lights, media, clim, all: `switch.${slugE(ar.name)}_lys_alle` } };
+  }) : null;
+  // strømpris (Nord Pool / Tibber / ki_energi-kilde) og effekt
+  const priceId = pick('pris', id => id.startsWith('sensor.') && (Array.isArray(A(id).raw_today) || (Array.isArray(A(id).today) && A(id).today.length >= 23)));
+  if (priceId) {
+    const a = A(priceId), arr = x => Array.isArray(x) ? x.map(v => typeof v === 'number' ? v : v && (v.value ?? v.price ?? v.total)).filter(v => typeof v === 'number') : null;
+    const hourly = l => l && l.length >= 90 ? Array.from({ length: 24 }, (_, i) => l.slice(i * 4, i * 4 + 4).reduce((t, v) => t + v, 0) / 4) : l;
+    let td = hourly(arr(a.today) || arr(a.raw_today)), tm = hourly(arr(a.tomorrow) || arr(a.raw_tomorrow));
+    const scale = td && Math.max(...td) > 20 ? 0.01 : 1;
+    if (td && td.length >= 23) { L.spot = td.map(v => v * scale); L.tmr = tm && tm.length >= 23 ? tm.map(v => v * scale) : null; L.priceId = priceId; }
+  }
+  const wattId = pick('effekt', id => id.startsWith('sensor.') && dc(id) === 'power' && /^(k?W)$/.test(A(id).unit_of_measurement || '') && /(tibber|ams|han|pulse|effekt|forbruk|power|hus|huset|total|stromforbruk|grid)/.test(id));
+  if (wattId) { const v = num(wattId); if (v != null) L.watt = Math.round(A(wattId).unit_of_measurement === 'kW' ? v * 1000 : v); L.wattId = wattId; }
+  // vær og ute-temp
+  const wx = pick('vaer', id => id.startsWith('weather.'));
+  if (wx) { const t = A(wx).temperature; L.wx = { id: wx, cond: WX[S[wx].state] || S[wx].state, temp: typeof t === 'number' ? t : null, place: (h.config && h.config.location_name) || A(wx).friendly_name || '' }; }
+  const outT = pick('ute_temp', () => false, 'sensor.ute_temperatur', 'sensor.outdoor_temperature', 'sensor.ute_temp');
+  if (outT && num(outT) != null) L.outTemp = num(outT); else if (L.wx && L.wx.temp != null) L.outTemp = L.wx.temp;
+  // hus-entiteter
+  L.lock = pick('las', id => id.startsWith('lock.'), 'lock.inngangsdor');
+  L.alarm = pick('alarm', id => id.startsWith('alarm_control_panel.'));
+  L.garage = pick('garasje', id => id.startsWith('cover.') && (dc(id) === 'garage' || /garasje|garage/.test(id)));
+  L.tv = pick('tv', id => id.startsWith('media_player.') && (dc(id) === 'tv' || /(^|_)tv(_|$)/.test(id.split('.')[1])));
+  L.vac = pick('stovsuger', id => id.startsWith('vacuum.'));
+  L.cam = pick('kamera', id => id.startsWith('camera.'));
+  L.motion = pick('kamera_bevegelse', id => id.startsWith('binary_sensor.') && ['motion', 'occupancy'].includes(dc(id)) && /(kamera|camera|cam|inngang|doorbell|dorklokke)/.test(id));
+  L.ruter = pick('ruter', id => id.startsWith('sensor.') && /ruter|entur/.test(id));
+  L.autolock = pick('autolas', id => id.startsWith('switch.') && A(id).integrasjon === 'ki_notifications' && /autolas/.test(id), 'switch.autolas_autolas');
+  L.todo = pick('gjoremal', id => id.startsWith('todo.') && !/shopping|handle/.test(id)) || pick('handleliste', id => id.startsWith('todo.'));
+  L.trash = pick('soppel', id => /(renovasjon|avfall|soppel|waste|garbage|tomming)/.test(id) && (id.startsWith('sensor.') || id.startsWith('calendar.')));
+  L.kiosk = ha.first('kiosk', 'input_boolean.kiosk_mode');
+  L.jul = ha.first('jul', 'switch.ki_jul_sesong');
+  const APP = { dish: ['oppvask', /(oppvask|dishwasher)/], wash: ['vaskemaskin', /(vaskemaskin|washer|washing_machine)/], dry: ['torketrommel', /(torketrommel|dryer|tumble)/] };
+  L.appl = {}; L.applE = {};
+  Object.entries(APP).forEach(([k, [al, rx]]) => {
+    const st = pick(al, id => (id.startsWith('sensor.') || id.startsWith('binary_sensor.') || id.startsWith('select.')) && rx.test(id) && !/(tid|time|remaining|energi|energy|power|effekt)/.test(id));
+    if (!st) return;
+    const rem = pick(al + '_tid', id => id.startsWith('sensor.') && rx.test(id) && /(gjenstaende|remaining|tid_igjen|time_left|finish|ferdig)/.test(id));
+    const v = String(S[st].state || ''), rv = rem ? S[rem].state : null;
+    let left = 0; if (rv != null) { const n = parseFloat(rv); if (Number.isFinite(n) && !/T/.test(rv)) left = Math.round(A(rem).unit_of_measurement === 'h' ? n * 60 : A(rem).unit_of_measurement === 's' ? n / 60 : n); else { const t = Date.parse(rv); if (Number.isFinite(t)) left = Math.max(0, Math.round((t - Date.now()) / 60e3)); } }
+    L.appl[k] = { run: RUN_ST.test(v) && !DONE_ST.test(v), done: DONE_ST.test(v), paused: PAUSE_ST.test(v), left, prog: A(st).program || A(st).programme || '' };
+    L.applE[k] = st;
+  });
+  // batterier
+  L.bats = ids.filter(id => id.startsWith('sensor.') && dc(id) === 'battery' && num(id) != null && (A(id).unit_of_measurement || '%') === '%')
+    .map(id => { const n = A(id).friendly_name || id, ar = areaOf(id); return [n.replace(/\s*(batteri|battery)( level)?$/i, ''), batIcon(slugE(n) + ' ' + id), (ar && h.areas[ar] && h.areas[ar].name) || '', Math.round(num(id)), id]; });
+  L.bins = ids.filter(id => id.startsWith('binary_sensor.') && (dc(id) === 'battery' || /batter/.test(id))).map(id => [id, A(id).friendly_name || id]);
+  return (LIVE = L);
+}
+const liveAct = {
+  svc: (svc, data, target) => { const [d, sv] = String(svc || '').split('.'); if (!d || !sv) return; if (d === 'script' && !svc.includes('turn_')) return ha.call('script', 'turn_on', { entity_id: svc }); return ha.call(d, sv, data || {}, target); },
+  roomLights: r => { const on = r.E.lights.filter(id => ha.val(id) === 'on'); if (on.length) return ha.call('light', 'turn_off', { entity_id: on }); if (ha.has(r.E.all)) return ha.turn(r.E.all, true); if (r.E.lights.length) return ha.call('light', 'turn_on', { entity_id: r.E.lights }); ha.toast('Ingen lys i ' + r.name); },
+  roomSet: (r, d) => { const c = r.E.clim[0]; if (!c) return; const step = ha.attr(c, 'target_temp_step', 0.5), cur = ha.attr(c, 'temperature', r.set); if (typeof cur !== 'number') return; ha.call('climate', 'set_temperature', { entity_id: c, temperature: Math.round((cur + d * step) * 10) / 10 }); },
+};
 
 class Component extends DCLogic {
   state = {
@@ -1127,27 +1257,27 @@ class Component extends DCLogic {
     clearTimeout(this.mt); this.mt = setTimeout(() => this.setState({ moving: false }), 260);
   }
   peopleVals() {
-    const s = this.state, ps = s.persons || { sebastian: { home: true, sleep: false }, cybele: { home: false, sleep: false }, rune: { home: true, sleep: false } };
-    const META = { sebastian: ['S', 'Sebastian', 'rgb(242 181 115)'], cybele: ['C', 'Cybele', 'rgb(242 133 201)'], rune: ['R', 'Rune', 'rgb(115 185 242)'] };
+    const s = this.state, ps = LIVE ? LIVE.persons : s.persons || { sebastian: { home: true, sleep: false }, cybele: { home: false, sleep: false }, rune: { home: true, sleep: false } };
+    const META = new Proxy({}, { get: (_, id) => PM(id) });
     const GREEN = 'rgb(102 209 158)', BLUE = 'rgb(115 185 242)', AMBER = 'rgb(242 181 115)', PURP = 'rgb(173 153 230)';
     const badge = p => ({ show: !p.home || p.sleep, icon: p.sleep ? 'bedtime' : 'logout', style: { fontSize: 15, color: p.sleep ? 'rgb(173 153 230)' : PURP, fontVariationSettings: "'FILL' 1" } });
-    const set = (id, f) => this.setState(st => { const cur = st.persons || ps; return { persons: { ...cur, [id]: { ...cur[id], ...f } } }; });
+    const set = (id, f) => LIVE ? (f.sleep != null && ps[id] && ps[id].sleepEnt ? ha.moreInfo(ps[id].sleepEnt) : ha.moreInfo(ps[id] && ps[id].ent)) : this.setState(st => { const cur = st.persons || ps; return { persons: { ...cur, [id]: { ...cur[id], ...f } } }; });
     const q = s.quickId, qp = q && ps[q], qm = q && META[q];
     const opt = (on, icon, label, col, go) => ({ icon, label, go, style: { height: 48, borderRadius: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 14, fontWeight: 600, background: on ? col : 'transparent', color: on ? '#232323' : '#afafaf', transition: 'background .25s, color .25s' }, iconStyle: { fontSize: 20, fontVariationSettings: `'FILL' ${on ? 1 : 0}` } });
-    const me = ps.sebastian;
+    const me = ps[ME()] || { home: true, sleep: false };
     const R = {
       faces: (() => { const H = this.hdr(), big = H.mode === 'stor', SZ = big ? `clamp(30px, ${(H.gAv / 4.2).toFixed(2)}cqw, ${H.gAv}px)` : { S: 40, M: 52, L: 64 }[H.size], ov = !H.showName && !H.showPlace && !big;
-        return H.order.filter(id => !H.hidden[id]).map((id, k) => { const p = ps[id], [i, n, bg] = META[id], me = id === 'sebastian';
+        return H.order.filter(id => !H.hidden[id] && ps[id]).map((id, k) => { const p = ps[id], [i, n, bg] = META[id], me = id === ME();
           const zid = p.zone ?? ({ cybele: 'zone.oslo' })[id], zc = !p.home && !p.sleep ? ((H.zones || []).find(z => z.zone === zid) || H.zAway || { icon: 'logout', color: PURP }) : null;
           const stCol = p.sleep ? 'rgb(173 153 230)' : p.home ? GREEN : zc.color;
           return { isMe: me, stCol, open: () => this.setState({ quickId: id }), initial: i, title: n, place: p.home ? 'Hjemme' : 'Borte', showName: H.showName, showPlace: H.showPlace, hasLabel: !ov,
             wrap: { position: 'relative', marginLeft: k ? (ov ? -8 : big ? H.gGap : 6) : 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flex: 'none' },
-            avatar: { display: 'block', width: SZ, height: SZ, borderRadius: '50%', fontSize: 0, color: 'transparent', background: `${bg} url(https://i.pravatar.cc/120?img=${{ sebastian: 12, cybele: 47, rune: 59 }[id]}) center/cover`, boxShadow: `0 0 0 3px #232323${H.badge === 'ring' ? `, 0 0 0 5px ${stCol}` : ''}${me && H.ringMe ? ', 0 0 0 7px rgb(242 133 201)' : ''}`, opacity: p.home ? 1 : 0.6 },
+            avatar: { display: 'block', width: SZ, height: SZ, borderRadius: '50%', fontSize: 0, color: 'transparent', background: avatarBg(id, bg), boxShadow: `0 0 0 3px #232323${H.badge === 'ring' ? `, 0 0 0 5px ${stCol}` : ''}${me && H.ringMe ? ', 0 0 0 7px rgb(242 133 201)' : ''}`, opacity: p.home ? 1 : 0.6 },
             badge: big ? { position: 'absolute', right: -H.gBadge * 0.3, top: -H.gBadge * 0.3, width: H.gBadge, height: H.gBadge, borderRadius: H.gBadge / 2, display: 'grid', placeItems: 'center', background: stCol, zIndex: 1 }
               : H.badge === 'icon' ? { position: 'absolute', right: -4, top: -4, width: 22, height: 22, borderRadius: 11, display: 'grid', placeItems: 'center', background: stCol, boxShadow: '0 0 0 2px #232323' }
               : H.badge === 'dot' ? { position: 'absolute', right: 1, top: 1, width: 12, height: 12, borderRadius: 6, background: stCol, boxShadow: '0 0 0 2px #232323' } : { display: 'none' },
-            badgeIcon: { fontSize: big ? Math.round(H.gBadge * 0.68) : 14, color: '#fff', fontVariationSettings: "'FILL' 1", display: big || H.badge === 'icon' ? 'inline' : 'none' }, badgeGlyph: p.sleep ? 'bedtime' : p.home ? 'home' : zc.icon, place: p.home ? 'Hjemme' : ((ZALL.find(z => z[0] === zid) || [0, 'Borte'])[1]) }; }); })(),
-      people: ['cybele', 'rune'].map(id => { const p = ps[id], [i, n, bg] = META[id]; return { open: () => this.setState({ quickId: id }), initial: i, title: n, status: n, badge: badge(p),
+            badgeIcon: { fontSize: big ? Math.round(H.gBadge * 0.68) : 14, color: '#fff', fontVariationSettings: "'FILL' 1", display: big || H.badge === 'icon' ? 'inline' : 'none' }, badgeGlyph: p.sleep ? 'bedtime' : p.home ? 'home' : zc.icon, place: p.home ? 'Hjemme' : p.place && !p.zone ? p.place : ((ZALLL().find(z => z[0] === zid) || [0, 'Borte'])[1]) }; }); })(),
+      people: (LIVE ? Object.keys(ps).filter(id => id !== ME()) : ['cybele', 'rune']).map(id => { const p = ps[id], [i, n, bg] = META[id]; return { open: () => this.setState({ quickId: id }), initial: i, title: n, status: n, badge: badge(p),
         avatar: { width: 46, height: 46, borderRadius: 23, display: 'grid', placeItems: 'center', fontSize: 16, fontWeight: 600, background: bg, opacity: p.home ? 1 : 0.6, transition: 'opacity .3s' } }; }),
       meRing: `0 0 0 3px #232323,0 0 0 4.5px ${me.home ? 'rgb(102 209 158 / 0.7)' : 'rgb(173 153 230 / 0.7)'}`, meBadge: badge(me),
       quickOpen: !!q,
@@ -1210,8 +1340,8 @@ class Component extends DCLogic {
     if (cur !== this._bhLast) { this._bhLast = cur; if (cur) { let n = 0; const tryRun = () => { if (document.querySelector('[data-bh="pill"]')) this.bhAnim(); else if (n++ < 20) requestAnimationFrame(tryRun); }; requestAnimationFrame(tryRun); } }
   }
   lockVals() {
-    const s = this.state, L = s.locked, G = 'rgb(102 209 158)', A = 'rgb(242 181 115)', col = L ? G : A, auto = s.autoLock ?? true;
-    const set = v => this.setState({ locked: v, lockAt: new Date().toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' }), lockSpin: (s.lockSpin || 0) + 1 });
+    const s = this.state, lk = LIVE && LIVE.lock, L = lk ? ha.val(lk) !== 'unlocked' && ha.val(lk) !== 'open' : s.locked, G = 'rgb(102 209 158)', A = 'rgb(242 181 115)', col = L ? G : A, auto = LIVE && LIVE.autolock && ha.has(LIVE.autolock) ? ha.on(LIVE.autolock) : s.autoLock ?? true;
+    const set = v => { if (lk) ha.call('lock', v ? 'lock' : 'unlock', { entity_id: lk }); this.setState({ locked: v, lockAt: new Date().toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' }), lockSpin: (s.lockSpin || 0) + 1 }); };
     const opt = (on, icon, label, c, go) => ({ icon, label, go, style: { height: 48, borderRadius: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 14, fontWeight: 500, background: on ? c.replace(')', ' / 0.18)') : 'transparent', color: on ? '#fafafa' : '#979797', boxShadow: on ? `inset 0 0 0 1px ${c.replace(')', ' / 0.4)')}` : 'none', transition: 'background .25s' }, iconStyle: { fontSize: 19, color: on ? c : '#7f7f7f', fontVariationSettings: "'FILL' 1" } });
     return {
       close: () => this.setState({ lockOpen: false }), toggle: () => set(!L),
@@ -1220,15 +1350,15 @@ class Component extends DCLogic {
       ring: { position: 'absolute', inset: 6, borderRadius: '50%', background: `conic-gradient(${col} ${L ? 360 : 90}deg, transparent 0)`, WebkitMask: 'radial-gradient(circle, transparent 38px, #000 39px)', mask: 'radial-gradient(circle, transparent 38px, #000 39px)', transform: `rotate(${(s.lockSpin || 0) * 360}deg)`, transition: 'transform .8s cubic-bezier(.34,1.3,.64,1), background .4s' },
       iconStyle: { position: 'relative', fontSize: 40, color: col, fontVariationSettings: "'FILL' 1", transform: L ? 'scale(1)' : 'scale(1.08) rotate(-8deg)', transition: 'transform .5s cubic-bezier(.34,1.8,.64,1), color .3s' },
       opts: [opt(L, 'lock', 'Lås', G, () => set(true)), opt(!L, 'lock_open', 'Lås opp', A, () => set(false))],
-      toggleAuto: () => this.setState({ autoLock: !auto }),
+      toggleAuto: () => LIVE && LIVE.autolock && ha.has(LIVE.autolock) ? ha.toggle(LIVE.autolock) : this.setState({ autoLock: !auto }),
       autoTrack: { position: 'relative', width: 44, height: 26, borderRadius: 13, flex: 'none', background: auto ? 'rgb(242 133 201)' : '#3a3a3a', transition: 'background .2s' },
       autoKnob: { position: 'absolute', top: 3, left: auto ? 21 : 3, width: 20, height: 20, borderRadius: 10, background: '#fafafa', transition: 'left .2s' },
-      last: L ? 'Låst av Sebastian' : 'Låst opp av Sebastian', lastT: s.lockAt || '21:12',
+      last: lk ? `${L ? 'Låst' : 'Låst opp'}${ha.attr(lk, 'changed_by', '') ? ' av ' + ha.attr(lk, 'changed_by', '') : ''}` : L ? 'Låst av Sebastian' : 'Låst opp av Sebastian', lastT: lk && ha.changed(lk) ? ha.changed(lk).toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' }) : s.lockAt || '21:12',
     };
   }
   sheetHead() {
     const s = this.state, r = (s.rooms || []).find(x => x.id === s.sheetRoomId) || {};
-    const M = { strom: ['bolt', 'Strøm', 'Forbruk og priser'], sik: ['shield', 'Sikkerhet', s.armed ? 'Alarm armert' : 'Alarm av'], vann: ['sprinkler', 'Vanning', 'Hage og plen'], vac: ['cleaning_services', 'Støvsuger', 'Sir Sweeps'], media: ['music_note', 'Media', 'Høyttalere og TV'], car: ['directions_car', 'Bil', 'Tesla Model Y'], server: ['dns', 'Server', 'Nettverk · HA · Proxmox'], settings: ['tune', 'Innstillinger', 'Dashbord'], cal: ['calendar_month', 'Kalender', 'Familie og skole'], person: ['person', 'Tilstedeværelse', 'Mobil, sone og søvn'], vaer: ['partly_cloudy_day', 'Vær', 'Strømstad'], lys: ['lightbulb', 'Lys', 'Alle rom'], cam: ['videocam', 'Kamera', '5 kameraer'], klima: ['thermostat', 'Klima', 'Energimotoren'], trash: ['delete', 'Søppel', 'Tømmeplan'], todo: ['checklist', 'Gjøremål', 'Store og personlige'], plants: ['potted_plant', 'Planter', 'Jordfukt og vanning'], sleep: ['bedtime', 'Søvn', 'Søvn og vekking'], printer: ['print', '3D-printer', 'Creality K2'], pool: ['pool', 'Basseng', 'Vann og pumpe'], mower: ['grass', 'Gressklipper', 'Automower 430X'], nibe: ['heat_pump', 'Varmepumpe', 'NIBE S1255'], bill: ['receipt_long', 'Strømregning', 'Estimat og effekttrinn'], doors: ['lock', 'Dører og porter', 'Låser og garasjeporter'], fuel: ['local_gas_station', 'Bensinstasjon', 'Drivstoffpriser'], ruter: ['tram', 'Ruter', 'Avganger og avvik'], pcs: ['computer', 'Datamaskiner', 'Mac mini og PC'], helse: ['ecg_heart', 'Helse', 'Apple Helse'], norgespris: ['volunteer_activism', 'Norgespris', 'Besparelse mot spot'], elset: ['settings_power', 'Strøminnstillinger', 'Nettleie, påslag og støtte'], jul: ['park', 'Jul', 'Julelys og automasjon'], rom: [r.icon || 'meeting_room', r.name || 'Rom', r.temp != null ? `${r.temp}° · ${r.hum ?? '–'} %` : ''] };
+    const M = { strom: ['bolt', 'Strøm', 'Forbruk og priser'], sik: ['shield', 'Sikkerhet', s.armed ? 'Alarm armert' : 'Alarm av'], vann: ['sprinkler', 'Vanning', 'Hage og plen'], vac: ['cleaning_services', 'Støvsuger', 'Sir Sweeps'], media: ['music_note', 'Media', 'Høyttalere og TV'], car: ['directions_car', 'Bil', 'Tesla Model Y'], server: ['dns', 'Server', 'Nettverk · HA · Proxmox'], settings: ['tune', 'Innstillinger', 'Dashbord'], cal: ['calendar_month', 'Kalender', 'Familie og skole'], person: ['person', 'Tilstedeværelse', 'Mobil, sone og søvn'], vaer: ['partly_cloudy_day', 'Vær', LIVE && LIVE.wx ? LIVE.wx.place : 'Strømstad'], lys: ['lightbulb', 'Lys', 'Alle rom'], cam: ['videocam', 'Kamera', '5 kameraer'], klima: ['thermostat', 'Klima', 'Energimotoren'], trash: ['delete', 'Søppel', 'Tømmeplan'], todo: ['checklist', 'Gjøremål', 'Store og personlige'], plants: ['potted_plant', 'Planter', 'Jordfukt og vanning'], sleep: ['bedtime', 'Søvn', 'Søvn og vekking'], printer: ['print', '3D-printer', 'Creality K2'], pool: ['pool', 'Basseng', 'Vann og pumpe'], mower: ['grass', 'Gressklipper', 'Automower 430X'], nibe: ['heat_pump', 'Varmepumpe', 'NIBE S1255'], bill: ['receipt_long', 'Strømregning', 'Estimat og effekttrinn'], doors: ['lock', 'Dører og porter', 'Låser og garasjeporter'], fuel: ['local_gas_station', 'Bensinstasjon', 'Drivstoffpriser'], ruter: ['tram', 'Ruter', 'Avganger og avvik'], pcs: ['computer', 'Datamaskiner', 'Mac mini og PC'], helse: ['ecg_heart', 'Helse', 'Apple Helse'], norgespris: ['volunteer_activism', 'Norgespris', 'Besparelse mot spot'], elset: ['settings_power', 'Strøminnstillinger', 'Nettleie, påslag og støtte'], jul: ['park', 'Jul', 'Julelys og automasjon'], rom: [r.icon || 'meeting_room', r.name || 'Rom', r.temp != null ? `${fmtT(r.temp)}° · ${r.hum ?? '–'} %` : ''] };
     const [icon, title, sub] = M[s.sheetFile] || ['home', '', ''];
     return { icon, title, sub, roomIcon: { width: 44, height: 44, borderRadius: 22, flex: 'none', display: 'grid', placeItems: 'center', background: r.col || '#fafafa', color: '#111' } };
   }
@@ -1295,9 +1425,9 @@ class Component extends DCLogic {
       serverName: SERVERS[s.server ?? 1][0], serverMenu: !!s.serverMenu, ...this.hdrVals(SERVERS[s.server ?? 1][0]),
       toggleServer: () => this.setState({ serverMenu: !s.serverMenu }),
       noCtx: e => e.preventDefault(),
-      greetDown: () => { this._gHeld = false; clearTimeout(this._gHold); this._gHold = setTimeout(() => { this._gHeld = true; navigator.vibrate && navigator.vibrate(30); const k = !this.state.kiosk; this.setState({ kiosk: k, toast: `Kiosk-modus ${k ? 'på' : 'av'} · input_boolean.kiosk_mode` }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toast: null }), 2200); }, 600); },
+      greetDown: () => { this._gHeld = false; clearTimeout(this._gHold); this._gHold = setTimeout(() => { this._gHeld = true; navigator.vibrate && navigator.vibrate(30); const k = LIVE && LIVE.kiosk ? !ha.on(LIVE.kiosk) : !this.state.kiosk; if (LIVE && LIVE.kiosk) ha.turn(LIVE.kiosk, k); this.setState({ kiosk: k, toast: `Kiosk-modus ${k ? 'på' : 'av'} · ${LIVE && LIVE.kiosk ? LIVE.kiosk : 'input_boolean.kiosk_mode'}` }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toast: null }), 2200); }, 600); },
       greetUp: () => clearTimeout(this._gHold),
-      greetTap: () => { if (this._gHeld) { this._gHeld = false; return; } if (this._gTap) { clearTimeout(this._gTap); this._gTap = null; this.setState({ serverMenu: false, toast: 'Åpner /config' }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toast: null }), 1800); try { window.parent !== window && window.parent.postMessage({ type: 'navigate', path: '/config' }, '*'); } catch (e) {} return; }
+      greetTap: () => { if (this._gHeld) { this._gHeld = false; return; } if (this._gTap) { clearTimeout(this._gTap); this._gTap = null; this.setState({ serverMenu: false, toast: 'Åpner /config' }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toast: null }), 1800); try { if (LIVE) ha.navigate('/config'); else window.parent !== window && window.parent.postMessage({ type: 'navigate', path: '/config' }, '*'); } catch (e) {} return; }
         this._gTap = setTimeout(() => { this._gTap = null; this.setState({ serverMenu: !this.state.serverMenu }); }, 260); },
       serverChev: { fontSize: 30, color: '#afafaf', fontVariationSettings: "'FILL' 1", transform: s.serverMenu ? 'rotate(180deg)' : 'none', transition: 'transform .25s' },
       servers: SERVERS.map(([name, icon, col], i) => { const act = i === (s.server ?? 1); return { name, icon, act, notAct: !act, go: () => this.setState({ server: i, serverMenu: false }),
@@ -1305,13 +1435,13 @@ class Component extends DCLogic {
         iconWrap: { width: 44, height: 44, borderRadius: 12, flex: 'none', display: 'grid', placeItems: 'center', background: col.replace(')', ' / 0.35)'), color: col } }; }),
       openEditFromServer: () => this.setState({ serverMenu: false, hdrOpen: true }),
       openCal: () => this.openSheet('cal'),
-      openMe: () => this.setState({ quickId: 'sebastian' }),
+      openMe: () => this.setState({ quickId: ME() }),
       menuPos: this.isWide() ? { position: 'fixed', left: 20 + 60 + 12 + 14, bottom: `calc(50% - ${((this.navCfg().bar.filter(id => !this.navCfg().hidden[id]).length + 1) * 62 + 10) / 2}px)`, zIndex: 26, transformOrigin: 'left bottom', zoom: 1.15 } : s.menuAt ? (this.navCfg().menuNames === false ? { position: 'fixed', left: s.menuAt.cx, bottom: window.innerHeight - s.menuAt.top + 14, transform: 'translateX(-50%)', zIndex: 26 } : { position: 'fixed', right: Math.max(12, window.innerWidth - s.menuAt.right - 6), bottom: window.innerHeight - s.menuAt.top + 14, zIndex: 26 }) : { position: 'fixed', right: 'max(12px, calc(50% - 198px))', bottom: 106, zIndex: 26 },
       menuBox: (() => { const ic = this.navCfg().menuNames === false; return { minWidth: ic ? 0 : 176, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', scrollbarWidth: 'none', boxSizing: 'border-box', padding: ic ? 6 : 8, borderRadius: ic ? 26 : 18, background: '#e1e1e1', color: '#232323', boxShadow: '0 18px 40px rgba(0,0,0,0.45)', display: 'flex', flexDirection: 'column', gap: 0 }; })(),
       menuOpen: !!s.menu, closeMenu: () => this.setState({ menu: false }),
       menuItems: this.navCfg().more.filter(id => !this.navCfg().hidden[id]).map(id => { const [icon, label] = this.catOf(id); return { icon, label, showLabel: this.navCfg().menuNames !== false, btn: this.menuBtn('#232323'), go: () => CAT[id] ? this.openSheet(id) : (this.setState({ menu: false }), this.runNav(id)) }; }),
       menuTools: [{ icon: 'tune', label: 'Tilpass navbar', go: () => this.setState({ menu: false, navEditOpen: true }) }, { icon: 'dashboard_customize', label: 'Tilpass Hjem', go: () => this.setState({ menu: false, editOpen: true }) }].map(m => ({ ...m, showLabel: this.navCfg().menuNames !== false, btn: this.menuBtn('#7f7f7f') })),
-      sikEditReq: s.sikEditReq || 0, sheetPersonId: s.personId || 'sebastian', sheetIs: { doors: s.sheetFile === 'doors', fuel: s.sheetFile === 'fuel', ruter: s.sheetFile === 'ruter', pcs: s.sheetFile === 'pcs', helse: s.sheetFile === 'helse', norgespris: s.sheetFile === 'norgespris', elset: s.sheetFile === 'elset', jul: s.sheetFile === 'jul', pool: s.sheetFile === 'pool', mower: s.sheetFile === 'mower', nibe: s.sheetFile === 'nibe', cam: s.sheetFile === 'cam', klima: s.sheetFile === 'klima', trash: s.sheetFile === 'trash', todo: s.sheetFile === 'todo', plants: s.sheetFile === 'plants', sleep: s.sheetFile === 'sleep', printer: s.sheetFile === 'printer', bill: s.sheetFile === 'bill', vaer: s.sheetFile === 'vaer', lys: s.sheetFile === 'lys', person: s.sheetFile === 'person', vac: s.sheetFile === 'vac', media: s.sheetFile === 'media', car: s.sheetFile === 'car', server: s.sheetFile === 'server', settings: s.sheetFile === 'settings', cal: s.sheetFile === 'cal' }, sheetRom: s.sheetFile === 'rom', sheetRoom: (this.state.rooms || []).find(r => r.id === s.sheetRoomId) || {}, sheetStrom: s.sheetFile === 'strom', sheetSik: s.sheetFile === 'sik', sheetVann: s.sheetFile === 'vann',
+      sikEditReq: s.sikEditReq || 0, sheetPersonId: s.personId || ME(), sheetIs: { doors: s.sheetFile === 'doors', fuel: s.sheetFile === 'fuel', ruter: s.sheetFile === 'ruter', pcs: s.sheetFile === 'pcs', helse: s.sheetFile === 'helse', norgespris: s.sheetFile === 'norgespris', elset: s.sheetFile === 'elset', jul: s.sheetFile === 'jul', pool: s.sheetFile === 'pool', mower: s.sheetFile === 'mower', nibe: s.sheetFile === 'nibe', cam: s.sheetFile === 'cam', klima: s.sheetFile === 'klima', trash: s.sheetFile === 'trash', todo: s.sheetFile === 'todo', plants: s.sheetFile === 'plants', sleep: s.sheetFile === 'sleep', printer: s.sheetFile === 'printer', bill: s.sheetFile === 'bill', vaer: s.sheetFile === 'vaer', lys: s.sheetFile === 'lys', person: s.sheetFile === 'person', vac: s.sheetFile === 'vac', media: s.sheetFile === 'media', car: s.sheetFile === 'car', server: s.sheetFile === 'server', settings: s.sheetFile === 'settings', cal: s.sheetFile === 'cal' }, sheetRom: s.sheetFile === 'rom', sheetRoom: (this.state.rooms || []).find(r => r.id === s.sheetRoomId) || {}, sheetStrom: s.sheetFile === 'strom', sheetSik: s.sheetFile === 'sik', sheetVann: s.sheetFile === 'vann',
       closeSheet: () => this.setState({ sheetOpen: false }),
       sheetBackdrop: { position: 'fixed', inset: 0, zIndex: 20, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', opacity: s.sheetOpen ? 1 : 0, pointerEvents: s.sheetOpen ? 'auto' : 'none', transition: 'opacity .35s' },
       sheetHead: this.sheetHead(), sheetPanel: { position: 'fixed', left: '50%', bottom: 0, zIndex: 21, width: '100%', maxWidth: 440, height: 'calc(100vh - 52px)', display: 'flex', flexDirection: 'column', borderRadius: '38px 38px 0 0', overflow: 'hidden', background: '#232323', boxShadow: '0 -20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)', transform: `translateX(-50%) translateY(${s.sheetOpen ? 0 : 105}%)`, transition: 'transform .5s cubic-bezier(.32,1.2,.5,1)' },
@@ -1327,7 +1457,7 @@ class Component extends DCLogic {
   ruleRows(R, setR, sel) { const s = this.state, up = (i, p) => setR(R.map((x, j) => j === i ? { ...x, ...p } : x));
     return R.map((x, i) => { const T = BTYPES.find(t => t[0] === x.type) || BTYPES[0], hit = badgeHit(x, sel, s), hasVal = NUMB.includes(x.type), isState = x.type === 'entState', stNow = isState ? entStr(x.ent, s) : '';
             const dm = BDOM[x.type], hasPick = dm !== undefined, qk = sel.id + ':' + i, q = ((s.bdgQ || {})[qk] || '').toLowerCase(), defL = x.type === 'door' ? (sel.id === 'gang' ? 'binary_sensor.inngangsdor' : 'Ingen standard – velg sensor') : x.type === 'ent' || x.type === 'entState' || x.type === 'entNum' ? 'Ikke valgt' : 'Standard fra rommet (' + (x.type === 'temp' ? 'temperatur' : x.type === 'hum' ? 'fukt' : x.type === 'light' ? 'lys' : 'lås') + ')';
-            const sug = hasPick ? BENTS.filter(e => (!dm || e.indexOf(dm + '.') === 0) && e !== x.ent && (!q || e.includes(q) || e.includes(slugE(sel.name || '')))).slice(0, 10) : [];
+            const sug = hasPick ? BENTSL().filter(e => (!dm || e.indexOf(dm + '.') === 0) && e !== x.ent && (!q || e.includes(q) || e.includes(slugE(sel.name || '')))).slice(0, 10) : [];
             return { isState, stNow: stNow || '–', stOps: [['=', 'Er'], ['!=', 'Er ikke']].map(([o, l]) => ({ label: l, go: () => up(i, { op: o }), style: { height: 28, padding: '0 10px', borderRadius: 12, fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', background: (x.op === '!=' ? '!=' : '=') === o ? PINK : 'transparent', color: (x.op === '!=' ? '!=' : '=') === o ? '#2a1720' : '#afafaf' } })), type: x.type, typeL: T[1], icon: T[2], unit: T[3], hasVal, isEnt: x.type === 'ent', hasPick, pickLabel: x.type === 'door' ? 'Dørsensor' : x.type === 'ent' || isState || x.type === 'entNum' ? 'Entitet' : 'Kilde', pickVal: x.ent || defL, canReset: !!x.ent,
               resetEnt: () => up(i, { ent: '' }), q: (s.bdgQ || {})[qk] || '', qPh: 'Søk ' + (dm || 'entitet') + ' …', setQ: e => this.setState({ bdgQ: { ...(s.bdgQ || {}), [qk]: e.target.value } }), hasSug: sug.length > 0 && (!!q || !x.ent),
               sug: sug.map(id => ({ id, icon: id.indexOf('binary_sensor') === 0 ? 'door_open' : id.indexOf('light') === 0 ? 'lightbulb' : id.indexOf('lock') === 0 ? 'lock' : 'sensors', go: () => { up(i, { ent: id }); this.setState({ bdgQ: { ...(s.bdgQ || {}), [qk]: '' } }); } })), val: x.val ?? '', ent: x.ent || '', text: x.text || '',
@@ -1446,18 +1576,19 @@ class Component extends DCLogic {
   }
   hdr() {
     if (this._hdr === undefined) { try { this._hdr = JSON.parse(localStorage.getItem('hjem-header') || 'null'); } catch (e) { this._hdr = null; } }
-    return { mode: 'familie', greet: '👋 {name}!', order: ['sebastian', 'cybele', 'rune'], hidden: {}, size: 'M', badge: 'icon', showName: false, showPlace: false, ringMe: false, gFont: 4.5, gAv: 50, gBadge: 20, gGap: 4, zones: ZDEF, zAway: { icon: 'flight', color: 'rgb(173 153 230)' }, zAuto: true, ...(this.state.hdrCfg || this._hdr || {}) };
+    const H0 = this.state.hdrCfg || this._hdr || {}, ord = LIVE ? [...(H0.order || []).filter(id => LIVE.persons[id]), ...LIVE.order.filter(id => !(H0.order || []).includes(id))] : null;
+    return { mode: 'familie', greet: '👋 {name}!', order: ['sebastian', 'cybele', 'rune'], hidden: {}, size: 'M', badge: 'icon', showName: false, showPlace: false, ringMe: false, gFont: 4.5, gAv: 50, gBadge: 20, gGap: 4, zones: ZDEF, zAway: { icon: 'flight', color: 'rgb(173 153 230)' }, zAuto: true, ...H0, ...(ord ? { order: ord } : {}) };
   }
   setHdr(p) { const n = { ...this.hdr(), ...p }; try { localStorage.setItem('hjem-header', JSON.stringify(n)); } catch (e) {} this._hdr = n; this.setState({ hdrCfg: n }); }
   hdrVals(serverName) {
     const H = this.hdr(), s = this.state, PINKG = 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)';
-    const fill = t => t.replace(/\{name\}/g, 'Sebastian').replace(/\{server\}/g, serverName);
+    const fill = t => t.replace(/\{name\}/g, LIVE ? LIVE.userName : 'Sebastian').replace(/\{server\}/g, serverName);
     const M = H.mode, greet = fill(H.greet);
-    const title = M === 'sted' || M === 'hjem' || M === 'profil' ? serverName : M === 'navn' ? 'Sebastian' : greet;
-    const sub = M === 'under' ? serverName : M === 'hjem' || M === 'profil' ? '14 °C · Skyet' : '';
+    const title = M === 'sted' || M === 'hjem' || M === 'profil' ? serverName : M === 'navn' ? (LIVE ? LIVE.userName : 'Sebastian') : greet;
+    const sub = M === 'under' ? serverName : M === 'hjem' || M === 'profil' ? (LIVE && LIVE.wx ? `${LIVE.wx.temp != null ? Math.round(LIVE.wx.temp) + ' °C · ' : ''}${cap1(LIVE.wx.cond)}` : '14 °C · Skyet') : '';
     const sw = on => ({ track: { position: 'relative', width: 44, height: 26, borderRadius: 13, flex: 'none', background: on ? PINKG : '#545454', transition: 'background .2s' }, knob: { position: 'absolute', top: 3, left: on ? 21 : 3, width: 20, height: 20, borderRadius: 10, background: '#fff', transition: 'left .2s' } });
-    const META = { sebastian: ['Sebastian', 12], cybele: ['Cybele', 47], rune: ['Rune', 59] };
-    const ps = s.persons || { sebastian: { home: true }, cybele: { home: false }, rune: { home: true } };
+    const META = new Proxy({}, { get: (_, id) => [PM(id)[1], PM(id)[3]] });
+    const ps = LIVE ? LIVE.persons : s.persons || { sebastian: { home: true }, cybele: { home: false }, rune: { home: true } };
     const vis = H.order.filter(id => !H.hidden[id]);
     const seg = (label, key, opts) => ({ label, opts: opts.map(([v, l]) => ({ label: l, go: () => this.setHdr({ [key]: v }), style: { height: 32, padding: '0 12px', borderRadius: 16, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: H[key] === v ? PINKG : 'transparent', color: H[key] === v ? '#2a1720' : '#afafaf' } })) });
     const tg = (label, sub, key) => ({ label, sub, go: () => this.setHdr({ [key]: !H[key] }), ...sw(H[key]) });
@@ -1471,14 +1602,14 @@ class Component extends DCLogic {
           subStyle: { fontSize: 11, lineHeight: 1.3, color: on ? 'rgba(42,23,32,0.75)' : '#979797' } }; }),
         greet: H.greet, setGreet: e => this.setHdr({ greet: e.target.value }), isStor: M === 'stor',
         ...(() => { const Z = H.zones || [], zRow = (z, i) => { const open = s.zoneSel === (i < 0 ? 'away' : z.zone), up = p => i < 0 ? this.setHdr({ zAway: { ...z, ...p } }) : this.setHdr({ zones: Z.map((x, j) => j === i ? { ...x, ...p } : x) });
-            return { name: i < 0 ? 'Borte · annen sone' : (ZALL.find(x => x[0] === z.zone) || [0, z.zone.replace('zone.', '')])[1], id: i < 0 ? 'Brukes når personen ikke er i en av sonene over' : z.zone, icon: z.icon, open, canDel: i >= 0,
+            return { name: i < 0 ? 'Borte · annen sone' : (ZALLL().find(x => x[0] === z.zone) || [0, z.zone.replace('zone.', '')])[1], id: i < 0 ? 'Brukes når personen ikke er i en av sonene over' : z.zone, icon: z.icon, open, canDel: i >= 0,
               toggle: () => this.setState({ zoneSel: open ? null : (i < 0 ? 'away' : z.zone) }), del: () => this.setHdr({ zones: Z.filter((_, j) => j !== i) }),
               chip: { width: 36, height: 36, borderRadius: 18, flex: 'none', display: 'grid', placeItems: 'center', background: z.color, color: '#fff' },
               chev: { fontSize: 22, color: '#979797', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s' },
               icons: ZICONS.map(ic => ({ icon: ic, go: () => up({ icon: ic }), style: { aspectRatio: '1', borderRadius: 12, display: 'grid', placeItems: 'center', background: ic === z.icon ? z.color : '#3a3a3a', color: ic === z.icon ? '#fff' : '#c7c7c7' } })),
               cols: ZCOLS.map(c => ({ go: () => up({ color: c }), style: { width: 30, height: 30, borderRadius: 15, background: c, boxShadow: c === z.color ? '0 0 0 3px #2f2f2f, 0 0 0 5px #fafafa' : 'none' } })) }; };
           return { zones: [...Z.map(zRow), zRow(H.zAway || { icon: 'flight', color: 'rgb(173 153 230)' }, -1)],
-            zoneOpts: ZALL.filter(([id]) => id !== 'zone.home' && !Z.some(z => z.zone === id)).map(([id, label]) => ({ id, label: `${label} · ${id}` })),
+            zoneOpts: ZALLL().filter(([id]) => id !== 'zone.home' && !Z.some(z => z.zone === id)).map(([id, label]) => ({ id, label: `${label} · ${id}` })),
             addZone: e => { const v = e.target.value; if (!v) return; this.setHdr({ zones: [...Z, { zone: v, icon: 'location_on', color: ZCOLS[Z.length % ZCOLS.length] }] }); this.setState({ zoneSel: v }); e.target.value = ''; } }; })(),
         sizes: [['gFont', 'Maks tekst', 1.6, 6, 0.1, v => `${v.toFixed(1)} em`], ['gAv', 'Bilder', 36, 64, 1, v => `${v} px`], ['gBadge', 'Merke', 14, 28, 1, v => `${v} px`], ['gGap', 'Avstand', 0, 16, 1, v => `${v} px`]].map(([k, label, min, max, step, f]) => ({ label, min, max, step, v: H[k], txt: f(H[k]), set: e => this.setHdr({ [k]: +e.target.value }) })),
         tokens: [['+ Fornavn', '{name}'], ['+ Sted', '{server}'], ['+ 👋', '👋 ']].map(([label, t]) => ({ label, go: () => this.setHdr({ greet: t === '👋 ' ? t + H.greet : `${H.greet} ${t}`.trim() }) })),
@@ -1488,7 +1619,7 @@ class Component extends DCLogic {
           return { name: META[id][0], status: hid ? 'Skjult' : p.home ? 'Hjemme' : 'Borte', up: () => move(-1), down: () => move(1), upStyle: b(H.order.indexOf(id) > 0), downStyle: b(H.order.indexOf(id) < H.order.length - 1),
             toggle: () => this.setHdr({ hidden: { ...H.hidden, [id]: !hid } }), track: t.track, knob: t.knob,
             row: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', opacity: hid ? 0.55 : 1 },
-            avatar: { width: 40, height: 40, borderRadius: 20, flex: 'none', background: `#555 url(https://i.pravatar.cc/120?img=${META[id][1]}) center/cover` } }; }),
+            avatar: { width: 40, height: 40, borderRadius: 20, flex: 'none', background: avatarBg(id, '#555') } }; }),
         segs: [seg('Størrelse', 'size', [['S', 'Liten'], ['M', 'Middels'], ['L', 'Stor']]), seg('Merke', 'badge', [['icon', 'Ikon'], ['dot', 'Prikk'], ['ring', 'Ring'], ['none', 'Ingen']])],
         toggles: [tg('Vis navn', '', 'showName'), tg('Vis sted', 'Hjemme, sonen eller Borte under bildet', 'showPlace'), tg('Ring rundt meg', 'Markerer bildet ditt', 'ringMe'), { label: 'Trykk på været åpner Vær', sub: 'Gjelder «Hjem» og «Profil»', go: () => this.setHdr({ subNav: H.subNav === false }), ...sw(H.subNav !== false) }] },
     };
@@ -1502,6 +1633,7 @@ class Component extends DCLogic {
   runNav(id) { const c = this.navCfg().custom.find(x => x.id === id); if (c) this.runAct({ act: c.act, svc: c.svc, link: c.target }); }
   runAct(p) {
     const a = p.act || '', s = this.state; let msg = '';
+    if (LIVE) return this.runActLive(p);
     if (a === 'garage_toggle') { this.setState({ garageOpen: !s.garageOpen }); msg = s.garageOpen ? 'Garasjeporten lukkes' : 'Garasjeporten åpnes'; }
     if (a === 'tv_toggle') { const on = s.tvOn ?? true; this.setState({ tvOn: !on }); msg = on ? 'TV slått av' : 'TV slått på'; }
     if (a === 'vac_toggle') { const v = s.vacState || 'run'; this.setState({ vacState: v === 'run' ? 'pause' : 'run' }); msg = v === 'run' ? 'Støvsuger pauset' : 'Støvsuger fortsetter'; }
@@ -1513,6 +1645,25 @@ class Component extends DCLogic {
     else if (a === 'lights_on' || a === 'lights_off') { const v = a === 'lights_on'; this.setState(st => ({ rooms: st.rooms.map(r => ({ ...r, lights: v })) })); msg = v ? 'Alle lys er på' : 'Alle lys er av'; }
     else if (a.indexOf('light:') === 0) { const r = s.rooms.find(x => x.id === a.slice(6)); if (r) { this.upd(r.id, x => ({ lights: !x.lights })); msg = `Lys i ${r.name} ${r.lights ? 'av' : 'på'}`; } }
     if (p.svc) msg = a && a !== 'service' ? `${msg} · ${p.svc}` : `Kjørte ${p.svc}`;
+    if (msg) { clearTimeout(this._toastT); this.setState({ toast: msg }); this._toastT = setTimeout(() => this.setState({ toast: null }), 2200); }
+    if (p.link) this.goTarget(p.link);
+  }
+  runActLive(p) {
+    const a = p.act || '', s = this.state, L = LIVE; let msg = '';
+    if (a === 'garage_toggle' && L.garage) { const open = ha.val(L.garage) === 'open'; ha.call('cover', 'toggle', { entity_id: L.garage }); msg = open ? 'Garasjeporten lukkes' : 'Garasjeporten åpnes'; }
+    if (a === 'tv_toggle' && L.tv) { const on = !['off', 'standby', 'unavailable'].includes(ha.val(L.tv, 'off')); ha.call('media_player', on ? 'turn_off' : 'turn_on', { entity_id: L.tv }); msg = on ? 'TV slås av' : 'TV slås på'; }
+    if (a === 'vac_toggle' && L.vac) { const run = ha.val(L.vac) === 'cleaning'; ha.call('vacuum', run ? 'pause' : 'start', { entity_id: L.vac }); msg = run ? 'Støvsuger pauses' : 'Støvsuger starter'; }
+    if (a.indexOf('appl:') === 0) { const e = L.applE[a.slice(5)]; if (e) ha.moreInfo(e); }
+    if (a === 'lock_toggle' || a === 'lock' || a === 'unlock') { if (L.lock) { const locked = ha.val(L.lock) === 'locked', v = a === 'lock' ? true : a === 'unlock' ? false : !locked; ha.call('lock', v ? 'lock' : 'unlock', { entity_id: L.lock }); msg = v ? 'Dørlås låses' : 'Dørlås låses opp'; } }
+    else if (a.indexOf('alarm') === 0) { if (L.alarm) { const armed = /^armed/.test(ha.val(L.alarm, '')), v = a === 'alarm_on' ? true : a === 'alarm_off' ? false : !armed; if (ha.attr(L.alarm, 'code_format', null) && (!v || ha.attr(L.alarm, 'code_arm_required', false))) ha.moreInfo(L.alarm); else { ha.call('alarm_control_panel', v ? 'alarm_arm_away' : 'alarm_disarm', { entity_id: L.alarm }); msg = v ? 'Alarm armeres' : 'Alarm slås av'; } } }
+    else if (a === 'lights_on' || a === 'lights_off') { const v = a === 'lights_on'; ha.call('light', v ? 'turn_on' : 'turn_off', { entity_id: 'all' }); msg = v ? 'Alle lys slås på' : 'Alle lys slås av'; }
+    else if (a.indexOf('light:') === 0) { const r = s.rooms.find(x => x.id === a.slice(6)); if (r && r.E) { liveAct.roomLights(r); msg = `Lys i ${r.name} ${r.lights ? 'av' : 'på'}`; } }
+    if (p.svc) {
+      const c = p.call && p.call.service === p.svc ? p.call : null;
+      const data = c ? { ...Object.fromEntries(Object.entries(c.data || {}).filter(([, v]) => v !== '').map(([k, v]) => [k, parseV(v)])), ...Object.fromEntries((c.extra || []).filter(([k]) => k).map(([k, v]) => [k, parseV(v)])) } : {};
+      const target = c && ((c.ent || []).length || c.area) ? { ...((c.ent || []).length ? { entity_id: c.ent } : {}), ...(c.area ? { area_id: c.area } : {}) } : undefined;
+      liveAct.svc(p.svc, data, target); msg = a && a !== 'service' ? `${msg} · ${p.svc}` : `Kjørte ${p.svc}`;
+    }
     if (msg) { clearTimeout(this._toastT); this.setState({ toast: msg }); this._toastT = setTimeout(() => this.setState({ toast: null }), 2200); }
     if (p.link) this.goTarget(p.link);
   }
@@ -1546,9 +1697,9 @@ class Component extends DCLogic {
           del: () => T.length > 1 && this.setCust({ tabs: T.filter(x => x.id !== t.id), delTabs: [...CU.delTabs, t.id] }),
           views: [['karusell', 'Karusell'], ['liste', 'Kortliste'], ['batterier', 'Batterier']].map(([v, l]) => ({ label: l, go: () => upTab({ view: v }), style: chipS((t.view || 'liste') === v) })),
           cards: () => this.setState({ editTab: 'kort', editCtx: t.id, editSel: null, editPick: null, tileSel: null }),
-          isBat: t.view === 'batterier', bat: (() => { if (t.view !== 'batterier') return {}; const ent = t.bCond ?? 'binary_sensor.lavt_batteri', lim = t.bLimit ?? 20, on = batOn(t), q = ent.toLowerCase(), n = BATS.filter(b => b[3] < lim).length, al = !!t.bAlways;
+          isBat: t.view === 'batterier', bat: (() => { if (t.view !== 'batterier') return {}; const ent = t.bCond ?? 'binary_sensor.lavt_batteri', lim = t.bLimit ?? 20, on = batOn(t), q = ent.toLowerCase(), n = BATSL().filter(b => b[3] < lim).length, al = !!t.bAlways;
             return { ent, limit: lim, setEnt: e => upTab({ bCond: e.target.value }), setLimit: e => upTab({ bLimit: +e.target.value }),
-              sugg: BINS.filter(([id, nm]) => id !== ent && (!q || id.includes(q) || nm.toLowerCase().includes(q) || q === 'binary_sensor.')).slice(0, 4).map(([id, name]) => ({ id, name, go: () => upTab({ bCond: id }), row: { display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '4px 8px', borderRadius: 12, width: '100%' } })),
+              sugg: BINSL().filter(([id, nm]) => id !== ent && (!q || id.includes(q) || nm.toLowerCase().includes(q) || q === 'binary_sensor.')).slice(0, 4).map(([id, name]) => ({ id, name, go: () => upTab({ bCond: id }), row: { display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '4px 8px', borderRadius: 12, width: '100%' } })),
               icon: on ? 'visibility' : 'visibility_off', dotIcon: { fontSize: 18, color: on ? C.green : '#7f7f7f' },
               state: al ? 'Vises alltid' : on ? `Vises nå · ${ent} er på (${n} under ${lim} %)` : `Skjult · ${ent} er av`,
               show: [['lav', 'Bare lave'], ['alle', 'Alle']].map(([v, label]) => ({ label, go: () => upTab({ bShow: v }), style: { height: 30, padding: '0 12px', borderRadius: 14, fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', background: (t.bShow ?? 'lav') === v ? PINK : 'transparent', color: (t.bShow ?? 'lav') === v ? '#2a1720' : '#afafaf' } })),
@@ -1610,7 +1761,7 @@ class Component extends DCLogic {
             toksPre: toks(x => upP({ pre: ((p.pre || '') + ' ' + x).trim() })),
             acts: acts.map(([id, icon, label]) => ({ icon, label, go: () => upP({ act: id }), style: chipS((p.act || '') === id) })), isSvc: p.act === 'service', svc: p.svc || '', setSvc: e => upP({ svc: e.target.value }),
             cs: (() => { const c = { service: p.svc || 'light.turn_on', ent: [], area: '', data: {}, extra: [], ...(p.call || {}) }, setC = f => { const n = { ...c, ...f }; upP({ call: n, svc: n.service }); }, def = SVCS.find(x => x[0] === c.service), dom = c.service.split('.')[0], q = (s.csQ || '').trim().toLowerCase();
-              const tdom = { homeassistant: '', notify: '-', tts: '-', script: 'script', scene: 'scene', automation: 'automation' }[dom] ?? dom, pool = [...new Set([...Object.keys(S), ...['light.stue_tak', 'light.kjokken_benk', 'light.verandalampe', 'switch.kaffetrakter', 'script.godnatt', 'script.morgen', 'scene.kveld', 'scene.film', 'climate.stue', 'climate.bad_gulvvarme', 'cover.garasjeport', 'cover.stue_gardin', 'media_player.stue_tv', 'media_player.squeezebox_radio', 'lock.inngangsdor', 'input_boolean.kiosk_mode', 'vacuum.sir_sweeps', 'automation.utelys', 'button.tcl_google_tv_series_button_mute_toggle']])].filter(e => e.includes('.'));
+              const tdom = { homeassistant: '', notify: '-', tts: '-', script: 'script', scene: 'scene', automation: 'automation' }[dom] ?? dom, pool = [...new Set([...Object.keys(S), ...(LIVE ? LIVE.ids : []), ...(LIVE ? [] : ['light.stue_tak', 'light.kjokken_benk', 'light.verandalampe', 'switch.kaffetrakter', 'script.godnatt', 'script.morgen', 'scene.kveld', 'scene.film', 'climate.stue', 'climate.bad_gulvvarme', 'cover.garasjeport', 'cover.stue_gardin', 'media_player.stue_tv', 'media_player.squeezebox_radio', 'lock.inngangsdor', 'input_boolean.kiosk_mode', 'vacuum.sir_sweeps', 'automation.utelys', 'button.tcl_google_tv_series_button_mute_toggle'])])].filter(e => e.includes('.'));
               const sug = tdom === '-' ? [] : pool.filter(e => (!tdom || e.startsWith(tdom + '.')) && !c.ent.includes(e) && (!q || e.includes(q))).slice(0, 12);
               const data = { ...Object.fromEntries(Object.entries(c.data).filter(([, v]) => v !== '')), ...Object.fromEntries(c.extra.filter(([k]) => k).map(([k, v]) => [k, v])) };
               const yv = v => /^-?\d+([.,]\d+)?$/.test(v) ? v.replace(',', '.') : /^[\[{]/.test(v) ? v : JSON.stringify(v);
@@ -1622,7 +1773,7 @@ class Component extends DCLogic {
                 hasFields: !!(def && def[2].length), fields: (def ? def[2] : []).map(([k, ph]) => ({ k, ph, v: c.data[k] ?? '', set: e => setC({ data: { ...c.data, [k]: e.target.value } }) })),
                 extra: c.extra.map(([k, v], i) => ({ k, v, setK: e => setC({ extra: c.extra.map((x, j) => j === i ? [e.target.value, x[1]] : x) }), setV: e => setC({ extra: c.extra.map((x, j) => j === i ? [x[0], e.target.value] : x) }), del: () => setC({ extra: c.extra.filter((_, j) => j !== i) }) })),
                 addExtra: () => setC({ extra: [...c.extra, ['', '']] }), yaml,
-                test: () => { this.setState({ toast: 'Kjørte ' + c.service + (c.ent.length ? ' → ' + c.ent.join(', ') : '') }); clearTimeout(this._toastT); this._toastT = setTimeout(() => this.setState({ toast: null }), 2400); } }; })(),
+                test: () => { if (LIVE) { const tg = c.ent.length || c.area ? { ...(c.ent.length ? { entity_id: c.ent } : {}), ...(c.area ? { area_id: c.area } : {}) } : undefined; liveAct.svc(c.service, Object.fromEntries(Object.entries(data).map(([k, v]) => [k, parseV(v)])), tg); } this.setState({ toast: 'Kjørte ' + c.service + (c.ent.length ? ' → ' + c.ent.join(', ') : '') }); clearTimeout(this._toastT); this._toastT = setTimeout(() => this.setState({ toast: null }), 2400); } }; })(),
             cCustom: p.csrc === 'custom', cent: p.cent || '', setCent: e => upP({ cent: e.target.value }),
             srcs: SRC.map(([id, l]) => ({ label: l, go: () => upP({ src: id, fmt: id === 'text' ? (p.src === 'text' ? p.fmt : 'Tekst') : (p.src === 'text' || !p.fmt ? '{v}' : p.fmt) }), style: chipS(p.src === id) })),
             icon: p.icon === 'dot' ? '' : p.icon || '', setIcon: e => upP({ icon: e.target.value }), icons: ICONS.map(ic => ({ label: ic === '' ? 'Ingen' : ic === 'dot' ? '● Prikk' : ic, go: () => upP({ icon: ic }), style: chipS((p.icon || '') === ic) })),
@@ -1709,10 +1860,19 @@ class Component extends DCLogic {
     return out;
   }
   renderVals() { this.bhCheck();
+    const LV = homeLive(this.state.rooms);
+    if (!LV) LIVE = null;
+    else {
+      if (LV.rooms) this.state.rooms = LV.rooms;
+      NOW_H = new Date().getHours();
+      if (LV.spot) { SPOT = LV.spot; TMR = LV.tmr || LV.spot; price = x => x; }
+      const T = LV.todo ? ha.todo(LV.todo) : null;
+      if (T) this.state.todos = T.map(it => [it.summary, it.description || '', it.status === 'completed', it.uid]);
+    }
     const s = this.state;
     const lightsRooms = s.rooms.filter(r => r.lights).length;
-    const lightsOn = lightsRooms + 3;
-    const watt = 780 + s.rooms.reduce((t, r) => t + (r.lights ? 40 : 0) + (r.media ? 120 : 0) + (r.pc ? 95 : 0), 0);
+    const lightsOn = LV ? LV.ids.filter(id => id.startsWith('light.') && ha.hass.states[id].state === 'on').length : lightsRooms + 3;
+    const watt = LV && LV.watt != null ? LV.watt : 780 + s.rooms.reduce((t, r) => t + (r.lights ? 40 : 0) + (r.media ? 120 : 0) + (r.pc ? 95 : 0), 0);
     const pNow = price(SPOT[NOW_H]);
     const lvl = p => p > 1.5 ? C.red : p > 1.1 ? C.yellow : C.green;
     const series = (s.day === 'today' ? SPOT : TMR).map(price);
@@ -1759,11 +1919,15 @@ class Component extends DCLogic {
       subStyle: { fontSize: 12, color: pink ? 'rgba(42,23,32,0.7)' : '#7f7f7f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } });
     const TV = this.tabsV(), cur = this.curTab(), curId = cur.id, CU = this.cust();
     const lay = this.lay(), byId = id => { const r = s.rooms.find(x => x.id === id), L = (lay.look || {})[id]; return r && L ? { ...r, ...L } : r; }, C0 = lay.ctx[curId] || lay.ctx.hjem || { order: [], side: {}, hidden: {} };
-    const ps0 = s.persons || { sebastian: { home: true }, cybele: { home: false }, rune: { home: true } }, nHome = Object.values(ps0).filter(p => p.home).length, openTodos = s.todos.length - done;
-    const S = { weather: ['skyet og 14,5°', 14.5, null], temp: ['14,5°', 14.5, null], price: [`${nf(pNow)} kr`, pNow, lvl(pNow)], watt: [`${watt.toLocaleString('nb-NO')} W`, watt, watt > 3000 ? C.red : watt > 1500 ? C.yellow : C.green], lights: [`${lightsOn} lys`, lightsOn, C.amber], events: ['3 hendelser', 3, C.blue], home: [`${nHome} hjemme`, nHome, C.green], lock: [s.locked ? 'låst' : 'ulåst', s.locked ? 1 : 0, s.locked ? C.green : C.amber], alarm: [s.armed ? 'armert' : 'av', s.armed ? 1 : 0, s.armed ? C.pink : null], trash: ['3 dager', 3, null], todo: [`${openTodos} gjøremål`, openTodos, null] };
-    s.rooms.forEach(r => { S[r.id + '.temp'] = [`${r.temp}°`, r.temp, null]; S[r.id + '.fukt'] = [`${r.hum} %`, r.hum, null]; S[r.id + '.lys'] = [r.lights ? 'på' : 'av', r.lights ? 1 : 0, r.lights ? r.col : null]; if (r.set != null) S[r.id + '.mål'] = [`${r.set}°`, r.set, null]; });
+    const ps0 = LV ? LV.persons : s.persons || { sebastian: { home: true }, cybele: { home: false }, rune: { home: true } }, nHome = Object.values(ps0).filter(p => p.home).length, openTodos = s.todos.length - done;
+    const EV = LV ? (() => { const cals = ha.config.calendars || LV.ids.filter(id => id.startsWith('calendar.')).slice(0, 8), t0 = new Date(), t1 = new Date(); t0.setHours(0, 0, 0, 0); t1.setHours(23, 59, 59, 999); const all = cals.flatMap(id => ha.events(id, 14) || []).map(e => ({ ...e, s: new Date(e.start.dateTime || e.start.date + 'T00:00:00'), e2: new Date((e.end && (e.end.dateTime || e.end.date + 'T00:00:00')) || e.start.dateTime || e.start.date) })).sort((x, y) => x.s - y.s); return { today: all.filter(e => e.s <= t1 && e.e2 >= t0).length, next: all.find(e => e.e2 >= new Date()) }; })() : null;
+    const TR = LV && LV.trash ? (() => { const st = ha.state(LV.trash); if (!st) return null; const n = parseFloat(st.state), d = Date.parse(st.attributes.next_date || st.attributes.dato || st.attributes.start_time || st.state), days = Number.isFinite(n) && !/[-:]/.test(st.state) ? Math.round(n) : Number.isFinite(d) ? Math.max(0, Math.ceil((d - new Date().setHours(0, 0, 0, 0)) / 864e5)) : null; return { days, what: st.attributes.avfall || st.attributes.type || st.attributes.message || st.attributes.friendly_name || 'Tømming' }; })() : null;
+    const wxS = LV && LV.wx ? [`${LV.wx.cond}${LV.wx.temp != null ? ' og ' + nf(LV.wx.temp, 1) + '°' : ''}`, LV.wx.temp, null] : null, tS = LV && LV.outTemp != null ? [`${nf(LV.outTemp, 1)}°`, LV.outTemp, null] : null;
+    const lkOn = LV && LV.lock ? ha.val(LV.lock) === 'locked' : s.locked, alOn = LV && LV.alarm ? /^armed/.test(ha.val(LV.alarm, '')) : s.armed;
+    const S = { weather: wxS || ['skyet og 14,5°', 14.5, null], temp: tS || ['14,5°', 14.5, null], price: [`${nf(pNow)} kr`, pNow, lvl(pNow)], watt: [`${watt.toLocaleString('nb-NO')} W`, watt, watt > 3000 ? C.red : watt > 1500 ? C.yellow : C.green], lights: [`${lightsOn} lys`, lightsOn, C.amber], events: EV ? [`${EV.today} ${EV.today === 1 ? 'hendelse' : 'hendelser'}`, EV.today, C.blue] : ['3 hendelser', 3, C.blue], home: [`${nHome} hjemme`, nHome, C.green], lock: [lkOn ? 'låst' : 'ulåst', lkOn ? 1 : 0, lkOn ? C.green : C.amber], alarm: [alOn ? 'armert' : 'av', alOn ? 1 : 0, alOn ? C.pink : null], trash: TR && TR.days != null ? [`${TR.days} ${TR.days === 1 ? 'dag' : 'dager'}`, TR.days, null] : LV ? ['–', null, null] : ['3 dager', 3, null], todo: [`${openTodos} gjøremål`, openTodos, null] };
+    s.rooms.forEach(r => { S[r.id + '.temp'] = [`${fmtT(r.temp)}°`, r.temp, null]; S[r.id + '.fukt'] = [`${r.hum} %`, r.hum, null]; S[r.id + '.lys'] = [r.lights ? 'på' : 'av', r.lights ? 1 : 0, r.lights ? r.col : null]; if (r.set != null) S[r.id + '.mål'] = [`${r.set}°`, r.set, null]; });
     Object.entries(ps0).forEach(([id, p]) => { S[id + '.hjemme'] = [p.home ? 'hjemme' : 'borte', p.home ? 1 : 0, p.home ? C.green : null]; S[id + '.sover'] = [p.sleep ? 'sover' : 'våken', p.sleep ? 1 : 0, null]; });
-    const getS = k => { k = String(k || '').trim(); return S[k] || S[TOK[k]] || null; };
+    const getS = k => { k = String(k || '').trim(); if (S[k] || S[TOK[k]]) return S[k] || S[TOK[k]]; const st = LV && k.includes('.') && ha.hass.states[k]; if (st) { const v = parseFloat(st.state), u = st.attributes.unit_of_measurement; return [Number.isFinite(v) ? `${nf(v, Number.isInteger(v) ? 0 : 1)}${u ? (u === '%' || u === '°C' ? '' : ' ') + u.replace('°C', '°') : ''}` : st.state, Number.isFinite(v) ? v : st.state === 'on' ? 1 : 0, null]; } return null; };
     const valOf = p => p.src === 'custom' ? getS(p.ent) || [p.entVal || '', parseFloat(String(p.entVal || '').replace(',', '.')), null] : S[p.src];
     const fill = str => String(str || '').replace(/\{([^}]+)\}/g, (m, k) => { const v = getS(k); return v ? v[0] : m; });
     const test = p => { const op = p.cop || 'alltid'; if (op === 'alltid') return true; const ck = p.csrc || p.src, sv = ck === 'custom' ? (p.csrc === 'custom' ? getS(p.cent) : valOf(p)) : S[ck]; if (!sv) return true; const x = parseFloat(String(p.cval || '').replace(',', '.')), num = !isNaN(x);
@@ -1773,28 +1937,32 @@ class Component extends DCLogic {
         chip: p.src === 'text' ? fill(p.fmt) : fill((p.fmt || '{v}').replace(/\{v\}/g, sv ? sv[0] : '')), hasDot: p.icon === 'dot', hasEmoji: !!p.icon && p.icon !== 'dot', icon: p.icon,
         dot: { width: 8, height: 8, borderRadius: 4, background: (sv && sv[2]) || C.green }, go: () => this.runAct(p),
         chipStyle: { display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 12px', borderRadius: 15, background: p.color === 'auto' ? (sv && sv[2]) || '#fafafa' : PCOL[p.color] || '#fafafa', color: '#232323', fontWeight: 600, verticalAlign: 'middle', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', cursor: p.link || p.act ? 'pointer' : 'default' } }; });
-    const tileOf = t => t.kind === 'lock' ? tileV(s.locked ? 'key' : 'lock_open', s.locked ? 'Låst' : 'Ulåst', 'Dørlås', () => this.setState({ lockOpen: true }), s.locked ? null : 'rgb(102 209 158)', s.locked ? false : 'solid')
-      : t.kind === 'alarm' ? tileV('shield', s.armed ? 'Armert' : 'Av', 'Alarm', () => this.openSheet('sik'), null, s.armed)
-      : t.kind === 'ruter' ? tileV('tram', 'Ruter', 'Linje 19 om 1 min · 2 avvik', () => this.openSheet('ruter'), null)
-      : t.kind === 'cam' ? tileV('videocam', 'Kamera', s.camMotion ? 'Bevegelse nå' : 'Ingen bevegelse', () => this.openSheet('cam'), s.camMotion ? C.blue : null)
-      : t.kind === 'garage' ? tileV('garage', s.garageOpen ? 'Åpen' : 'Lukket', 'Garasjeport', () => {}, s.garageOpen ? C.amber : null)
-      : t.kind === 'tv' ? tileV('tv', 'Stue-TV', (s.tvOn ?? true) ? 'Netflix · Stranger Things' : 'Av', () => {}, (s.tvOn ?? true) ? C.blue : null)
-      : t.kind === 'vacr' ? tileV('robot_2', 'Sir Sweeps', (s.vacState || 'run') === 'run' ? 'Rengjør stue · 62 %' : 'Pauset i stue', () => {}, (s.vacState || 'run') === 'run' ? C.green : C.amber)
-      : APPL[t.kind] ? (() => { const A = (s.appl || APPL0)[t.kind] || {}, [ic, nm] = APPL[t.kind]; return tileV(ic, nm, A.run ? `${A.left} min igjen · ${A.prog}` : A.done ? 'Ferdig · klar til å tømmes' : A.paused ? `Pauset · ${A.left} min igjen` : 'Av', () => {}, A.run ? C.blue : A.done ? 'rgb(102 209 158)' : A.paused ? C.amber : null, A.done ? 'solid' : false); })()
+    const camMo = LV ? !!(LV.motion && ha.val(LV.motion) === 'on') : s.camMotion, garOpen = LV && LV.garage ? ['open', 'opening'].includes(ha.val(LV.garage)) : s.garageOpen;
+    const tvOn = LV && LV.tv ? !['off', 'standby', 'unavailable', 'unknown'].includes(ha.val(LV.tv, 'off')) : (s.tvOn ?? true), tvSub = LV && LV.tv ? (tvOn ? [ha.attr(LV.tv, 'app_name', ''), ha.attr(LV.tv, 'media_title', '') || ha.attr(LV.tv, 'source', '')].filter(Boolean).join(' · ') || 'På' : 'Av') : tvOn ? 'Netflix · Stranger Things' : 'Av';
+    const vacSt = LV && LV.vac ? (ha.val(LV.vac) === 'cleaning' ? 'run' : ha.val(LV.vac) === 'docked' ? 'home' : 'pause') : (s.vacState || 'run'), vacSub = LV && LV.vac ? `${{ cleaning: 'Rengjør', docked: 'Ladestasjon', paused: 'Pauset', returning: 'Kjører hjem', idle: 'Klar', error: 'Feil' }[ha.val(LV.vac)] || ha.val(LV.vac, '–')}${ha.attr(LV.vac, 'battery_level', null) != null ? ' · ' + ha.attr(LV.vac, 'battery_level') + ' %' : ''}` : vacSt === 'run' ? 'Rengjør stue · 62 %' : 'Pauset i stue';
+    const applA = LV ? LV.appl : (s.appl || APPL0);
+    const tileOf = t => t.kind === 'lock' ? tileV(lkOn ? 'key' : 'lock_open', lkOn ? 'Låst' : 'Ulåst', 'Dørlås', () => this.setState({ lockOpen: true }), lkOn ? null : 'rgb(102 209 158)', lkOn ? false : 'solid')
+      : t.kind === 'alarm' ? tileV('shield', alOn ? 'Armert' : 'Av', 'Alarm', () => this.openSheet('sik'), null, alOn)
+      : t.kind === 'ruter' ? tileV('tram', 'Ruter', LV && LV.ruter ? ha.val(LV.ruter, '–') : 'Linje 19 om 1 min · 2 avvik', () => this.openSheet('ruter'), null)
+      : t.kind === 'cam' ? tileV('videocam', 'Kamera', camMo ? 'Bevegelse nå' : 'Ingen bevegelse', () => this.openSheet('cam'), camMo ? C.blue : null)
+      : t.kind === 'garage' ? tileV('garage', garOpen ? 'Åpen' : 'Lukket', 'Garasjeport', () => {}, garOpen ? C.amber : null)
+      : t.kind === 'tv' ? tileV('tv', LV && LV.tv ? ha.name(LV.tv, 'TV') : 'Stue-TV', tvSub, () => {}, tvOn ? C.blue : null)
+      : t.kind === 'vacr' ? tileV('robot_2', LV && LV.vac ? ha.name(LV.vac, 'Støvsuger') : 'Sir Sweeps', vacSub, () => {}, vacSt === 'run' ? C.green : C.amber)
+      : APPL[t.kind] ? (() => { const A = applA[t.kind] || {}, [ic, nm] = APPL[t.kind]; return tileV(ic, nm, A.run ? `${A.left} min igjen · ${A.prog}` : A.done ? 'Ferdig · klar til å tømmes' : A.paused ? `Pauset · ${A.left} min igjen` : 'Av', () => {}, A.run ? C.blue : A.done ? 'rgb(102 209 158)' : A.paused ? C.amber : null, A.done ? 'solid' : false); })()
       : t.kind === 'jul' ? tileV('park', `${Math.max(0, Math.ceil((new Date(new Date().getMonth() < 2 ? new Date().getFullYear() : new Date().getFullYear(), 11, 24) - new Date()) / 864e5))} dager til jul`, 'Julelys og automasjon', () => this.openSheet('jul'), 'rgb(102 209 158)')
       : t.kind === 'todo' ? tileV('handyman', `${s.todos.length} gjøremål`, `${done} ferdige`, () => this.openSheet('todo'), null)
       : tileV(t.icon || 'link', fill(t.title) || 'Snarvei', fill(t.sub), () => this.runAct({ act: t.act, svc: t.svc, link: t.target }), TCOL[t.color] || null, t.color === 'rosa');
-    const tileFull = t => { const b = tileOf(t); return { ...b, ent: ({ lock: 'lock.inngangsdor', alarm: 'alarm_control_panel.hjem', cam: 'camera.inngang', ruter: 'sensor.ruter_avvik_summary', garage: 'cover.garasjeport', tv: 'media_player.stue_tv', vacr: 'vacuum.sir_sweeps', dish: 'sensor.oppvaskmaskin_status', wash: 'sensor.vaskemaskin_status', dry: 'sensor.torketrommel_status', todo: 'todo.handleliste', jul: 'light.julelys' })[t.kind] || ('switch.' + t.kind), style: { ...b.style, cursor: 'pointer' }, iconWrap: { ...b.iconWrap, cursor: 'pointer', transition: 'transform .2s' }, tap: () => this.runAct(tapOf(t, 'card')), icTap: e => { e.stopPropagation(); this.runAct(tapOf(t, 'ic')); } }; };
-    const tilesAt = (side, pos) => { const raw = (CU.tiles[curId] || []).filter(t => t.side === side && t.pos === pos && seasonOk(t) && (() => { const D = SITE_DOORS[SERVERS[s.server ?? 1][0]] || [1, 1]; return (t.kind !== 'lock' || D[0] > 0) && (t.kind !== 'garage' || D[1] > 0); })() && (t.kind !== 'tv' || (s.tvOn ?? true)) && (t.kind !== 'vacr' || (s.vacState || 'run') !== 'home') && (!APPL[t.kind] || curId !== 'aktuelt') && (!APPL[t.kind] || (() => { const A = (s.appl || APPL0)[t.kind] || {}; return A.run || A.done || A.paused; })())), key = curId + '-' + side + '-' + pos, all = !!((CU.swipe[curId] || {})[side + '-' + pos] ?? (curId === 'hjem' && side === 'L' && pos === 'top')), stR = raw.filter(t => all || t.stack), useS = stR.length > 1, slist = useS ? stR.map(tileFull) : [], list = (useS ? raw.filter(t => !(all || t.stack)) : raw).map(tileFull), idx = Math.min((s.swIdx || {})[key] || 0, Math.max(0, slist.length - 1));
+    const tileFull = t => { const b = tileOf(t); const le = LV && ({ lock: LV.lock, alarm: LV.alarm, cam: LV.cam, ruter: LV.ruter, garage: LV.garage, tv: LV.tv, vacr: LV.vac, dish: LV.applE.dish, wash: LV.applE.wash, dry: LV.applE.dry, todo: LV.todo, jul: LV.jul })[t.kind]; return { ...b, ent: le || ({ lock: 'lock.inngangsdor', alarm: 'alarm_control_panel.hjem', cam: 'camera.inngang', ruter: 'sensor.ruter_avvik_summary', garage: 'cover.garasjeport', tv: 'media_player.stue_tv', vacr: 'vacuum.sir_sweeps', dish: 'sensor.oppvaskmaskin_status', wash: 'sensor.vaskemaskin_status', dry: 'sensor.torketrommel_status', todo: 'todo.handleliste', jul: 'light.julelys' })[t.kind] || ('switch.' + t.kind), style: { ...b.style, cursor: 'pointer' }, iconWrap: { ...b.iconWrap, cursor: 'pointer', transition: 'transform .2s' }, tap: () => this.runAct(tapOf(t, 'card')), icTap: e => { e.stopPropagation(); this.runAct(tapOf(t, 'ic')); } }; };
+    const tilesAt = (side, pos) => { const raw = (CU.tiles[curId] || []).filter(t => t.side === side && t.pos === pos && seasonOk(t) && (() => { const D = SITE_DOORS[SERVERS[s.server ?? 1][0]] || [1, 1]; return (t.kind !== 'lock' || D[0] > 0) && (t.kind !== 'garage' || D[1] > 0); })() && (t.kind !== 'tv' || tvOn) && (t.kind !== 'vacr' || vacSt !== 'home') && (!APPL[t.kind] || curId !== 'aktuelt') && (!APPL[t.kind] || (() => { const A = applA[t.kind] || {}; return A.run || A.done || A.paused; })()) && (!LV || !({ lock: 1, alarm: 1, garage: 1, tv: 1, vacr: 1, cam: 1, ruter: 1 })[t.kind] || !!({ lock: LV.lock, alarm: LV.alarm, garage: LV.garage, tv: LV.tv, vacr: LV.vac, cam: LV.cam, ruter: LV.ruter })[t.kind])), key = curId + '-' + side + '-' + pos, all = !!((CU.swipe[curId] || {})[side + '-' + pos] ?? (curId === 'hjem' && side === 'L' && pos === 'top')), stR = raw.filter(t => all || t.stack), useS = stR.length > 1, slist = useS ? stR.map(tileFull) : [], list = (useS ? raw.filter(t => !(all || t.stack)) : raw).map(tileFull), idx = Math.min((s.swIdx || {})[key] || 0, Math.max(0, slist.length - 1));
       return { list, slist, flat: list.length > 0, swipe: useS, onScroll: e => { const el = e.currentTarget, n = Math.round(el.scrollLeft / el.clientWidth); if (n !== ((this.state.swIdx || {})[key] || 0)) this.setState({ swIdx: { ...(this.state.swIdx || {}), [key]: n } }); },
         hasDots: !all && slist.length > 1, dots: (all ? [] : slist).map((_, i) => ({ width: (i === idx) ? 12 : 10, height: (i === idx) ? 12 : 10, borderRadius: 6, background: (i === idx) ? '#8a8a8a' : '#454545', transition: 'background .2s' })) }; };
     const pick = side => C0.order.filter(id => !C0.hidden[id] && C0.side[id] === side).map(byId).filter(Boolean);
     const left = pick('L'), right = pick('R');
     const cardOf = r => { const sz = lay.size[r.id] || 'M', kl = !!lay.klima[r.id] && r.set != null;
-      return { alert: !!alertOf(r), alertText: alertOf(r), name: r.name, icon: r.icon, temp: r.temp, hum: r.hum, set: r.set, line: `${r.temp.toFixed(1)}° · ${r.hum}%`,
+      return { alert: !!alertOf(r), alertText: alertOf(r), name: r.name, icon: r.icon, temp: fmtT(r.temp), hum: r.hum, set: fmtT(r.set), line: `${typeof r.temp === 'number' ? r.temp.toFixed(1) : '–'}° · ${r.hum ?? '–'}%`,
         open: () => { this.setState({ sheetRoomId: r.id }); this.openSheet('rom'); },
-        toggle: e => { e.stopPropagation(); this.upd(r.id, x => ({ lights: !x.lights })); },
-        up: e => { e.stopPropagation(); this.upd(r.id, x => ({ set: x.set + 1 })); }, down: e => { e.stopPropagation(); this.upd(r.id, x => ({ set: x.set - 1 })); },
+        toggle: e => { e.stopPropagation(); r.E ? liveAct.roomLights(r) : this.upd(r.id, x => ({ lights: !x.lights })); },
+        up: e => { e.stopPropagation(); r.E ? liveAct.roomSet(r, 1) : this.upd(r.id, x => ({ set: x.set + 1 })); }, down: e => { e.stopPropagation(); r.E ? liveAct.roomSet(r, -1) : this.upd(r.id, x => ({ set: x.set - 1 })); },
         isS: sz === 'S', isBig: sz !== 'S', klimaV: kl && sz !== 'S', klimaH: false, klimaS: false,
         box: sz === 'S' ? { display: 'flex', alignItems: 'center', gap: 12, height: 66, boxSizing: 'border-box', padding: '0 6px 0 4px', borderRadius: 33, background: '#2f2f2f', cursor: 'pointer' }
           : { position: 'relative', height: sz === 'L' ? 246 : kl ? 210 : 140, boxSizing: 'border-box', borderRadius: 28, background: '#2f2f2f', cursor: 'pointer' },
@@ -1802,18 +1970,20 @@ class Component extends DCLogic {
         iconWrap: { position: 'absolute', right: 6, top: 6, width: 58, height: 58, borderRadius: 29, display: 'grid', placeItems: 'center', background: r.lights ? r.col : '#3a3a3a', color: r.lights ? '#232323' : '#7f7f7f', transition: 'background .25s' },
         iconWrapS: { width: 58, height: 58, borderRadius: 29, flex: 'none', display: 'grid', placeItems: 'center', background: r.lights ? r.col : '#3a3a3a', color: r.lights ? '#232323' : '#7f7f7f', transition: 'background .25s' } }; };
     const alertOf = r => { const R = (CU.badges || {})[r.id] ?? badgeDef(r); const hit = R.find(x => badgeHit(x, r, s)); return hit ? (hit.text || 'Varsel') : ''; };
-    const SL = { cal: () => ({ top: 'tirsdag', title: '29. sep.', line1: '9:00 · 12:00', line2: 'TRE1300 Skriftlig eksamen', open: () => this.openSheet('cal') }),
-      vaer: () => ({ top: 'Strømstad', title: '14,5°', line1: 'Skyet', line2: 'I morgen 16° · sol', open: () => this.openSheet('vaer') }),
+    const hm2 = d => d.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' }).replace(/^0/, '');
+    const fc = LV && LV.wx ? ha.forecast(LV.wx.id, 'daily') : null, fc1 = fc && fc.find(f => new Date(f.datetime).toDateString() !== new Date().toDateString());
+    const SL = { cal: () => EV ? (EV.next ? { top: EV.next.s.toLocaleDateString('nb-NO', { weekday: 'long' }), title: EV.next.s.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' }).toUpperCase(), line1: EV.next.start.dateTime ? `${hm2(EV.next.s)} · ${hm2(EV.next.e2)}` : 'Hele dagen', line2: EV.next.summary || '', open: () => this.openSheet('cal') } : { top: 'Kalender', title: 'Tomt', line1: 'Ingen kommende', line2: 'hendelser', open: () => this.openSheet('cal') }) : ({ top: 'tirsdag', title: '29. sep.', line1: '9:00 · 12:00', line2: 'TRE1300 Skriftlig eksamen', open: () => this.openSheet('cal') }),
+      vaer: () => LV && LV.wx ? ({ top: LV.wx.place, title: LV.wx.temp != null ? `${nf(LV.wx.temp, 1)}°` : '–', line1: cap1(LV.wx.cond), line2: fc1 ? `I morgen ${Math.round(fc1.temperature)}° · ${WX[fc1.condition] || fc1.condition}` : '', open: () => this.openSheet('vaer') }) : ({ top: 'Strømstad', title: '14,5°', line1: 'Skyet', line2: 'I morgen 16° · sol', open: () => this.openSheet('vaer') }),
       strom: () => ({ top: 'Strøm nå', title: `${nf(pNow)} kr`, line1: `${watt.toLocaleString('nb-NO')} W`, line2: `Billigst kl. ${hh(cheap[1])} · ${nf(cheap[0])} kr`, open: () => this.openSheet('strom') }),
-      trash: () => ({ top: 'Søppel', title: 'Om 3 dager', line1: 'Restavfall', line2: 'og plastavfall', open: () => this.openSheet('trash') }) };
+      trash: () => TR ? ({ top: 'Søppel', title: TR.days == null ? '–' : TR.days === 0 ? 'I dag' : TR.days === 1 ? 'I morgen' : `Om ${TR.days} dager`, line1: String(TR.what), line2: '', open: () => this.openSheet('trash') }) : ({ top: 'Søppel', title: 'Om 3 dager', line1: 'Restavfall', line2: 'og plastavfall', open: () => this.openSheet('trash') }) };
     const slidesOf = side => (((CU.slides || {})[curId] || {})[side] || []).filter(k => SL[k]).map(k => ({ ...SL[k](), isCard: true, isRoom: false }));
     const carousel = (rooms0, key, extra = []) => { const rooms = [...rooms0, ...extra], idx = Math.min(s[key] || 0, Math.max(0, rooms.length - 1)); return {
       onScroll: e => { const el = e.currentTarget, n = Math.round(el.scrollLeft / el.clientWidth); if (n !== (this.state[key] || 0)) this.setState({ [key]: n }); },
       dots: rooms.length > 1 ? rooms.map((_, i) => ({ width: (i === idx) ? 12 : 10, height: (i === idx) ? 12 : 10, borderRadius: 6, background: (i === idx) ? '#8a8a8a' : '#454545', transition: 'background .2s' })) : [],
-      rooms: rooms.map(r => r.isCard ? r : ({ isRoom: true, isCard: false, alert: !!alertOf(r), alertText: alertOf(r), name: r.name, icon: r.icon, temp: r.temp, hum: r.hum, set: r.set, hasSet: r.set != null && !!lay.klima[r.id],
+      rooms: rooms.map(r => r.isCard ? r : ({ isRoom: true, isCard: false, alert: !!alertOf(r), alertText: alertOf(r), name: r.name, icon: r.icon, temp: fmtT(r.temp), hum: r.hum, set: fmtT(r.set), hasSet: r.set != null && !!lay.klima[r.id],
         open: () => { this.setState({ sheetRoomId: r.id }); this.openSheet('rom'); },
-        toggle: e => { e.stopPropagation(); this.upd(r.id, x => ({ lights: !x.lights })); },
-        up: e => { e.stopPropagation(); this.upd(r.id, x => ({ set: x.set + 1 })); }, down: e => { e.stopPropagation(); this.upd(r.id, x => ({ set: x.set - 1 })); },
+        toggle: e => { e.stopPropagation(); r.E ? liveAct.roomLights(r) : this.upd(r.id, x => ({ lights: !x.lights })); },
+        up: e => { e.stopPropagation(); r.E ? liveAct.roomSet(r, 1) : this.upd(r.id, x => ({ set: x.set + 1 })); }, down: e => { e.stopPropagation(); r.E ? liveAct.roomSet(r, -1) : this.upd(r.id, x => ({ set: x.set - 1 })); },
         iconWrap: { position: 'absolute', right: 6, top: 6, width: 58, height: 58, borderRadius: 29, display: 'grid', placeItems: 'center', background: r.lights ? r.col : '#3a3a3a', color: r.lights ? '#232323' : '#7f7f7f', transition: 'background .25s' } })) }; };
     const hs = s.hour;
     return {
@@ -1833,33 +2003,33 @@ class Component extends DCLogic {
       floors: TV.map(({ id: k, label }) => ({ label, go: () => { this.setState({ floor: k, iL: 0, iR: 0 }); document.querySelectorAll('[data-snap]').forEach(el => el.scrollLeft = 0); },
         style: { height: 38, padding: '0 16px', borderRadius: 19, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: s.floor === k ? PINK : 'transparent', color: s.floor === k ? '#2a1720' : '#afafaf' } })),
       tLT: tilesAt('L', 'top'), tLB: tilesAt('L', 'bottom'), tRT: tilesAt('R', 'top'), tRB: tilesAt('R', 'bottom'), prose, ce: this.custEditVals(S, fill, test, curId, getS, valOf), toastOn: !!s.toast, toastMsg: s.toast || '',
-      lockTiles: [tileV(s.locked ? 'key' : 'lock_open', s.locked ? 'Låst' : 'Ulåst', 'Dørlås', () => this.setState({ lockOpen: true }), s.locked ? null : 'rgb(102 209 158)', s.locked ? false : 'solid')],
+      lockTiles: [tileV(lkOn ? 'key' : 'lock_open', lkOn ? 'Låst' : 'Ulåst', 'Dørlås', () => this.setState({ lockOpen: true }), lkOn ? null : 'rgb(102 209 158)', lkOn ? false : 'solid')],
       lockOpen: !!s.lockOpen, lock: this.lockVals(),
-      alarmTiles: [tileV('shield', s.armed ? 'Armert' : 'Av', 'Alarm', () => this.openSheet('sik'), null, s.armed)],
+      alarmTiles: [tileV('shield', alOn ? 'Armert' : 'Av', 'Alarm', () => this.openSheet('sik'), null, alOn)],
       rightTiles: [
-        tileV('videocam', 'Kamera', s.camMotion ? 'Bevegelse nå' : 'Ingen bevegelse', () => this.openSheet('cam'), s.camMotion ? C.blue : null),
+        tileV('videocam', 'Kamera', camMo ? 'Bevegelse nå' : 'Ingen bevegelse', () => this.openSheet('cam'), camMo ? C.blue : null),
         tileV('handyman', `${s.todos.length} gjøremål`, `${done} ferdige`, () => this.openSheet('todo'), null),
       ],
       cL: carousel(left, 'iL', slidesOf('L')), cR: carousel(right, 'iR', slidesOf('R')),
       edit: this.editVals(lay, byId),
-      ...(() => { const A0 = s.appl || APPL0, T = { dish: 180, wash: 120, dry: 90 }, N = { dish: ['Oppvaskmaskin', 'dishwasher_gen', 'sensor.oppvaskmaskin_gjenstaende_tid'], wash: ['Vaskemaskin', 'local_laundry_service', 'sensor.vaskemaskin_gjenstaende_tid'], dry: ['Tørketrommel', 'dry_cleaning', 'sensor.torketrommel_gjenstaende_tid'] };
-        const el = Math.floor((Date.now() - (this._aT0 || (this._aT0 = Date.now()))) / 1000), pad = n => String(n).padStart(2, '0');
+      ...(() => { const A0 = applA, T = { dish: 180, wash: 120, dry: 90 }, N = { dish: ['Oppvaskmaskin', 'dishwasher_gen', 'sensor.oppvaskmaskin_gjenstaende_tid'], wash: ['Vaskemaskin', 'local_laundry_service', 'sensor.vaskemaskin_gjenstaende_tid'], dry: ['Tørketrommel', 'dry_cleaning', 'sensor.torketrommel_gjenstaende_tid'] };
+        const el = LV ? 0 : Math.floor((Date.now() - (this._aT0 || (this._aT0 = Date.now()))) / 1000), pad = n => String(n).padStart(2, '0');
         const cards = cur.id !== 'aktuelt' ? [] : Object.keys(N).filter(k => { const A = A0[k] || {}; return A.run || A.done || A.paused; }).map(k => { const A = A0[k], [name, icon, ent] = N[k], secs = A.done ? 0 : Math.max(0, (A.left || 0) * 60 - (A.run ? el : 0)), p = A.done ? 100 : Math.max(2, Math.min(100, (1 - secs / 60 / T[k]) * 100));
-          return { name, icon, ent, act: A.done ? 'Tøm' : A.run ? 'Pause' : 'Fortsett', go: () => this.runAct({ act: 'appl:' + k }), time: A.done ? 'Ferdig' : `${Math.floor(secs / 3600)}:${pad(Math.floor(secs % 3600 / 60))}:${pad(secs % 60)}`,
+          return { name, icon, ent: LV && LV.applE[k] || ent, act: A.done ? 'Tøm' : A.run ? 'Pause' : 'Fortsett', go: () => this.runAct({ act: 'appl:' + k }), time: A.done ? 'Ferdig' : `${Math.floor(secs / 3600)}:${pad(Math.floor(secs % 3600 / 60))}:${pad(secs % 60)}`,
             sub: A.done ? 'Klar til å tømmes' : (A.paused ? 'Pauset · ' : '') + (A.prog || ''),
             timeStyle: { fontSize: 34, fontWeight: 300, letterSpacing: '-0.02em', lineHeight: 1, padding: '0 16px', fontVariantNumeric: 'tabular-nums', color: A.done ? C.green : A.paused ? '#afafaf' : '#fafafa' },
             bar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: p + '%', background: A.done ? C.green : A.paused ? '#979797' : '#fafafa', transition: 'width 1s linear' } }; });
         return { hasAppl: cards.length > 0, applCards: cards }; })(),
       isHjemView: cur.view === 'karusell', isFloorView: cur.view === 'liste' || !cur.view, isBatView: cur.view === 'batterier',
-      ...(() => { const lim = cur.bLimit ?? 20, low = BATS.filter(b => b[3] < lim).length; return { batHead: low ? `${low} ${low === 1 ? 'batteri' : 'batterier'} under ${lim} %` : `Alle batterier over ${lim} %`, batMeta: `${(cur.bShow ?? 'lav') === 'lav' ? 'Viser lave' : 'Viser alle ' + BATS.length} · auto fra sensor.*_battery` }; })(),
-      bats: [...BATS].filter(b => (cur.bShow ?? 'lav') !== 'lav' || b[3] < (cur.bLimit ?? 20)).sort((x, y) => x[3] - y[3]).map(([name, icon, room, pct], i) => { const col = pct < 15 ? C.red : pct < 30 ? C.amber : C.green; return { name, icon, room: `${room} · sensor.${slugE(name)}_battery`, pct,
+      ...(() => { const lim = cur.bLimit ?? 20, low = BATSL().filter(b => b[3] < lim).length; return { batHead: low ? `${low} ${low === 1 ? 'batteri' : 'batterier'} under ${lim} %` : `Alle batterier over ${lim} %`, batMeta: `${(cur.bShow ?? 'lav') === 'lav' ? 'Viser lave' : 'Viser alle ' + BATSL().length} · auto fra sensor.*_battery` }; })(),
+      bats: [...BATSL()].filter(b => (cur.bShow ?? 'lav') !== 'lav' || b[3] < (cur.bLimit ?? 20)).sort((x, y) => x[3] - y[3]).map(([name, icon, room, pct, eid], i) => { const col = pct < 15 ? C.red : pct < 30 ? C.amber : C.green; return { name, icon, room: `${room ? room + ' · ' : ''}${eid || `sensor.${slugE(name)}_battery`}`, pct,
         iconStyle: { fontSize: 22, width: 26, flex: 'none', color: pct < 30 ? col : '#afafaf', fontVariationSettings: "'FILL' 1" }, bar: { display: 'block', height: '100%', width: pct + '%', borderRadius: 4, background: col },
         pctStyle: { fontSize: 14, fontWeight: 600, minWidth: 44, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: pct < 30 ? col : '#fafafa' },
         row: { display: 'flex', alignItems: 'center', gap: 12, minHeight: 58, borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none' } }; }), fCols: [left, right].map((rs, i) => ({ rooms: rs.map(cardOf), top: tilesAt(i ? 'R' : 'L', 'top'), bottom: tilesAt(i ? 'R' : 'L', 'bottom') })),
       showTodos: !!s.showTodos,
       todoMeta: `${done} av ${s.todos.length} ferdige`,
       todos: s.todos.map(([name, who, d], i) => ({ name, who,
-        tap: () => this.setState(st => ({ todos: st.todos.map((t, j) => j === i ? [t[0], t[1], !t[2]] : t) })),
+        tap: () => LV && LV.todo && s.todos[i][3] ? ha.call('todo', 'update_item', { entity_id: LV.todo, item: s.todos[i][3], status: d ? 'needs_action' : 'completed' }) : this.setState(st => ({ todos: st.todos.map((t, j) => j === i ? [t[0], t[1], !t[2]] : t) })),
         row: { display: 'flex', alignItems: 'center', gap: 12, padding: '11px 4px', borderTop: i ? '1px solid rgba(255,255,255,0.05)' : 'none', textAlign: 'left', width: '100%' },
         box: { width: 22, height: 22, borderRadius: 7, flex: 'none', display: 'grid', placeItems: 'center', background: d ? C.green : 'transparent', boxShadow: d ? 'none' : 'inset 0 0 0 1.5px #545454' },
         check: { fontSize: 16, color: '#232323', opacity: d ? 1 : 0, fontVariationSettings: "'wght' 600" },

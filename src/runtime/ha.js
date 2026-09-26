@@ -38,6 +38,8 @@ export function createBridge(card) {
     track(set, fn) { const prev = deps; deps = set; try { fn(); } finally { deps = prev; } },
     /** Re-render everything that reads `id` (used by async helpers). */
     bump(id) { const s = new Set([id || '*']); subs.forEach(fn => fn(s)); },
+    /** Screens that aggregate the whole house re-render on any state change (throttled by the runtime). */
+    watchAll() { use('*all'); },
 
     // ── state access ──
     state(id) { use(id); return id && hass ? hass.states[id] : undefined; },

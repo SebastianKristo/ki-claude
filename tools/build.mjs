@@ -33,7 +33,7 @@ function generate() {
   for (const f of files) {
     const name = f.replace(/\.dc\.html$/, '').normalize('NFC');
     const { html, js } = parseDc(readFileSync(join(SCREEN_DIR, f), 'utf8'), f);
-    out.push(`SCREENS[${JSON.stringify(name)}] = { html: ${JSON.stringify(html)}, factory: (DCLogic, React, ha) => {\n${js}\n;return typeof Component !== 'undefined' ? Component : undefined;\n} };`);
+    out.push(`SCREENS[${JSON.stringify(name)}] = { html: ${JSON.stringify(html)}, factory: (DCLogic, React, ha, document) => {\n${js}\n;return typeof Component !== 'undefined' ? Component : undefined;\n} };`);
     aliases[alias(name)] = name;
   }
   for (const [from, to] of Object.entries(REDIRECTS)) out.push(`SCREENS[${JSON.stringify(from)}] = SCREENS[${JSON.stringify(to)}];`);

@@ -334,6 +334,21 @@ export function createRuntime({ root, screens, ha, externals = {}, rootName }) {
     };
   };
 
+  // Scripts written for a standalone page query `document`; inside a card the
+  // design lives in a shadow root, so DOM lookups and bubbling pointer/scroll
+  // listeners are redirected there.
+  const ROOT_EVENTS = new Set(['scroll', 'click', 'pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'touchstart', 'touchmove', 'touchend', 'wheel', 'mousedown', 'mouseup', 'mousemove', 'contextmenu', 'dragstart', 'dragover', 'drop']);
+  const doc = new Proxy(document, {
+    get(t, k) {
+      if (k === 'querySelector') return s => root.querySelector(s);
+      if (k === 'querySelectorAll') return s => root.querySelectorAll(s);
+      if (k === 'getElementById') return id => root.getElementById(id);
+      if (k === 'addEventListener') return (type, fn, o) => (ROOT_EVENTS.has(type) ? root : document).addEventListener(type, fn, o);
+      if (k === 'removeEventListener') return (type, fn, o) => { root.removeEventListener(type, fn, o); document.removeEventListener(type, fn, o); };
+      const v = Reflect.get(t, k);
+      return typeof v === 'function' ? v.bind(t) : v;
+    },
+  });
   const registry = {};
   const components = new Map();
   const get = name => {
@@ -347,7 +362,7 @@ export function createRuntime({ root, screens, ha, externals = {}, rootName }) {
       pseudoClass,
     };
     let Logic = null;
-    try { Logic = def.factory(DCLogic, React, ha); } catch (e) { console.error('[ki-claude] logic feilet for', name, e); }
+    try { Logic = def.factory(DCLogic, React, ha, doc); } catch (e) { console.error('[ki-claude] logic feilet for', name, e); }
     return (registry[name] = { tpl: compileTemplate(def.html, host), Logic });
   };
 
@@ -362,7 +377,13 @@ export function createRuntime({ root, screens, ha, externals = {}, rootName }) {
       this.logic.__host = this;
       this.__deps = null;
       this.__unsub = ha.subscribe(changed => {
-        if (!this.__deps || [...this.__deps].some(id => changed.has(id)) || changed.has('*')) this.setState(s => ({ __v: s.__v + 1 }));
+        const d = this.__deps;
+        if (d && d.has('*all') && !changed.has('*')) {
+          // whole-house screens: coalesce to at most one re-render per second
+          if (!this.__t) this.__t = setTimeout(() => { this.__t = null; this.setState(s => ({ __v: s.__v + 1 })); }, 1000);
+          return;
+        }
+        if (!d || [...d].some(id => changed.has(id)) || changed.has('*')) this.setState(s => ({ __v: s.__v + 1 }));
       });
     }
     static getDerivedStateFromError(e) { return { __err: e && e.message ? e.message : String(e) }; }
@@ -370,13 +391,19 @@ export function createRuntime({ root, screens, ha, externals = {}, rootName }) {
     __userProps() { const { __name, __hostStyle, ...rest } = this.props; return rest; }
     __setLogicState(update, cb) {
       const prev = this.logic.state;
+      if (!this.__prevLogicState) this.__prevLogicState = prev;
       const patch = typeof update === 'function' ? update(prev) : update;
       this.logic.state = { ...prev, ...patch };
       this.setState(s => ({ __v: s.__v + 1 }), cb);
     }
     componentDidMount() { try { this.logic.componentDidMount(); } catch (e) { console.error(e); } }
-    componentDidUpdate(prev) { this.logic.props = this.__userProps(); try { this.logic.componentDidUpdate(prev); } catch (e) { console.error(e); } }
-    componentWillUnmount() { this.__unsub(); try { this.logic.componentWillUnmount(); } catch (e) { console.error(e); } }
+    componentDidUpdate(prev) {
+      this.logic.props = this.__userProps();
+      const ps = this.__prevLogicState || this.logic.state;
+      this.__prevLogicState = null;
+      try { this.logic.componentDidUpdate(prev, ps); } catch (e) { console.error(e); }
+    }
+    componentWillUnmount() { clearTimeout(this.__t); this.__unsub(); try { this.logic.componentWillUnmount(); } catch (e) { console.error(e); } }
     render() {
       const r = get(this.__name);
       const hostBase = { className: 'sc-host', style: this.props.__hostStyle, 'data-sc-name': this.__name };
