@@ -41,8 +41,8 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
       <sc-if value="{{ showChips }}" hint-placeholder-val="{{ true }}"><div style="display:flex;gap:4px"><sc-for list="{{ heroChips }}" as="c" hint-placeholder-count="4"><span title="{{ c.l }}" style="{{ c.style }}"><span class="ms" style="font-size:14px;font-variation-settings:'FILL' 1">{{ c.icon }}</span></span></sc-for></div></sc-if>
     </div>
     <div style="position:absolute;left:16px;bottom:14px;display:flex;flex-direction:column;gap:3px">
-      <span style="font-size:30px;font-weight:300;letter-spacing:-0.03em;line-height:1">25,0<span style="font-size:13px">°C</span></span>
-      <span style="font-size:11px;color:#c9d6d9">2,48 av 3,75 omsetninger · mål {{ target }}°</span>
+      <span style="font-size:30px;font-weight:300;letter-spacing:-0.03em;line-height:1">{{ waterTxt }}<span style="font-size:13px">°C</span></span>
+      <span style="font-size:11px;color:#c9d6d9">{{ turnTxt }} omsetninger · mål {{ target }}°</span>
     </div>
   </section>
 
@@ -68,8 +68,8 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
         </div>
       </sc-for>
     </div>
-    <div style="font-size:19px;line-height:1.9;padding:0 6px">Vannet er <span style="display:inline-flex;height:30px;padding:0 12px;border-radius:15px;background:#fafafa;color:#232323;font-weight:600;align-items:center;vertical-align:middle">25,0°</span> og på målet. Pumpa går nå.</div>
-    <div style="display:flex;align-items:center;gap:8px;padding:4px 8px 0"><span class="ms" style="font-size:20px">home</span><span style="font-size:15px;font-weight:500">I dag</span><span style="font-size:12px;color:#979797">Lørdag 26. september</span></div>
+    <div style="font-size:19px;line-height:1.9;padding:0 6px">Vannet er <span style="display:inline-flex;height:30px;padding:0 12px;border-radius:15px;background:#fafafa;color:#232323;font-weight:600;align-items:center;vertical-align:middle">{{ waterTxt }}°</span> {{ ovSentence }}</div>
+    <div style="display:flex;align-items:center;gap:8px;padding:4px 8px 0"><span class="ms" style="font-size:20px">home</span><span style="font-size:15px;font-weight:500">I dag</span><span style="font-size:12px;color:#979797">{{ todayDate }}</span></div>
     <div style="display:flex;flex-direction:column;padding:0 16px;border-radius:26px;background:#2f2f2f">
       <sc-for list="{{ today }}" as="r" hint-placeholder-count="3"><div style="{{ r.row }}"><span style="flex:1;font-size:14px;color:#afafaf">{{ r.l }}</span><span style="font-size:22px;font-weight:300">{{ r.v }}</span><span style="font-size:11px;color:#979797">{{ r.u }}</span><span class="ms" style="{{ r.iconStyle }}">{{ r.icon }}</span></div></sc-for>
     </div>
@@ -95,10 +95,10 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
       <sc-for list="{{ temps }}" as="t" hint-placeholder-count="5"><button onClick="{{ t.go }}" style="{{ t.style }}">{{ t.l }}</button></sc-for>
     </div>
-    <div style="font-size:19px;line-height:1.9;padding:0 6px">Vannet er <span style="display:inline-flex;height:30px;padding:0 12px;border-radius:15px;background:#fafafa;color:#232323;font-weight:600;align-items:center;vertical-align:middle">25,0°</span> og holder målet på <span style="display:inline-flex;height:30px;padding:0 12px;border-radius:15px;background:#fafafa;color:#232323;font-weight:600;align-items:center;vertical-align:middle">{{ target }}°</span>. Varmepumpa hviler. Strømmen har kostet <span style="display:inline-flex;height:30px;padding:0 12px;border-radius:15px;background:#fafafa;color:#232323;font-weight:600;align-items:center;vertical-align:middle">9 kroner</span> i dag.</div>
+    <div style="font-size:19px;line-height:1.9;padding:0 6px">Vannet er <span style="display:inline-flex;height:30px;padding:0 12px;border-radius:15px;background:#fafafa;color:#232323;font-weight:600;align-items:center;vertical-align:middle">{{ waterTxt }}°</span> og {{ heatVerb }} <span style="display:inline-flex;height:30px;padding:0 12px;border-radius:15px;background:#fafafa;color:#232323;font-weight:600;align-items:center;vertical-align:middle">{{ target }}°</span>. {{ hpTxt }} Strømmen har kostet <span style="display:inline-flex;height:30px;padding:0 12px;border-radius:15px;background:#fafafa;color:#232323;font-weight:600;align-items:center;vertical-align:middle">{{ costTxt }}</span> i dag.</div>
     <div style="display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:28px;background:#2f2f2f">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start"><span style="display:flex;flex-direction:column;gap:3px"><span style="font-size:13px;font-weight:500">Vanntemperatur</span><span style="font-size:11px;color:#979797">Endring siste døgn</span><span style="font-size:22px;color:rgb(115 185 242)">−1,0°</span></span><span style="font-size:11px;color:#979797;text-align:right;line-height:1.5">maks 26,0° 15:51<br></br>min 17,0° 04:36</span></div>
-      <svg viewBox="0 0 300 90" preserveAspectRatio="none" style="width:100%;height:110px"><rect x="120" y="0" width="80" height="90" fill="rgba(255,255,255,0.05)"></rect><line x1="0" x2="300" y1="18" y2="18" stroke="rgba(255,255,255,0.35)" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"></line><path d="M0,14 C40,16 90,20 120,30 S160,70 170,62 S200,30 230,16 S280,12 300,14 L300,90 L0,90 Z" fill="rgb(102 209 158 / 0.18)"></path><path d="M0,14 C40,16 90,20 120,30 S160,70 170,62 S200,30 230,16 S280,12 300,14" fill="none" stroke="rgb(102 209 158)" stroke-width="2" vector-effect="non-scaling-stroke"></path></svg>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start"><span style="display:flex;flex-direction:column;gap:3px"><span style="font-size:13px;font-weight:500">Vanntemperatur</span><span style="font-size:11px;color:#979797">Endring siste døgn</span><span style="{{ ch.deltaStyle }}">{{ ch.delta }}</span></span><span style="font-size:11px;color:#979797;text-align:right;line-height:1.5">{{ ch.max }}<br></br>{{ ch.min }}</span></div>
+      <svg viewBox="0 0 300 90" preserveAspectRatio="none" style="width:100%;height:110px"><rect x="{{ ch.bandX }}" y="0" width="{{ ch.bandW }}" height="90" fill="rgba(255,255,255,0.05)"></rect><line x1="0" x2="300" y1="{{ ch.ty }}" y2="{{ ch.ty }}" stroke="rgba(255,255,255,0.35)" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"></line><path d="{{ ch.area }}" fill="rgb(102 209 158 / 0.18)"></path><path d="{{ ch.line }}" fill="none" stroke="rgb(102 209 158)" stroke-width="2" vector-effect="non-scaling-stroke"></path></svg>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px"><sc-for list="{{ heatStats }}" as="h" hint-placeholder-count="3"><div style="padding:10px 12px;border-radius:14px;background:#2a2a2a;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px">{{ h.v }}</span><span style="font-size:11px;color:#979797">{{ h.l }}</span></div></sc-for></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
@@ -113,7 +113,7 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
   </sc-if>
 
   <sc-if value="{{ isKlor }}" hint-placeholder-val="{{ false }}">
-    <div style="display:flex;align-items:center;gap:12px;height:62px;padding:0 16px 0 6px;border-radius:31px;background:#2f2f2f"><span style="width:50px;height:50px;border-radius:25px;background:rgb(102 209 158 / 0.25);color:rgb(102 209 158);display:grid;place-items:center"><span class="ms" style="font-size:22px">pill</span></span><span style="display:flex;flex-direction:column;gap:1px"><span style="font-size:14px;font-weight:600">Neste klortablett tor 1. okt.</span><span style="font-size:11px;color:#979797">{{ lastLog }}</span></span></div>
+    <div style="display:flex;align-items:center;gap:12px;height:62px;padding:0 16px 0 6px;border-radius:31px;background:#2f2f2f"><span style="{{ klorIco }}"><span class="ms" style="font-size:22px">pill</span></span><span style="display:flex;flex-direction:column;gap:1px"><span style="font-size:14px;font-weight:600">{{ nextKlor }}</span><span style="font-size:11px;color:#979797">{{ lastLog }}</span></span></div>
     <span style="font-size:12px;color:#979797;padding:0 8px">Hvem la i? Trykk på navnet.</span>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <sc-for list="{{ people }}" as="p" hint-placeholder-count="3"><button onClick="{{ p.go }}" style="{{ p.style }}"><span style="width:40px;height:40px;border-radius:20px;background:#3a3a3a;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:20px;font-variation-settings:'FILL' 1">person</span></span><span style="flex:1;font-size:15px;font-weight:500;text-align:left">{{ p.name }}</span><span style="font-size:12px;color:#979797">{{ p.n }}</span></button></sc-for>
@@ -121,13 +121,13 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
     <button onClick="{{ logAnon }}" style="display:flex;align-items:center;gap:12px;height:60px;padding:0 16px 0 6px;border-radius:30px;background:rgb(102 209 158);color:#1f2a24;font-size:15px;font-weight:600"><span style="width:48px;height:48px;border-radius:24px;background:rgba(0,0,0,0.1);display:grid;place-items:center"><span class="ms" style="font-size:22px">pill</span></span>Logg klortablett uten navn</button>
     <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ qty }}" as="q" hint-placeholder-count="4"><button onClick="{{ q.go }}" style="{{ q.style }}"><span class="ms" style="font-size:16px">{{ q.icon }}</span>{{ q.l }}</button></sc-for></div>
     <div style="display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:26px;background:#2f2f2f">
-      <div style="display:flex;align-items:center;gap:10px"><span class="ms" style="font-size:20px">calendar_month</span><span style="flex:1;font-size:15px;font-weight:500">Kalender</span><span style="font-size:12px;color:#979797">{{ calCount }} i september</span></div>
+      <div style="display:flex;align-items:center;gap:10px"><span class="ms" style="font-size:20px">calendar_month</span><span style="flex:1;font-size:15px;font-weight:500">Kalender</span><span style="font-size:12px;color:#979797">{{ calCount }} i {{ calMonth }}</span></div>
       <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;padding:10px;border-radius:18px;background:#2a2a2a">
         <sc-for list="{{ wd }}" as="w" hint-placeholder-count="7"><span style="text-align:center;font-size:10px;color:#7f7f7f">{{ w }}</span></sc-for>
         <sc-for list="{{ cal }}" as="c" hint-placeholder-count="35"><span style="{{ c.style }}">{{ c.n }}</span></sc-for>
       </div>
     </div>
-    <sc-for list="{{ klorRows }}" as="r" hint-placeholder-count="3"><div style="display:flex;align-items:center;gap:12px;min-height:62px;padding:0 16px 0 6px;border-radius:31px;background:#2f2f2f"><span style="width:48px;height:48px;border-radius:24px;background:#3a3a3a;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:22px">{{ r.icon }}</span></span><span style="flex:1;display:flex;flex-direction:column;gap:1px"><span style="font-size:14px;font-weight:600">{{ r.l }}</span><span style="font-size:11px;color:#979797">{{ r.sub }}</span></span><span class="ms" style="font-size:22px;color:#979797">chevron_right</span></div></sc-for>
+    <sc-for list="{{ klorRows }}" as="r" hint-placeholder-count="3"><div onClick="{{ r.go }}" style="display:flex;align-items:center;gap:12px;min-height:62px;padding:0 16px 0 6px;border-radius:31px;background:#2f2f2f"><span style="width:48px;height:48px;border-radius:24px;background:#3a3a3a;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:22px">{{ r.icon }}</span></span><span style="flex:1;display:flex;flex-direction:column;gap:1px"><span style="font-size:14px;font-weight:600">{{ r.l }}</span><span style="font-size:11px;color:#979797">{{ r.sub }}</span></span><span class="ms" style="font-size:22px;color:#979797">chevron_right</span></div></sc-for>
   </sc-if>
 
   <sc-if value="{{ isSpr }}" hint-placeholder-val="{{ false }}">
@@ -136,13 +136,13 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
       <svg viewBox="0 0 300 50" preserveAspectRatio="none" style="position:absolute;left:0;right:0;bottom:0;width:100%;height:60px"><path d="M0,20 C50,5 100,35 150,20 S250,5 300,20 L300,50 L0,50 Z" fill="#3a93bf" opacity="0.7"></path></svg>
       <span style="position:absolute;left:50%;top:26px;width:6px;height:44px;margin-left:-3px;border-radius:3px;background:#b8c4cc"></span>
       <span style="position:absolute;left:14px;top:12px;font-size:12px;color:#c9d6e2">Spreder</span>
-      <span style="position:absolute;left:14px;bottom:12px;display:flex;flex-direction:column"><span style="font-size:26px">{{ sprState }}</span><span style="font-size:11px;color:#c9d6e2">Klar for {{ dur }} min</span></span>
+      <span style="position:absolute;left:14px;bottom:12px;display:flex;flex-direction:column"><span style="font-size:26px">{{ sprState }}</span><span style="font-size:11px;color:#c9d6e2">{{ sprSub }}</span></span>
     </div>
     <button onClick="{{ sprStart }}" style="display:flex;align-items:center;gap:12px;height:56px;padding:0 16px 0 6px;border-radius:28px;background:rgb(115 185 242);color:#12243a;font-size:15px;font-weight:600"><span style="width:44px;height:44px;border-radius:22px;background:rgba(255,255,255,0.25);display:grid;place-items:center"><span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">{{ sprIcon }}</span></span>{{ sprBtn }}</button>
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
       <sc-for list="{{ durs }}" as="t" hint-placeholder-count="5"><button onClick="{{ t.go }}" style="{{ t.style }}">{{ t.l }}</button></sc-for>
     </div>
-    <sc-for list="{{ sprRows }}" as="r" hint-placeholder-count="4"><div style="display:flex;align-items:center;gap:12px;min-height:60px;padding:0 16px 0 6px;border-radius:30px;background:#2f2f2f"><span style="width:44px;height:44px;border-radius:22px;background:#3a3a3a;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:20px">{{ r.icon }}</span></span><span style="flex:1;display:flex;flex-direction:column;gap:1px"><span style="font-size:14px;font-weight:600">{{ r.l }}</span><span style="font-size:11px;color:#979797">{{ r.sub }}</span></span><span style="font-size:13px">{{ r.v }}</span><span class="ms" style="font-size:20px;color:#979797">expand_more</span></div></sc-for>
+    <sc-for list="{{ sprRows }}" as="r" hint-placeholder-count="4"><div onClick="{{ r.go }}" style="display:flex;align-items:center;gap:12px;min-height:60px;padding:0 16px 0 6px;border-radius:30px;background:#2f2f2f"><span style="width:44px;height:44px;border-radius:22px;background:#3a3a3a;display:grid;place-items:center;flex:none"><span class="ms" style="font-size:20px">{{ r.icon }}</span></span><span style="flex:1;display:flex;flex-direction:column;gap:1px"><span style="font-size:14px;font-weight:600">{{ r.l }}</span><span style="font-size:11px;color:#979797">{{ r.sub }}</span></span><span style="font-size:13px">{{ r.v }}</span><span class="ms" style="font-size:20px;color:#979797">expand_more</span></div></sc-for>
   </sc-if>
 
   <sc-if value="{{ edOpen }}" hint-placeholder-val="{{ false }}">
@@ -203,10 +203,205 @@ const ENTS = { pump: ['Pumpe', 'water_pump', 'switch.bassengpumpe', ['switch.bas
 const CTL = { light: ['lightbulb', 'Lys', '#e9e7e2'], pump: ['water_pump', 'Pumpe', 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)'], heat: ['heat', 'Varme', 'rgb(242 128 115)'], cover: ['roofing', 'Pooltak', 'rgb(115 185 242)'], spr: ['sprinkler', 'Spreder', 'rgb(102 209 158)'], mute: ['volume_off', 'Lyd av', ''] };
 const TABS = { ov: 'Oversikt', heat: 'Varme', klor: 'Klor', spr: 'Spreder' };
 const PC0 = { ents: {}, ctl: ['light', 'pump', 'heat', 'cover', 'spr'], ctlHide: {}, tabs: ['ov', 'heat', 'klor', 'spr'], tabHide: {}, vals: {}, anim: true, chips: true };
+
+// ── Live-kobling: KI Basseng (ki_basseng) ────────────────────────────────────
+// Finner integrasjonen via sensor.<prefiks>_pumpemodus (attributtene integrasjon/prefiks).
+// Uten integrasjonen vises designets demo-data uendret. Pumpe, varmepumpe, pooltak, lys og
+// spreder-ventil er eksterne entiteter (alias pump/heat/cover/light/spr eller «Tilpass → Entiteter»).
+const pad = n => String(n).padStart(2, '0');
+const fx = (v, d) => v == null || !Number.isFinite(+v) ? '–' : (+v).toFixed(d).replace('.', ',').replace('-', '−');
+const fN = v => v == null || !Number.isFinite(+v) ? '–' : Number.isInteger(+v) ? String(+v) : fx(v, 1);
+const hhmm = d => pad(d.getHours()) + ':' + pad(d.getMinutes());
+const WD_L = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'], WD_S = ['søn', 'man', 'tir', 'ons', 'tor', 'fre', 'lør'];
+const MON_L = ['januar', 'februar', 'mars', 'april', 'mai', 'juni', 'juli', 'august', 'september', 'oktober', 'november', 'desember'];
+const MON_S = ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des'];
+const MODUS = { manuell: ['Manuell', 'back_hand'], hvile: ['Står', 'pause'], vedlikehold: ['Vedlikehold', 'autorenew'], filtrering: ['Filtrerer', 'autorenew'], oppvarming: ['Varmer', 'autorenew'], boost: ['Boost', 'mode_fan'], spreder: ['Spreder', 'sprinkler'], solvarme: ['Solvarme', 'wb_sunny'], vinter: ['Vinter', 'ac_unit'], frostsikring: ['Frostsikring', 'ac_unit'] };
+const PROF = { eco: 'Eco', balansert: 'Balansert', badeklar: 'Badeklar', ferie: 'Ferie', egendefinert: 'Egen' };
+const MODE_PROF = { eco: 'eco', bal: 'balansert', bade: 'badeklar' };
+const NIVA = { ok: 'OK', torr: 'Tørr', lav: 'Trenger vann', fyller: 'Fyller', stoppet: 'Påfylling stoppet', ukjent: 'Ukjent' };
+// Tilpass → Styring og verdier: rad-etikett → [domene, nøkkel, visning]
+const CFG_ENT = {
+  'Driftsprofil': ['select', 'driftsprofil', v => PROF[v] || v],
+  'Omsetninger per døgn': ['number', 'omsetninger_per_dogn', v => fx(v, 2) + '×'],
+  'Vedlikeholdspuls': ['number', 'vedlikeholdspuls', v => fN(v) + ' min/t'],
+  'Dagtimer i planen': ['number', 'dagtimer_i_planen', v => fN(v) + ' t'],
+  'Prisstyring': ['switch', 'prisstyring'], 'Varmeprioritet': ['switch', 'varmeprioritet'],
+  'Minste kjøretid': ['number', 'minste_kjoretid', v => fN(v) + ' min'],
+  'Basislast': ['number', 'pumpe_basislast', v => fN(v) + ' W'],
+  'Manuell overstyring varer': ['number', 'manuell_overstyring_varer', v => fN(v) + ' min'],
+  'Styr varmepumpa': ['switch', 'styr_varmepumpe'], 'Styr settpunkt': ['switch', 'styr_settpunkt'],
+  'Varmevindu fra': ['number', 'varmevindu_start', v => fN(v) + ':00'],
+  'Varmevindu til': ['number', 'varmevindu_slutt', v => fN(v) + ':00'],
+  'Senking når ingen er hjemme': ['number', 'senking_nar_ingen_er_hjemme', v => fx(v, 1) + '°'],
+  'Solvarme': ['switch', 'solvarme'],
+  'Varmetap uten tak': ['number', 'varmetap_uten_tak', v => fx(v, 1) + ' W/m²K'],
+  'Varmetap med tak': ['number', 'varmetap_med_tak', v => fx(v, 1) + ' W/m²K'],
+  'Sol gjennom taket': ['number', 'sol_gjennom_taket', v => fN(v) + ' %'],
+  'Klortablett hver': ['number', 'klortablett_intervall', v => fx(v, 1) + ' d'],
+};
+const DEMO_CH = { delta: '−1,0°', deltaStyle: { fontSize: 22, color: 'rgb(115 185 242)' }, max: 'maks 26,0° 15:51', min: 'min 17,0° 04:36', bandX: 120, bandW: 80, ty: 18,
+  line: 'M0,14 C40,16 90,20 120,30 S160,70 170,62 S200,30 230,16 S280,12 300,14', area: 'M0,14 C40,16 90,20 120,30 S160,70 170,62 S200,30 230,16 S280,12 300,14 L300,90 L0,90 Z' };
+function kiBasseng() {
+  const id = ha.first('pumpemodus', 'sensor.ki_basseng_pumpemodus') || ha.ki('ki_basseng', (a, i) => i.startsWith('sensor.') && a.prefiks != null)[0];
+  const st = id && ha.state(id);
+  return st ? { id, st, pre: st.attributes.prefiks || id.split('.')[1].replace(/_pumpemodus(_\d+)?$/, '') } : null;
+}
+const okEnt = id => id && ha.state(id) ? id : null;
+const findExt = (dom, re) => ha.domain(dom, (st, id) => !/ki_basseng/.test(id) && re.test(id + ' ' + (st.attributes.friendly_name || '')))[0] || null;
+function chart(id, target, night) {
+  const rows = (ha.history(id, 24) || []).filter(r => Number.isFinite(r.v));
+  const t1 = Date.now(), t0 = t1 - 24 * 3600e3;
+  if (rows.length < 2) { const v = ha.num(id, null); return { ...DEMO_CH, delta: '–', deltaStyle: { fontSize: 22, color: '#979797' }, max: v == null ? 'maks –' : `nå ${fx(v, 1)}°`, min: '', bandW: 0, ty: -10, line: '', area: '' }; }
+  const pts = rows.map(r => ({ t: Math.max(t0, r.t.getTime()), v: r.v }));
+  pts.push({ t: t1, v: pts[pts.length - 1].v });
+  const vs = pts.map(p => p.v).concat(target != null ? [target] : []);
+  let lo = Math.min(...vs), hi = Math.max(...vs); if (hi - lo < 1) { lo -= 0.5; hi += 0.5; }
+  const X = t => Math.round((t - t0) / (t1 - t0) * 3000) / 10, Y = v => Math.round((78 - (v - lo) / (hi - lo) * 66) * 10) / 10;
+  const line = pts.map((p, i) => (i ? 'L' : 'M') + X(p.t) + ',' + Y(p.v)).join(' ');
+  const mx = rows.reduce((a, b) => b.v > a.v ? b : a), mn = rows.reduce((a, b) => b.v < a.v ? b : a);
+  const d = pts[pts.length - 1].v - rows[0].v;
+  let bandX = 0, bandW = 0;
+  if (night && night.fra && night.til) {
+    const at = (hm, back) => { const [h, m] = hm.split(':').map(Number), x = new Date(); x.setHours(h, m || 0, 0, 0); x.setDate(x.getDate() - back); return x.getTime(); };
+    for (const back of [0, 1]) { let a = at(night.fra, back), b = at(night.til, back); if (b <= a) a -= 864e5; const ca = Math.max(a, t0), cb = Math.min(b, t1); if (cb > ca) { bandX = X(ca); bandW = Math.round((X(cb) - X(ca)) * 10) / 10; break; } }
+  }
+  return { delta: (d >= 0 ? '+' : '') + fx(d, 1) + '°', deltaStyle: { fontSize: 22, color: d < 0 ? 'rgb(115 185 242)' : 'rgb(242 128 115)' },
+    max: `maks ${fx(mx.v, 1)}° ${hhmm(mx.t)}`, min: `min ${fx(mn.v, 1)}° ${hhmm(mn.t)}`, bandX, bandW,
+    ty: target != null ? Y(target) : -10, line, area: line + ' L300,90 L0,90 Z' };
+}
+function loadLive(P) {
+  const K = kiBasseng();
+  if (!K) return null;
+  const pre = K.pre, M = K.st.attributes;
+  const E = (dom, key) => ha.first(key, `${dom}.${pre}_${key}`, `${dom}.ki_basseng_${key}`) || ha.find('ki_basseng', key, dom);
+  const own = k => okEnt(P.ents[k]);
+  const id = {
+    vann: own('water') || E('sensor', 'vanntemperatur'), mal: E('sensor', 'maltemperatur'), oms: E('sensor', 'omsetninger_i_dag'),
+    tid: E('sensor', 'pumpetid_i_dag'), spart: E('sensor', 'spart_i_dag'), kost: E('sensor', 'kostnad_i_dag'),
+    vp: own('power') || E('sensor', 'varmepumpe_effekt'), tap: E('sensor', 'varmetap'), sol: E('sensor', 'solinnstraling'),
+    natt: E('sensor', 'nattsenking'), nattAktiv: E('binary_sensor', 'nattsenking_aktiv'), nestePumpe: E('sensor', 'neste_pumpestart'),
+    siste: E('sensor', 'siste_klortablett'), neste: E('sensor', 'neste_klortablett'), klor: E('sensor', 'klorstatus'),
+    sprGjen: E('sensor', 'spreder_gjenstar'), sprKj: E('binary_sensor', 'spreder_kjorer'), niva: E('sensor', 'vanniva'),
+    auto: E('switch', 'automatikk'), price: E('switch', 'prisstyring'), prio: E('switch', 'varmeprioritet'),
+    nattSw: E('switch', 'smart_nattsenking'), winter: E('switch', 'vintermodus'), takSw: E('switch', 'pooltak_pa'),
+    sprProg: E('switch', 'spreder_program'), frost: E('switch', 'frostvakt'), klorVarsel: E('switch', 'varsle_om_klor'),
+    profil: E('select', 'driftsprofil'), onsket: E('number', 'onsket_temperatur'), sprDur: E('number', 'spreder_varighet'),
+    sprInt: E('number', 'spreder_intervall'), sprMaks: E('number', 'spreder_maks_per_dogn'), klorInt: E('number', 'klortablett_intervall'),
+    uOpen: E('number', 'varmetap_uten_tak'), uCov: E('number', 'varmetap_med_tak'),
+    fyll: E('button', 'fyll_bassenget'), fyllStopp: E('button', 'stopp_pafylling'),
+    kal: own('cal') || E('calendar', 'klorlogg'), navn: E('text', 'navn_i_klorloggen'),
+  };
+  const tapA = ha.state(id.tap)?.attributes || {};
+  const kilde = typeof tapA.pooltak_kilde === 'string' && tapA.pooltak_kilde.includes('.') ? tapA.pooltak_kilde : null;
+  const ents = {
+    pump: own('pump') || ha.first('pump', ...ENTS.pump[3]) || findExt('switch', /(pool|basseng).*pump|pump.*(pool|basseng)/i),
+    heat: own('heat') || ha.first('heat', ...ENTS.heat[3]) || findExt('climate', /pool|basseng/i),
+    cover: own('cover') || ha.first('cover') || okEnt(kilde) || id.takSw,
+    light: own('light') || ha.first('light', ...ENTS.light[3]) || findExt('light', /pool|basseng/i),
+    water: id.vann, out: own('out'), power: id.vp, spr: own('spr') || ha.first('spr'), cal: id.kal,
+  };
+  const water = ha.num(id.vann, null), target = ha.num(id.mal, null) ?? ha.num(id.onsket, null), onsket = ha.num(id.onsket, target);
+  const oms = ha.num(id.oms, null), omsMal = ha.attr(id.oms, 'mal', null);
+  const hpW = ha.num(id.vp, null), clim = ents.heat && ha.state(ents.heat);
+  const pumpOn = typeof M.pumpe_gar === 'boolean' ? M.pumpe_gar : ha.on(ents.pump, false);
+  const heatingNow = (hpW != null && hpW > 50) || clim?.attributes?.hvac_action === 'heating';
+  const heatOn = clim ? (clim.entity_id.startsWith('climate.') ? clim.state !== 'off' && clim.state !== 'unavailable' : ha.on(clim.entity_id, false)) : heatingNow;
+  const covered = typeof tapA.pooltak === 'boolean' ? tapA.pooltak : ha.on(ents.cover, false);
+  const sprOn = ha.on(id.sprKj, false) || ha.num(id.sprGjen, 0) > 0;
+  const modus = ha.val(K.id, 'hvile'), prof = ha.val(id.profil, null);
+  const cur = ha.unit(id.spart, ha.unit(id.kost, 'kr'));
+  const now = new Date();
+  // tekst i oversikten
+  const diff = water != null && target != null ? water - target : null;
+  const nestePumpe = ha.val(id.nestePumpe, null);
+  const ovSentence = (diff == null ? 'og uten mål.' : Math.abs(diff) <= 0.3 ? 'og på målet.' : diff < 0 ? `og ${fx(-diff, 1)}° under målet.` : `og ${fx(diff, 1)}° over målet.`)
+    + ' ' + (pumpOn ? 'Pumpa går nå.' : nestePumpe && !isNaN(new Date(nestePumpe)) ? `Pumpa starter ${hhmm(new Date(nestePumpe))}.` : 'Pumpa står.');
+  // varme
+  const nattSt = ha.state(id.natt), nattA = nattSt?.attributes || {};
+  const nattV = { av: 'Av', aktiv: 'Senker nå', planlagt: nattA.fra ? `Senker ${nattA.fra}–${nattA.til}` : 'Planlagt', lonner_seg_ikke: 'Holder varmen' }[nattSt?.state] || 'Av';
+  const nattSub = String(nattA.begrunnelse || '').slice(0, 90);
+  const uo = ha.num(id.uOpen, null) ?? tapA.laert_tapsfaktor_uten_tak, uc = ha.num(id.uCov, null) ?? tapA.laert_tapsfaktor_med_tak, tapW = ha.num(id.tap, null);
+  const saveW = tapW != null && uo > 0 && uc > 0 ? (covered ? tapW * (uo / uc - 1) : tapW * (1 - uc / uo)) : null;
+  const ute = ents.out ? (ents.out.startsWith('weather.') ? ha.attr(ents.out, 'temperature', null) : ha.num(ents.out, null)) : tapA.utetemperatur;
+  const solW = tapA.solgevinst_w;
+  const hpTxt = ha.on(id.nattAktiv, false) ? 'Varmepumpa står for nattsenking.' : heatingNow ? 'Varmepumpa varmer.' : !heatOn && clim ? 'Varmepumpa er av.' : 'Varmepumpa hviler.';
+  const heatVerb = diff == null || diff >= -0.3 ? 'holder målet på' : heatingNow ? 'varmes mot' : 'er under målet på';
+  const kost = ha.num(id.kost, null);
+  // klor
+  const sA = ha.state(id.siste)?.attributes || {}, kA = ha.state(id.klor)?.attributes || {};
+  const hist = Array.isArray(sA.historikk) ? sA.historikk : [], logg = Array.isArray(sA.logg) ? sA.logg : [];
+  const ds = sA.dager_siden ?? kA.dager_siden;
+  const agoTxt = ds == null ? null : ds < 1 ? 'I dag' : ds < 2 ? '1 dag siden' : `${Math.floor(ds)} dager siden`;
+  const hvem = hist[0]?.hvem;
+  const lastLog = agoTxt ? `${agoTxt} · ${hvem ? hvem + ' la i sist' : 'uten navn'}` : 'Ingen klortablett logget';
+  const nesteRaw = ha.val(id.neste, null) || kA.neste, nesteD = nesteRaw ? new Date(nesteRaw) : null;
+  const due = !!kA.trenger_klor || ha.val(id.klor) === 'trenger_klor';
+  const nextKlor = due ? (!agoTxt ? 'Legg i første klortablett' : kA.tekst && kA.tekst !== 'I dag' ? `Klortablett nå · ${kA.tekst}` : 'Klortablett bør legges i nå')
+    : nesteD && !isNaN(nesteD) ? `Neste klortablett ${WD_S[nesteD.getDay()]} ${nesteD.getDate()}. ${MON_S[nesteD.getMonth()]}.` : (kA.tekst || 'Ingen klortablett logget');
+  const names = Array.isArray(sA.navn) && sA.navn.length ? sA.navn : String(ha.val(id.navn, '') || '').split(',').map(x => x.trim()).filter(Boolean);
+  const perP = sA.per_person || {};
+  const Y = now.getFullYear(), Mo = now.getMonth(), perDay = {};
+  logg.forEach(r => { const t = new Date(r.tid); if (!isNaN(t) && t.getFullYear() === Y && t.getMonth() === Mo) perDay[t.getDate()] = (perDay[t.getDate()] || 0) + (r.antall || 1); });
+  const base = ha.num(id.klorInt, null), iv = ha.attr(id.neste, 'intervall_dager', kA.intervall_dager ?? base);
+  const varsel = id.klorVarsel ? ha.on(id.klorVarsel, true) : true;
+  const mirror = sA.speiles_til;
+  // spreder
+  const dur = Math.round(ha.num(id.sprDur, 10)), gjen = ha.num(id.sprGjen, 0), sprA = ha.state(id.sprGjen)?.attributes || {};
+  const sprStatus = sprA.status || '';
+  const sprInt = ha.num(id.sprInt, null), sprProg = ha.on(id.sprProg, false);
+  // vannivå (kun når nivåsensor er konfigurert)
+  const niva = ha.val(id.niva, null);
+  const dayLbl = `${WD_L[now.getDay()]} ${now.getDate()}. ${MON_L[now.getMonth()]}`;
+  const cfgIds = Object.fromEntries(Object.entries(CFG_ENT).map(([l, [d, k]]) => [l, E(d, k)]));
+  return {
+    K, id, ents, cfgIds, perP, prof, modus, niva, due, names, perDay, sprOn, dur, onsket,
+    over: { light: ha.on(ents.light, false), pump: pumpOn, heat: heatOn, cover: covered, spr: sprOn, night: ha.on(id.nattSw, false), winter: ha.on(id.winter, false),
+      target: fN(target), flags: { auto: ha.on(id.auto, false), price: ha.on(id.price, false), prio: ha.on(id.prio, false) } },
+    status: (MODUS[modus] || [modus])[0], statusIcon: pumpOn ? (MODUS[modus] || [])[1] || 'autorenew' : modus === 'vinter' || modus === 'frostsikring' ? 'ac_unit' : 'pause',
+    waterTxt: fx(water, 1), turnTxt: `${fx(oms, 2)} av ${fx(omsMal, 2)}`, ovSentence, todayDate: dayLbl,
+    ovCards: [['water', 'Vann', fx(water, 1), '°C'], ['savings', 'Spart i dag', fx(ha.num(id.spart, null), 0), cur]],
+    today: [['Pumpet', fx(ha.num(id.tid, null), 1), 't'], ['Omsetninger', fx(oms, 2), 'av ' + fx(omsMal, 2)], ['Spart', fx(ha.num(id.spart, null), 0), cur]],
+    klorSub: agoTxt ? (ds < 1 ? 'I dag' : `${Math.floor(ds)} d siden`) : 'Ikke logget',
+    heatCards: [['device_thermostat', 'Mål', fN(onsket), '°C'], ['bolt', 'Effekt nå', hpW == null ? '–' : String(Math.round(hpW)), 'W']],
+    heatStats: [[ute == null ? '–' : fx(ute, 1) + '°', 'Ute'], [tapW == null ? '–' : fx(tapW / 1000, 1) + ' kW', 'Varmetap'], [solW != null ? Math.round(solW) + ' W' : ha.num(id.sol, null) != null ? Math.round(ha.num(id.sol)) + ' W/m²' : '–', 'Sol inn']],
+    nattV, nattSub, coverSub: saveW != null && saveW > 0 ? `sparer ${fx(saveW / 1000, 1)} kW` : '', heatVerb, hpTxt, costTxt: kost == null ? '–' : `${Math.round(kost)} ${/eur|€/i.test(cur) ? 'euro' : 'kroner'}`,
+    ch: chart(id.vann, target, nattA.fra ? nattA : null),
+    nextKlor, lastLog, klorIco: { width: 50, height: 50, borderRadius: 25, background: due ? 'rgb(242 128 115 / 0.25)' : 'rgb(102 209 158 / 0.25)', color: due ? SALMON : GREEN, display: 'grid', placeItems: 'center' },
+    calCount: `${Object.values(perDay).reduce((a, b) => a + b, 0)} stk`, calMonth: MON_L[Mo], calY: Y, calM: Mo,
+    dueDay: nesteD && !isNaN(nesteD) && nesteD.getFullYear() === Y && nesteD.getMonth() === Mo ? nesteD.getDate() : null,
+    klorRows: [['notifications_active', 'Påminnelse', (base == null ? 'Etter intervall' : `Hver ${fN(base)}. dag`) + (iv != null && base != null && iv < base - 0.05 ? ` · nå ${fx(iv, 1)} dager fordi vannet er varmt` : '') + (varsel ? '' : ' · varsling av'), id.klorVarsel || id.neste],
+      ['event_note', 'Klorloggen', mirror ? `Speiles til ${ha.name(mirror, mirror)}` : 'Velg en kalender under Utstyr', id.kal],
+      ['groups', 'Navn i klorloggen', names.length ? names.join(', ') : 'Ingen navn lagt inn', id.navn || id.siste]],
+    sprState: sprOn ? 'Sprer' : 'Står', sprSub: sprOn ? `${Math.round(gjen)} min igjen` : sprStatus && !/^(klar|ferdig|stoppet)/i.test(sprStatus) ? sprStatus : `Klar for ${dur} min`,
+    sprRows: [['schedule', 'Start hver', sprProg ? 'Mellom 10 og 20' : 'Spreder-program er av', sprInt ? `${fN(sprInt)} t` : 'Av', id.sprProg],
+      ['hourglass_top', 'Maks per døgn', sprA.brukt_i_dag_min != null ? `Brukt ${Math.round(sprA.brukt_i_dag_min)} min i dag` : 'Spreder stopper når tiden er brukt', `${fN(ha.num(id.sprMaks, null))} min`, id.sprMaks],
+      ['timer', 'Varighet', 'Hvor lenge den går hver gang', `${dur} min`, id.sprDur],
+      ['ac_unit', 'Frostvakt', 'Starter ikke når det er under 2 °C ute', ha.on(id.frost, true) ? 'På' : 'Av', id.frost]],
+  };
+}
 class Component extends DCLogic {
+  svc(service, data) { return ha.call('ki_basseng', service, data || {}); }
+  act(k) {
+    const L = this.L; if (!L) return;
+    const e = L.ents[k];
+    if (k === 'spr') return L.sprOn ? this.svc('stopp_spreder') : this.svc('start_spreder', { minutter: L.dur });
+    if (k === 'pump') return e ? ha.toggle(e) : this.svc('boost');
+    if (k === 'heat') return e ? ha.toggle(e) : ha.moreInfo(L.id.vp);
+    if (k === 'cover') return !e ? null : /^(binary_sensor|sensor)\./.test(e) ? ha.moreInfo(e) : ha.toggle(e);
+    if (k === 'light') return e ? ha.toggle(e) : ha.toast('Velg lys-entitet under Tilpass → Entiteter');
+  }
+  setCfg(l, raw) {
+    const L = this.L, m = CFG_ENT[l], eid = L && m && L.cfgIds[l];
+    if (!eid) return false;
+    if (m[0] === 'select') { const want = String(raw).trim().toLowerCase(), opt = Object.keys(PROF).find(k => k === want || PROF[k].toLowerCase() === want); if (opt) ha.select(eid, opt); return true; }
+    const n = parseFloat((String(raw).match(/-?\d+(?:[.,]\d+)?/) || [''])[0].replace(',', '.'));
+    if (Number.isFinite(n)) ha.setNumber(eid, n);
+    return true;
+  }
+  componentWillUnmount() { clearTimeout(this.cfgT); }
   pc() { if (this._pc === undefined) { try { this._pc = JSON.parse(localStorage.getItem('basseng-v3-cfg') || 'null'); } catch (e) { this._pc = null; } } return { ...PC0, ...(this.state.pcS || this._pc || {}) }; }
   setPc(p) { const n = { ...this.pc(), ...p }; try { localStorage.setItem('basseng-v3-cfg', JSON.stringify(n)); } catch (e) {} this._pc = n; this.setState({ pcS: n }); }
-  scene() { const s = this.state, A = this.pc().anim, pump = s.pump && A, heat = s.heat && A, abs = o => ({ position: 'absolute', ...o });
+  scene(s) { const A = this.pc().anim, pump = s.pump && A, heat = s.heat && A, abs = o => ({ position: 'absolute', ...o });
     return hc('div', { style: abs({ inset: 0, pointerEvents: 'none' }) },
       hc('div', { style: abs({ right: 56, bottom: 22, width: 150, height: 58, borderRadius: 8, overflow: 'hidden', background: 'linear-gradient(180deg,#48a3ba,#2b6f84)', boxShadow: 'inset 0 3px 0 rgba(255,255,255,0.22), 0 0 0 3px #4d5b60' }) },
         hc('span', { style: abs({ inset: -20, background: 'radial-gradient(60% 70% at 50% 60%, rgb(140 240 255 / 0.9), transparent 70%)', opacity: s.light ? 1 : 0, transition: 'opacity .6s', animation: s.light && A ? 'glowp 3s ease-in-out infinite' : 'none' }) }),
@@ -230,7 +425,8 @@ class Component extends DCLogic {
       items: labels.map((label, i) => ({ label, style: { position: 'relative', zIndex: 1, height: 34, padding: '0 12px', boxSizing: 'border-box', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', color: !d && i === idx ? '#2a1720' : i === near ? '#fff' : '#afafaf', transition: 'color .25s' } })) }; }
   state = { tab: 'ov', edOpen: false, edAcc: { ent: true }, light: false, pump: true, heat: true, target: 25, mode: 'bal', flags: { auto: true, price: true, prio: true }, night: true, cover: false, winter: false, logs: { Sebastian: 1, Cybele: 0, Rune: 11 }, qty: 1, dur: 5, spr: false, cfg: { 'Prisstyring': true, 'Varmeprioritet': true, 'Styr varmepumpa': true, 'Styr settpunkt': true, 'Solvarme': true } };
   renderVals() {
-    const s = this.state;
+    const L = this.L = loadLive(this.pc());
+    const s = L ? { ...this.state, ...L.over } : this.state;
     const sw = (on, col) => ({ track: { position: 'relative', width: 44, height: 26, borderRadius: 13, flex: 'none', background: on ? (col || '#fafafa') : '#545454', transition: 'background .2s' }, knob: { position: 'absolute', top: 3, left: on ? 21 : 3, width: 20, height: 20, borderRadius: 10, background: on ? '#232323' : '#c7c7c7', transition: 'left .2s' } });
     const tile = (on, bg, dashed) => ({ height: 64, borderRadius: 22, display: 'grid', placeItems: 'center', background: dashed ? 'transparent' : on ? bg : '#2f2f2f', color: on && !dashed ? '#2a1720' : '#fafafa', boxShadow: dashed ? 'inset 0 0 0 1.5px rgba(255,255,255,0.22)' : 'none', borderStyle: 'none', opacity: dashed ? 0.7 : 1 });
     const ctrl = (k, icon, bg, dashed) => ({ icon, go: () => !dashed && this.setState({ [k]: !s[k] }), style: tile(!!s[k], bg, dashed), iconStyle: { fontSize: 24, fontVariationSettings: `'FILL' ${s[k] ? 1 : 0}` } });
@@ -240,37 +436,47 @@ class Component extends DCLogic {
     const hs = sw(s.night), cs = sw(s.cover), ws = sw(s.winter);
     return {
       fanStyle: { fontSize: 18, color: '#c9d6d9', animation: s.pump ? 'none' : 'none' },
-      status: s.pump ? 'Filtrerer' : 'Står', statusIcon: s.pump ? 'autorenew' : 'pause', target: s.target,
-      ...(() => { const P = this.pc(), E = k => P.ents[k] || ENTS[k][2];
+      status: L ? L.status : s.pump ? 'Filtrerer' : 'Står', statusIcon: L ? L.statusIcon : s.pump ? 'autorenew' : 'pause', target: s.target,
+      waterTxt: L ? L.waterTxt : '25,0', turnTxt: L ? L.turnTxt : '2,48 av 3,75', ovSentence: L ? L.ovSentence : 'og på målet. Pumpa går nå.', todayDate: L ? L.todayDate : 'Lørdag 26. september',
+      heatVerb: L ? L.heatVerb : 'holder målet på', hpTxt: L ? L.hpTxt : 'Varmepumpa hviler.', costTxt: L ? L.costTxt : '9 kroner', ch: L ? L.ch : DEMO_CH,
+      nextKlor: L ? L.nextKlor : 'Neste klortablett tor 1. okt.', klorIco: L ? L.klorIco : { width: 50, height: 50, borderRadius: 25, background: 'rgb(102 209 158 / 0.25)', color: GREEN, display: 'grid', placeItems: 'center' }, calMonth: L ? L.calMonth : 'september',
+      ...(() => { const P = this.pc(), E = k => L ? L.ents[k] || '' : P.ents[k] || ENTS[k][2];
         const cl = P.ctl.filter(k => !P.ctlHide[k] && CTL[k]), tl = P.tabs.filter(k => !P.tabHide[k]), cur = tl.includes(s.tab) ? s.tab : tl[0] || 'ov';
-        return { scene: this.scene(), showChips: P.chips,
+        return { scene: this.scene(s), showChips: P.chips,
           heroChips: [['pump', 'water_pump', 'Pumpe', 'rgb(242 133 201)'], ['heat', 'heat_pump', 'Varmepumpe', 'rgb(242 128 115)'], ['cover', 'roofing', 'Pooltak', 'rgb(115 185 242)'], ['light', 'lightbulb', 'Lys', 'rgb(242 210 111)']].map(([k, icon, l, col]) => ({ icon, l: l + ': ' + (s[k] ? 'på' : 'av'), style: { width: 26, height: 26, borderRadius: 13, display: 'grid', placeItems: 'center', background: s[k] ? col : 'rgba(0,0,0,0.3)', color: s[k] ? '#232323' : '#7f8c90', transition: 'background .3s' } })),
           ctrlGrid: { display: 'grid', gridTemplateColumns: 'repeat(' + Math.max(1, cl.length) + ', minmax(0,1fr))', gap: 8 },
-          ctrls: cl.map(k => { const [icon, l, bg] = CTL[k], dashed = !bg, st = s[k]; return { icon, l, ent: ENTS[k] ? E(k) : '', st: st ? 'På' : 'Av', go: () => !dashed && this.setState({ [k]: !s[k] }), style: tile(!!st, bg, dashed), iconStyle: { fontSize: 24, fontVariationSettings: "'FILL' " + (st ? 1 : 0) } }; }),
+          ctrls: cl.map(k => { const [icon, l, bg] = CTL[k], dashed = !bg, st = s[k]; return { icon, l, ent: ENTS[k] ? E(k) : '', st: st ? 'På' : 'Av', go: () => dashed ? null : L ? this.act(k) : this.setState({ [k]: !s[k] }), style: tile(!!st, bg, dashed), iconStyle: { fontSize: 24, fontVariationSettings: "'FILL' " + (st ? 1 : 0) } }; }),
           gt: this.glass(tl.map(k => TABS[k]), Math.max(0, tl.indexOf(cur)), i => this.setState({ tab: tl[i] })),
           isOv: cur === 'ov', isHeat: cur === 'heat', isKlor: cur === 'klor', isSpr: cur === 'spr' }; })(),
       goCfg: () => this.setState({ edOpen: true }), cfgBtn: { width: 42, height: 42, borderRadius: 21, flex: 'none', display: 'grid', placeItems: 'center', background: '#2f2f2f', color: '#c7c7c7' },
-      ovCards: [['water', 'Vann', '25,0', '°C'], ['savings', 'Spart i dag', '9', 'SEK']].map(([icon, l, v, u]) => ({ icon, l, v, u })),
-      today: [['Pumpet', '9,0', 't', 'chevron_right', '#979797'], ['Omsetninger', '2,48', 'av 3,75', 'arrow_forward', 'rgb(242 181 115)'], ['Spart', '9', 'SEK', 'expand_more', GREEN]].map(([l, v, u, icon, col], i) => ({ l, v, u, icon, iconStyle: { fontSize: 18, color: col, marginLeft: 6 }, row: { display: 'flex', alignItems: 'baseline', gap: 6, padding: '16px 0', borderTop: i ? '1px solid rgba(255,255,255,0.07)' : 'none' } })),
-      modes: [['boost', 'Boost', 'mode_fan'], ['spr', 'Spreder', 'sprinkler'], ['eco', 'Eco', 'eco'], ['bal', 'Balansert', 'balance'], ['bade', 'Badeklar', 'star']].map(([k, l, icon]) => ({ l, icon, go: () => this.setState({ mode: k }), style: { flex: 'none', width: 90, height: 84, borderRadius: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 13, fontWeight: 500, background: s.mode === k ? PINK : '#2f2f2f', color: s.mode === k ? '#2a1720' : '#fafafa' } })),
-      flags: [['auto', 'smart_toy', 'Automatikk'], ['price', 'price_change', 'Prisstyring'], ['prio', 'heat', 'Varmeprioritet'], ['klor', 'pill', 'Klor']].map(([k, icon, l]) => { const on = k === 'klor' ? false : !!s.flags[k]; return { icon, l, sub: k === 'klor' ? '1 d siden' : on ? 'På' : 'Av', go: () => k !== 'klor' ? this.setState({ flags: { ...s.flags, [k]: !on } }) : this.setState({ tab: 'klor' }),
+      ovCards: (L ? L.ovCards : [['water', 'Vann', '25,0', '°C'], ['savings', 'Spart i dag', '9', 'SEK']]).map(([icon, l, v, u]) => ({ icon, l, v, u })),
+      today: [['Pumpet', '9,0', 't', 'chevron_right', '#979797'], ['Omsetninger', '2,48', 'av 3,75', 'arrow_forward', 'rgb(242 181 115)'], ['Spart', '9', 'SEK', 'expand_more', GREEN]].map((r, i) => L ? [...L.today[i], r[3], r[4]] : r).map(([l, v, u, icon, col], i) => ({ l, v, u, icon, iconStyle: { fontSize: 18, color: col, marginLeft: 6 }, row: { display: 'flex', alignItems: 'baseline', gap: 6, padding: '16px 0', borderTop: i ? '1px solid rgba(255,255,255,0.07)' : 'none' } })),
+      modes: [['boost', 'Boost', 'mode_fan'], ['spr', 'Spreder', 'sprinkler'], ['eco', 'Eco', 'eco'], ['bal', 'Balansert', 'balance'], ['bade', 'Badeklar', 'star']].map(([k, l, icon]) => { const on = L ? (k === 'boost' ? L.modus === 'boost' : k === 'spr' ? L.sprOn : L.prof === MODE_PROF[k]) : s.mode === k;
+        const go = !L ? () => this.setState({ mode: k }) : k === 'boost' ? () => this.svc('boost') : k === 'spr' ? () => this.act('spr') : () => L.id.profil ? ha.select(L.id.profil, MODE_PROF[k]) : this.svc('sett_profil', { profil: MODE_PROF[k] });
+        return { l, icon, go, style: { flex: 'none', width: 90, height: 84, borderRadius: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 13, fontWeight: 500, background: on ? PINK : '#2f2f2f', color: on ? '#2a1720' : '#fafafa' } }; }),
+      flags: [['auto', 'smart_toy', 'Automatikk'], ['price', 'price_change', 'Prisstyring'], ['prio', 'heat', 'Varmeprioritet'], ['klor', 'pill', 'Klor'], ...(L && L.niva ? [['niva', 'water_full', 'Vannivå']] : [])].map(([k, icon, l]) => { const on = k === 'klor' || k === 'niva' ? false : !!s.flags[k];
+        if (k === 'niva') return { icon, l, sub: NIVA[L.niva] || L.niva, go: () => L.niva === 'fyller' ? ha.press(L.id.fyllStopp) : ['lav', 'torr', 'stoppet'].includes(L.niva) && L.id.fyll ? ha.press(L.id.fyll) : ha.moreInfo(L.id.niva), style: { display: 'flex', alignItems: 'center', gap: 10, height: 60, padding: '0 12px 0 6px', borderRadius: 30, background: '#2f2f2f', color: '#fafafa' }, iconWrap: { width: 46, height: 46, borderRadius: 23, flex: 'none', display: 'grid', placeItems: 'center', background: ['lav', 'stoppet'].includes(L.niva) ? 'rgb(242 128 115 / 0.35)' : '#3a3a3a' } };
+        return { icon, l, sub: k === 'klor' ? (L ? L.klorSub : '1 d siden') : on ? 'På' : 'Av', go: () => k === 'klor' ? this.setState({ tab: 'klor' }) : L ? ha.toggle(L.id[k]) : this.setState({ flags: { ...s.flags, [k]: !on } }),
         style: { display: 'flex', alignItems: 'center', gap: 10, height: 60, padding: '0 12px 0 6px', borderRadius: 30, background: on ? PINK : '#2f2f2f', color: on ? '#2a1720' : '#fafafa' }, iconWrap: { width: 46, height: 46, borderRadius: 23, flex: 'none', display: 'grid', placeItems: 'center', background: on ? 'rgba(42,23,32,0.12)' : '#3a3a3a' } }; }),
-      heatCards: [['device_thermostat', 'Mål', String(s.target), '°C'], ['bolt', 'Effekt nå', s.heat ? '1' : '0', 'W']].map(([icon, l, v, u]) => ({ icon, l, v, u })),
-      temps: [23, 24, 25, 26, 27].map(t => sq(s.target === t, `${t}°`, () => this.setState({ target: t }))),
-      heatStats: [['18,0°', 'Ute'], ['0,8 kW', 'Varmetap'], ['3821 W', 'Sol inn']].map(([v, l]) => ({ v, l })),
-      heatToggles: [['Nattsenking', s.night ? 'Holder varmen' : 'Senker', 'Gjenoppvarming koster like mye som den sparer', 'night', hs], ['Pooltak', s.cover ? 'Lukket' : 'Åpent', 'sparer 1,7 kW', 'cover', cs], ['Vintermodus', s.winter ? 'På' : 'Av', '', 'winter', ws]].map(([l, v, sub, k, t]) => ({ l, v, sub, go: () => this.setState({ [k]: !s[k] }), track: t.track, knob: t.knob,
+      heatCards: (L ? L.heatCards : [['device_thermostat', 'Mål', String(s.target), '°C'], ['bolt', 'Effekt nå', s.heat ? '1' : '0', 'W']]).map(([icon, l, v, u]) => ({ icon, l, v, u })),
+      temps: [23, 24, 25, 26, 27].map(t => L ? sq(L.onsket === t, `${t}°`, () => ha.setNumber(L.id.onsket, t)) : sq(s.target === t, `${t}°`, () => this.setState({ target: t }))),
+      heatStats: (L ? L.heatStats : [['18,0°', 'Ute'], ['0,8 kW', 'Varmetap'], ['3821 W', 'Sol inn']]).map(([v, l]) => ({ v, l })),
+      heatToggles: [['Nattsenking', L ? L.nattV : s.night ? 'Holder varmen' : 'Senker', L ? L.nattSub : 'Gjenoppvarming koster like mye som den sparer', 'night', hs], ['Pooltak', s.cover ? 'Lukket' : 'Åpent', L ? L.coverSub : 'sparer 1,7 kW', 'cover', cs], ['Vintermodus', s.winter ? 'På' : 'Av', '', 'winter', ws]].map(([l, v, sub, k, t]) => ({ l, v, sub, go: () => !L ? this.setState({ [k]: !s[k] }) : k === 'cover' ? this.act('cover') : ha.toggle(k === 'night' ? L.id.nattSw : L.id.winter), track: t.track, knob: t.knob,
         card: { height: 140, boxSizing: 'border-box', padding: 14, borderRadius: 26, display: 'flex', flexDirection: 'column', background: k === 'winter' ? 'linear-gradient(180deg,#232a4a,#303a60)' : '#2f2f2f', gridColumn: k === 'night' ? 'span 2' : 'auto' } })),
-      lastLog: `${Object.values(s.logs).reduce((a, b) => a + b, 0) > 12 ? 'I dag' : '1 dag siden'} · Rune la i sist`,
-      people: Object.entries(s.logs).map(([name, n]) => ({ name, n, go: () => this.setState({ logs: { ...s.logs, [name]: n + s.qty } }), style: { display: 'flex', alignItems: 'center', gap: 10, height: 60, padding: '0 14px 0 8px', borderRadius: 30, background: '#2f2f2f' } })),
-      logAnon: () => this.setState({ logs: { ...s.logs, Sebastian: s.logs.Sebastian } }),
-      qty: [[1, '1 stk', 'pill'], [2, '2 stk', 'pill'], [3, '3 stk', 'pill'], [0, 'Angre siste', 'undo']].map(([q, l, icon]) => ({ l, icon, go: () => q && this.setState({ qty: q }), style: { height: 38, padding: '0 14px 0 10px', borderRadius: 19, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', flex: 'none', fontSize: 13, fontWeight: 500, background: s.qty === q ? PINK : '#2f2f2f', color: s.qty === q ? '#2a1720' : '#fafafa' } })),
-      calCount: `${logged.length} stk`, wd: ['ma', 'ti', 'on', 'to', 'fr', 'lø', 'sø'],
-      cal: Array.from({ length: 35 }, (_, i) => { const d = i - off + 1, inM = d >= 1 && d <= 30, lg = logged.includes(d), today = d === 26;
-        return { n: inM ? d : '', style: { height: 38, borderRadius: 10, display: 'grid', placeItems: 'center', fontSize: 12, background: lg ? GREEN : 'transparent', color: lg ? '#1f2a24' : '#afafaf', boxShadow: today ? 'inset 0 0 0 1.5px #fafafa' : 'none', fontWeight: lg || today ? 600 : 400 } }; }),
-      klorRows: [['notifications_active', 'Påminnelse', 'Hver 7. dag · nå 6,2 dager fordi vannet er varmt'], ['event_note', 'Klorloggen', 'Velg en kalender under Utstyr'], ['groups', 'Navn i klorloggen', 'Sebastian, Cybele, Rune']].map(([icon, l, sub]) => ({ icon, l, sub })),
-      sprState: s.spr ? 'Sprer' : 'Står', dur: s.dur, sprIcon: s.spr ? 'stop' : 'play_arrow', sprBtn: s.spr ? 'Stopp' : `Start i ${s.dur} min`, sprStart: () => this.setState({ spr: !s.spr }),
-      durs: [5, 10, 15, 20, 30].map(d => sq(s.dur === d, String(d), () => this.setState({ dur: d }))),
-      sprRows: [['schedule', 'Start hver', 'Mellom 10 og 20', '4 t'], ['hourglass_top', 'Maks per døgn', 'Spreder stopper når tiden er brukt', '60 min'], ['timer', 'Varighet', 'Hvor lenge den går hver gang', `${s.dur} min`], ['ac_unit', 'Frostvakt', 'Starter ikke når det er under 2 °C ute', 'På']].map(([icon, l, sub, v]) => ({ icon, l, sub, v })),
+      lastLog: L ? L.lastLog : `${Object.values(s.logs).reduce((a, b) => a + b, 0) > 12 ? 'I dag' : '1 dag siden'} · Rune la i sist`,
+      people: (L ? L.names.map(name => [name, L.perP[name] || 0]) : Object.entries(s.logs)).map(([name, n]) => ({ name, n, go: () => L ? this.svc('logg_klortablett', { antall: s.qty, hvem: name }) : this.setState({ logs: { ...s.logs, [name]: n + s.qty } }), style: { display: 'flex', alignItems: 'center', gap: 10, height: 60, padding: '0 14px 0 8px', borderRadius: 30, background: '#2f2f2f' } })),
+      logAnon: () => L ? this.svc('logg_klortablett', { antall: s.qty }) : this.setState({ logs: { ...s.logs, Sebastian: s.logs.Sebastian } }),
+      qty: [[1, '1 stk', 'pill'], [2, '2 stk', 'pill'], [3, '3 stk', 'pill'], [0, 'Angre siste', 'undo']].map(([q, l, icon]) => ({ l, icon, go: () => q ? this.setState({ qty: q }) : L && this.svc('angre_klortablett'), style: { height: 38, padding: '0 14px 0 10px', borderRadius: 19, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', flex: 'none', fontSize: 13, fontWeight: 500, background: s.qty === q ? PINK : '#2f2f2f', color: s.qty === q ? '#2a1720' : '#fafafa' } })),
+      calCount: L ? L.calCount : `${logged.length} stk`, wd: ['ma', 'ti', 'on', 'to', 'fr', 'lø', 'sø'],
+      cal: (() => { if (!L) return Array.from({ length: 35 }, (_, i) => { const d = i - off + 1, inM = d >= 1 && d <= 30, lg = logged.includes(d), today = d === 26;
+        return { n: inM ? d : '', style: { height: 38, borderRadius: 10, display: 'grid', placeItems: 'center', fontSize: 12, background: lg ? GREEN : 'transparent', color: lg ? '#1f2a24' : '#afafaf', boxShadow: today ? 'inset 0 0 0 1.5px #fafafa' : 'none', fontWeight: lg || today ? 600 : 400 } }; });
+        const o = (new Date(L.calY, L.calM, 1).getDay() + 6) % 7, nd = new Date(L.calY, L.calM + 1, 0).getDate(), td = new Date().getDate();
+        return Array.from({ length: Math.ceil((o + nd) / 7) * 7 }, (_, i) => { const d = i - o + 1, inM = d >= 1 && d <= nd, lg = inM && !!L.perDay[d], today = d === td, due = inM && d === L.dueDay && !lg;
+          return { n: inM ? d : '', style: { height: 38, borderRadius: 10, display: 'grid', placeItems: 'center', fontSize: 12, background: lg ? GREEN : 'transparent', color: lg ? '#1f2a24' : due ? GREEN : '#afafaf', boxShadow: today ? 'inset 0 0 0 1.5px #fafafa' : due ? 'inset 0 0 0 1.5px ' + GREEN : 'none', fontWeight: lg || today || due ? 600 : 400 } }; }); })(),
+      klorRows: (L ? L.klorRows : [['notifications_active', 'Påminnelse', 'Hver 7. dag · nå 6,2 dager fordi vannet er varmt'], ['event_note', 'Klorloggen', 'Velg en kalender under Utstyr'], ['groups', 'Navn i klorloggen', 'Sebastian, Cybele, Rune']]).map(([icon, l, sub, ent]) => ({ icon, l, sub, go: () => ent && ha.moreInfo(ent) })),
+      sprState: L ? L.sprState : s.spr ? 'Sprer' : 'Står', sprSub: L ? L.sprSub : `Klar for ${s.dur} min`, sprIcon: s.spr ? 'stop' : 'play_arrow', sprBtn: s.spr ? 'Stopp' : `Start i ${L ? L.dur : s.dur} min`, sprStart: () => L ? this.act('spr') : this.setState({ spr: !s.spr }),
+      durs: [5, 10, 15, 20, 30].map(d => L ? sq(L.dur === d, String(d), () => ha.setNumber(L.id.sprDur, d)) : sq(s.dur === d, String(d), () => this.setState({ dur: d }))),
+      sprRows: (L ? L.sprRows : [['schedule', 'Start hver', 'Mellom 10 og 20', '4 t'], ['hourglass_top', 'Maks per døgn', 'Spreder stopper når tiden er brukt', '60 min'], ['timer', 'Varighet', 'Hvor lenge den går hver gang', `${s.dur} min`], ['ac_unit', 'Frostvakt', 'Starter ikke når det er under 2 °C ute', 'På']]).map(([icon, l, sub, v, ent]) => ({ icon, l, sub, v, go: () => ent && (l === 'Frostvakt' ? ha.toggle(ent) : ha.moreInfo(ent)) })),
       edOpen: s.edOpen,
       ed: (() => { const P = this.pc(), A = s.edAcc || {}, sq = on => ({ width: 32, height: 32, borderRadius: 16, flex: 'none', display: 'grid', placeItems: 'center', background: '#232323', color: on ? '#fafafa' : '#545454' });
         const lst = (key, hideKey, map) => { const L = P[key], H = P[hideKey]; return L.map((k, i) => { const mvI = d => { const n = [...L], j = i + d; if (j < 0 || j >= n.length) return; [n[i], n[j]] = [n[j], n[i]]; this.setPc({ [key]: n }); }, hid = !!H[k]; const [icon, label] = map(k);
@@ -280,10 +486,14 @@ class Component extends DCLogic {
         const swT = on => ({ track: { position: 'relative', width: 44, height: 26, borderRadius: 13, flex: 'none', background: on ? GREEN : '#545454', transition: 'background .2s', border: 0, padding: 0, cursor: 'pointer' }, knob: { position: 'absolute', top: 3, left: on ? 21 : 3, width: 20, height: 20, borderRadius: 10, background: '#fafafa', transition: 'left .2s' } });
         const V = P.vals;
         return { close: () => this.setState({ edOpen: false }), reset: () => { try { localStorage.removeItem('basseng-v3-cfg'); } catch (e) {} this._pc = null; this.setState({ pcS: null }); },
-          acc: [acc('ent', 'link', 'Entiteter', Object.keys(P.ents).length + ' overstyrt', { isEnt: true, rows: Object.entries(ENTS).map(([k, [label, icon, def, opts]]) => ({ label, icon, v: P.ents[k] || def, ph: def, opts, set: e => this.setPc({ ents: { ...P.ents, [k]: e.target.value.trim() } }) })) }),
+          acc: [acc('ent', 'link', 'Entiteter', Object.keys(P.ents).length + ' overstyrt', { isEnt: true, rows: Object.entries(ENTS).map(([k, [label, icon, def, opts]]) => ({ label, icon, v: P.ents[k] || (L && L.ents[k]) || def, ph: def, opts, set: e => this.setPc({ ents: { ...P.ents, [k]: e.target.value.trim() } }) })) }),
             acc('ctl', 'toggle_on', 'Kontroller', P.ctl.filter(k => !P.ctlHide[k]).length + ' vises', { isList: true, items: lst('ctl', 'ctlHide', k => [CTL[k][0], CTL[k][1]]) }),
             acc('tabs', 'tab', 'Faner', P.tabs.filter(k => !P.tabHide[k]).length + ' av ' + P.tabs.length, { isList: true, items: lst('tabs', 'tabHide', k => ['tab', TABS[k]]) }),
-            acc('styr', 'tune', 'Styring og verdier', 'pumpe, varme, klor', { isRows: true, groups: CFG.map(([icon, title, rows]) => ({ icon, title, rows: rows.map(([ic, l, sub, v]) => { const isSw = typeof v === 'boolean', cur = V[l] ?? (isSw ? !!s.cfg[l] : v), t = swT(!!cur);
+            acc('styr', 'tune', 'Styring og verdier', 'pumpe, varme, klor', { isRows: true, groups: CFG.map(([icon, title, rows]) => ({ icon, title, rows: rows.map(([ic, l, sub, v]) => { const isSw = typeof v === 'boolean', m = CFG_ENT[l], eid = L && m && L.cfgIds[l];
+              if (eid) { const on = ha.on(eid, false), t = swT(on), dr = (s.cfgDraft || {})[l], raw = m[0] === 'select' ? ha.val(eid, '') : ha.num(eid, null);
+                return { l, sub, isSw, isVal: !isSw, v: isSw ? '' : dr ?? (raw == null || raw === '' ? '–' : m[2](raw)), track: t.track, knob: t.knob, go: () => ha.toggle(eid),
+                  set: e => { const val = e.target.value; this.setState({ cfgDraft: { ...(this.state.cfgDraft || {}), [l]: val } }); clearTimeout(this.cfgT); this.cfgT = setTimeout(() => { const D = { ...(this.state.cfgDraft || {}) }; Object.keys(D).forEach(k => this.setCfg(k, D[k])); this.setState({ cfgDraft: {} }); }, 1200); } }; }
+              const cur = V[l] ?? (isSw ? !!s.cfg[l] : v), t = swT(!!cur);
               return { l, sub, isSw, isVal: !isSw, v: isSw ? '' : cur, set: e => this.setPc({ vals: { ...V, [l]: e.target.value } }), go: () => this.setPc({ vals: { ...V, [l]: !cur } }), track: t.track, knob: t.knob }; }) })) }),
             acc('anim', 'animation', 'Animasjon', P.anim ? 'på' : 'av', { isRows: true, groups: [{ icon: 'movie', title: 'Bildet', rows: [['anim', 'Animasjoner', 'Bølger, bobler, vifte og varme'], ['chips', 'Statusikoner', 'Pumpe, varme, tak og lys i bildet']].map(([k, l, sub]) => { const t = swT(!!P[k]); return { l, sub, isSw: true, isVal: false, v: '', set: () => {}, go: () => this.setPc({ [k]: !P[k] }), track: t.track, knob: t.knob }; }) }] })] }; })(),
     };
