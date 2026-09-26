@@ -92,6 +92,7 @@ class KiClaudeCard extends HTMLElement {
 .sc-host{display:contents}
 .ki-claude-root>.sc-host{display:block}
 ${this._config.max_width ? `.ki-claude-root>.sc-host>div{max-width:${this._config.max_width}}` : ''}
+${this._config.popup && !this._config.popup_header ? `:host{background:transparent!important}.ki-claude-root header{display:none!important}.ki-claude-root>.sc-host>div{background:transparent!important;min-height:0!important;padding-top:0!important}` : ''}
 `;
     this._root.appendChild(base);
     const mountEl = document.createElement('div');
@@ -100,14 +101,14 @@ ${this._config.max_width ? `.ki-claude-root>.sc-host>div{max-width:${this._confi
     installMoreInfo(this._root, this._ha);
     installGlassDrag(this._root);
     const popup = this._config.popup;
-    const rt = createRuntime({ root: this._root, screens: SCREENS, ha: this._ha, externals: makeExternals(this._ha), rootName: popup ? '_Popup' : screen });
+    const rt = createRuntime({ root: this._root, screens: SCREENS, ha: this._ha, externals: makeExternals(this._ha), rootName: popup && this._config.popup_header ? '_Popup' : screen });
     const Root = rt.getDC(screen);
     const props = { ...(this._config.props || {}) };
     if (this._config.layout) props.layout = this._config.layout;
     if (screen === 'Hjem v2' && !props.layout) props.layout = 'auto';
     this._reactRoot = createRoot(mountEl);
     const el = React.createElement(Root, props);
-    this._reactRoot.render(popup ? React.createElement(rt.getDC('_Popup'), { ...props, popup, body: el }) : el);
+    this._reactRoot.render(popup && this._config.popup_header ? React.createElement(rt.getDC('_Popup'), { ...props, popup, body: el }) : el);
   }
 }
 
@@ -149,21 +150,37 @@ class KiClaudeCardEditor extends HTMLElement {
 // Hjem + iPad som panel-visninger. Med Bubble Card installert (eller popups: bubble) får hver
 // popup i Hjem sin egen Bubble Card-pop-up (#ki-<nøkkel>), også ett per rom og per person.
 const whenDefined = (tag, ms) => Promise.race([customElements.whenDefined(tag).then(() => true), new Promise(r => setTimeout(() => r(false), ms))]);
+// Bubble Card-malen følger brukerens eget pop-up-oppsett (navn + ikon i Bubble-toppen, blur, stilene under).
+export const POPUP_META = { strom: ['Strøm', 'mdi:flash'], sik: ['Sikkerhet', 'mdi:shield-home'], vann: ['Vanning', 'mdi:sprinkler-variant'], vac: ['Støvsuger', 'mdi:robot-vacuum'], media: ['Media', 'mdi:music-note'], car: ['Bil', 'mdi:car-electric'], server: ['Server', 'mdi:server'], settings: ['Innstillinger', 'mdi:tune'], cal: ['Kalender', 'mdi:calendar-month'], vaer: ['Vær', 'mdi:weather-partly-cloudy'], lys: ['Lys', 'mdi:lightbulb'], cam: ['Kamera', 'mdi:cctv'], klima: ['Klima', 'mdi:thermostat'], trash: ['Søppel', 'mdi:trash-can'], todo: ['Gjøremål', 'mdi:checkbox-marked-outline'], plants: ['Planter', 'mdi:flower'], sleep: ['Søvn', 'mdi:sleep'], bill: ['Strømregning', 'mdi:receipt-text'], pool: ['Basseng', 'mdi:pool'], mower: ['Gressklipper', 'mdi:robot-mower'], nibe: ['Varmepumpe', 'mdi:heat-pump'], printer: ['3D-printer', 'mdi:printer-3d'], fuel: ['Bensinstasjon', 'mdi:gas-station'], ruter: ['Ruter', 'mdi:tram'], pcs: ['Datamaskiner', 'mdi:desktop-classic'], helse: ['Helse', 'mdi:heart-pulse'], norgespris: ['Norgespris', 'mdi:hand-heart'], elset: ['Strøminnstillinger', 'mdi:flash-alert'], jul: ['Jul', 'mdi:pine-tree'], doors: ['Dører og porter', 'mdi:lock'] };
+const BUBBLE_STYLES = `.bubble-pop-up-container {
+  --vertical-stack-card-gap: 0px!important;
+} #header-container > div > div {
+  background: var(--gray200)!important;
+}
+#header-container > button {background: none;}
+.icon-container {background-color:var(--blue)!important;}
+.icon-container > ha-icon {color:var(--black)!important;opacity:1!important}
+.bubble-icon {
+  --mdc-icon-size: 24px !important;
+}`;
 export function bubblePopup(key, screen, props, opts = {}) {
+  const [name, icon] = opts.meta || POPUP_META[key] || [key, 'mdi:card'];
   // Bubble Card ≥ 3.2 «standalone»-format: innholdet ligger i pop-upens egen `cards`.
-  return { type: 'custom:bubble-card', card_type: 'pop-up', hash: '#ki-' + key, show_header: false, bg_color: '#232323', bg_opacity: '100', shadow_opacity: '0', width_desktop: '440px', close_by_clicking_outside: true, ...(opts.bubble || {}),
+  return { type: 'custom:bubble-card', card_type: 'pop-up', name, icon, state: null, hash: '#ki-' + key, is_sidebar_hidden: true,
+    margin_top_mobile: '50px', margin_top_desktop: '50px', card_layout: 'large', styles: BUBBLE_STYLES, bg_color: '#232323', bg_blur: '20', shadow_opacity: '20', bg_opacity: '88',
+    button_type: 'name', sub_button: { main: [], bottom: [] }, slider_fill_orientation: 'left', slider_value_position: 'right', ...(opts.bubble || {}),
     cards: [{ type: 'custom:ki-claude-card', popup: key, ...(screen ? { screen } : {}), ...(props ? { props } : {}), ...(opts.card || {}) }] };
 }
 class KiClaudeStrategy extends HTMLElement {
   static async generate(config, hass) {
-    const { type, popups, ...rest } = config || {};
+    const { type, popups, bubble: bubbleOpts, ...rest } = config || {};
     const bubble = popups === 'bubble' || (popups !== 'intern' && await whenDefined('bubble-card', 4000));
     const shared = { ...(rest.entities ? { entities: rest.entities } : {}), ...(rest.images ? { images: rest.images } : {}) };
     const cards = [{ type: 'custom:ki-claude-card', ...rest, ...(bubble ? { popups: 'bubble' } : {}) }];
     if (bubble) {
-      Object.entries(POPUPS).forEach(([k, scr]) => cards.push(bubblePopup(k, scr, k === 'sik' ? { embedded: true } : k === 'doors' && rest.site ? { site: rest.site } : null, { card: shared })));
-      Object.values((hass && hass.areas) || {}).forEach(a => cards.push(bubblePopup('rom-' + a.area_id, 'Rom v4', { roomId: a.area_id, name: a.name }, { card: shared })));
-      Object.keys((hass && hass.states) || {}).filter(id => id.startsWith('person.')).forEach(id => cards.push(bubblePopup('person-' + id.slice(7), 'Person', { personId: id.slice(7) }, { card: shared })));
+      Object.entries(POPUPS).forEach(([k, scr]) => cards.push(bubblePopup(k, scr, k === 'sik' ? { embedded: true } : k === 'doors' && rest.site ? { site: rest.site } : null, { card: shared, bubble: bubbleOpts })));
+      Object.values((hass && hass.areas) || {}).forEach(a => cards.push(bubblePopup('rom-' + a.area_id, 'Rom v4', { roomId: a.area_id, name: a.name }, { card: shared, bubble: bubbleOpts, meta: [a.name, a.icon || 'mdi:sofa'] })));
+      Object.keys((hass && hass.states) || {}).filter(id => id.startsWith('person.')).forEach(id => cards.push(bubblePopup('person-' + id.slice(7), 'Person', { personId: id.slice(7) }, { card: shared, bubble: bubbleOpts, meta: [(hass.states[id].attributes.friendly_name || id.slice(7)), 'mdi:account'] })));
     }
     return { title: 'KI Claude', views: [
       { title: 'Hjem', path: 'hjem', icon: 'mdi:home', type: 'panel', cards: [bubble ? { type: 'vertical-stack', cards } : cards[0]] },
