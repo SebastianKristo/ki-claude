@@ -53,6 +53,49 @@ strategy:
 
 (Hjem og iPad blir egne panel-visninger. Alle kortvalg under kan også settes her.)
 
+### Popups med Bubble Card
+
+Alle popups i Hjem (Vanning, Strøm, Sikkerhet, Lys, rom, personer …) åpnes som
+[Bubble Card](https://github.com/Clooos/Bubble-Card)-pop-ups (≥ 3.2) når Bubble Card er installert.
+Med strategien over skjer dette automatisk: den lager én pop-up per skjerm (`#ki-<nøkkel>`),
+én per HA-område (`#ki-rom-<area_id>`) og én per person (`#ki-person-<id>`). Toppen i
+pop-upen er designets egen popup-topp. Uten Bubble Card brukes designets innebygde ark
+(`popups: intern` tvinger det).
+
+Manuelt oppsett – Hjem-kortet får `popups: bubble`, og hver pop-up er et Bubble Card:
+
+```yaml
+type: vertical-stack
+cards:
+  - type: custom:ki-claude-card
+    popups: bubble
+  - type: custom:bubble-card
+    card_type: pop-up
+    hash: '#ki-vann'
+    show_header: false
+    bg_color: '#232323'
+    bg_opacity: '100'
+    width_desktop: 440px
+    cards:
+      - type: custom:ki-claude-card
+        popup: vann          # skjermen velges ut fra nøkkelen
+  - type: custom:bubble-card
+    card_type: pop-up
+    hash: '#ki-rom-stue'
+    show_header: false
+    bg_color: '#232323'
+    bg_opacity: '100'
+    cards:
+      - type: custom:ki-claude-card
+        popup: rom-stue
+        props: { roomId: stue }
+```
+
+Nøkler: `strom`, `sik`, `vann`, `vac`, `media`, `car`, `server`, `settings`, `cal`, `vaer`, `lys`,
+`cam`, `klima`, `trash`, `todo`, `plants`, `sleep`, `bill`, `pool`, `mower`, `nibe`, `printer`,
+`fuel`, `ruter`, `pcs`, `helse`, `norgespris`, `elset`, `jul`, `doors`, `rom-<area_id>`,
+`person-<id>`. Pop-up-kortet monteres først når pop-upen åpnes.
+
 `layout: auto | mobil | stor` styrer mobil- og nettbrett-oppsettet (standard `auto`).
 
 iPad-dashboardet:

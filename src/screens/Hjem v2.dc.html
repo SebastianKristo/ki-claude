@@ -1362,7 +1362,7 @@ class Component extends DCLogic {
     const [icon, title, sub] = M[s.sheetFile] || ['home', '', ''];
     return { icon, title, sub, roomIcon: { width: 44, height: 44, borderRadius: 22, flex: 'none', display: 'grid', placeItems: 'center', background: r.col || '#fafafa', color: '#111' } };
   }
-  openSheet(file) { if (file !== this.state.sheetFile) document.querySelectorAll('[data-sheet-scroll]').forEach(el => el.scrollTop = 0); this.setState({ sheetFile: file, menu: false, serverMenu: false }); setTimeout(() => this.setState({ sheetOpen: true }), 30); }
+  openSheet(file) { if (ha.bubble) { this.setState({ menu: false, serverMenu: false }); if (file === 'rom') { const r = (this.state.rooms || []).find(x => x.id === this.state.sheetRoomId) || {}, L = (this.lay().look || {})[r.id] || {}; try { sessionStorage.setItem('ki-claude-rom', JSON.stringify({ id: r.id, name: r.name, icon: L.icon || r.icon, col: L.col || r.col, temp: r.temp, hum: r.hum })); } catch (e) {} } return ha.openPopup(file === 'rom' ? 'rom-' + this.state.sheetRoomId : file === 'person' ? 'person-' + (this.state.personId || ME()) : file); } if (file !== this.state.sheetFile) document.querySelectorAll('[data-sheet-scroll]').forEach(el => el.scrollTop = 0); this.setState({ sheetFile: file, menu: false, serverMenu: false }); setTimeout(() => this.setState({ sheetOpen: true }), 30); }
   dockVals() {
     const s = this.state, tab = s.tab ?? 0, compact = !!s.compact, moving = !!s.moving;
     const NC = this.navCfg(), barIds = NC.bar.filter(id => !NC.hidden[id]);
