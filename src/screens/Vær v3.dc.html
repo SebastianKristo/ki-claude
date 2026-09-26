@@ -138,19 +138,19 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
   <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px">
     <div style="{{ tord.sky }}"><section style="display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:28px;background:#2f2f2f;min-height:150px;box-sizing:border-box">
       <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#979797"><span class="ms" style="font-size:16px">cloud</span>Skydekke</span>
-      <span style="font-size:40px;font-weight:300;letter-spacing:-0.03em;line-height:1">18 %</span>
-      <span style="font-size:12px;color:#c7c7c7">Lettskyet</span>
-      <div style="position:relative;height:6px;border-radius:3px;background:#3a3a3a;margin-top:auto"><span style="position:absolute;left:0;top:0;bottom:0;width:18%;border-radius:3px;background:#c7c7c7"></span></div>
+      <span style="font-size:40px;font-weight:300;letter-spacing:-0.03em;line-height:1">{{ tile.sky }}</span>
+      <span style="font-size:12px;color:#c7c7c7">{{ tile.skyText }}</span>
+      <div style="position:relative;height:6px;border-radius:3px;background:#3a3a3a;margin-top:auto"><span style="{{ tile.skyBar }}"></span></div>
     </section></div>
     <div style="{{ tord.wind }}"><section style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;aspect-ratio:1;border-radius:50%;background:#2f2f2f;box-shadow:inset 0 0 0 10px #2a2a2a">
       <span style="{{ wind.arrow }}"><span class="ms" style="font-size:22px;color:rgb(115 185 242);font-variation-settings:'FILL' 1">navigation</span></span>
       <span style="font-size:12px;color:#979797">Vind</span>
-      <span style="font-size:34px;font-weight:300;letter-spacing:-0.03em;line-height:1">7,8</span>
-      <span style="font-size:12px;color:#c7c7c7">m/s · SV</span>
+      <span style="font-size:34px;font-weight:300;letter-spacing:-0.03em;line-height:1">{{ tile.wind }}</span>
+      <span style="font-size:12px;color:#c7c7c7">{{ tile.windDir }}</span>
     </section></div>
     <div style="{{ tord.gust }}"><section style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;aspect-ratio:1;border-radius:50%;background:rgb(173 153 230 / 0.16);box-shadow:inset 0 0 0 1px rgb(173 153 230 / 0.35)">
       <span style="display:flex;align-items:center;gap:4px;font-size:12px;color:#c7c7c7"><span class="ms" style="font-size:16px;color:rgb(173 153 230)">storm</span>Vindkast</span>
-      <span style="font-size:36px;font-weight:300;letter-spacing:-0.03em;line-height:1">11,4</span>
+      <span style="font-size:36px;font-weight:300;letter-spacing:-0.03em;line-height:1">{{ tile.gust }}</span>
       <span style="font-size:12px;color:#c7c7c7">m/s</span>
     </section></div>
     <div style="{{ tord.sun }}"><section style="display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:28px;background:#2f2f2f">
@@ -160,24 +160,24 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
         <span style="{{ sun.dot }}"></span>
         <span style="position:absolute;left:0;right:0;bottom:0;height:1px;background:#545454"></span>
       </div>
-      <span style="display:flex;justify-content:space-between;font-size:12px;color:#c7c7c7"><span>↑ 06:30</span><span>↓ 19:44</span></span>
-      <span style="font-size:11px;color:#7f7f7f">Solhøyde 18°</span>
+      <span style="display:flex;justify-content:space-between;font-size:12px;color:#c7c7c7"><span>↑ {{ tile.rise }}</span><span>↓ {{ tile.set }}</span></span>
+      <span style="font-size:11px;color:#7f7f7f">{{ tile.elev }}</span>
     </section></div>
     <div style="{{ tord.hum }}"><section style="position:relative;overflow:hidden;display:flex;flex-direction:column;gap:6px;padding:16px;border-radius:28px;background:#2f2f2f;min-height:150px;box-sizing:border-box">
       <span style="position:absolute;left:0;right:0;bottom:0;height:82%;background:linear-gradient(180deg, rgb(115 185 242 / 0.22), rgb(115 185 242 / 0.08))"></span>
       <span style="position:relative;display:flex;align-items:center;gap:6px;font-size:12px;color:#c7c7c7"><span class="ms" style="font-size:16px;color:rgb(115 185 242);font-variation-settings:'FILL' 1">humidity_percentage</span>Fukt</span>
-      <span style="position:relative;font-size:40px;font-weight:300;letter-spacing:-0.03em;line-height:1">82 %</span>
-      <span style="position:relative;font-size:12px;color:#c7c7c7;margin-top:auto">Duggpunkt 11,6°</span>
+      <span style="position:relative;font-size:40px;font-weight:300;letter-spacing:-0.03em;line-height:1">{{ tile.hum }}</span>
+      <span style="position:relative;font-size:12px;color:#c7c7c7;margin-top:auto">{{ tile.dew }}</span>
     </section></div>
     <div style="{{ tord.uv }}"><section style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;aspect-ratio:1;border-radius:36%;background:#2f2f2f;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.06)">
       <span style="display:flex;align-items:center;gap:4px;font-size:12px;color:#979797"><span class="ms" style="font-size:16px;color:rgb(242 210 111);font-variation-settings:'FILL' 1">light_mode</span>UV-indeks</span>
-      <span style="font-size:40px;font-weight:300;line-height:1">0,8</span>
-      <span style="font-size:12px;font-weight:600;color:rgb(102 209 158)">Svært lav</span>
+      <span style="font-size:40px;font-weight:300;line-height:1">{{ tile.uv }}</span>
+      <span style="{{ tile.uvStyle }}">{{ tile.uvText }}</span>
     </section></div>
     <div style="{{ tord.press }}"><section style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;aspect-ratio:1;border-radius:50%;background:#2f2f2f">
       <span style="{{ pressRing }}"></span>
       <span style="display:flex;align-items:center;gap:4px;font-size:12px;color:#979797"><span class="ms" style="font-size:16px">compress</span>Trykk</span>
-      <span style="font-size:32px;font-weight:300;letter-spacing:-0.03em;line-height:1">1008</span>
+      <span style="font-size:32px;font-weight:300;letter-spacing:-0.03em;line-height:1">{{ tile.press }}</span>
       <span style="font-size:12px;color:#c7c7c7">hPa</span>
     </section></div>
     <div style="{{ tord.rain }}"><section style="display:flex;flex-direction:column;gap:6px;padding:16px;border-radius:28px;background:#2f2f2f">
@@ -189,7 +189,8 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
   </div>
   <div style="{{ ord.moon }}">
   <section style="display:flex;align-items:center;gap:16px;padding:16px 18px;border-radius:28px;background:#2f2f2f">
-    <div style="position:relative;width:56px;height:56px;flex:none;border-radius:50%;background:#e9e4d6;overflow:hidden;box-shadow:0 0 30px rgba(233,228,214,0.18)"><div style="position:absolute;top:0;bottom:0;left:0;width:50%;background:#16161a;box-shadow:6px 0 14px rgba(0,0,0,0.5)"></div></div>
+    <div style="position:relative;width:56px;height:56px;flex:none;border-radius:50%;background:#e9e4d6;overflow:hidden;box-shadow:0 0 30px rgba(233,228,214,0.18)"><div style="{{ moonShade }}"></div>
+</div>
     <span style="display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;color:#979797">Månefase</span><span style="font-size:16px;font-weight:500">{{ moonName }}</span></span>
   </section>
   </div>
@@ -257,12 +258,81 @@ const heroFxOf = k => { const P = [], rnd = i => ((i * 37) % 100);
   return P; };
 const VSECS = [['hero', 'Toppkort', 'view_carousel'], ['alerts', 'Farevarsler', 'warning'], ['hours', 'Time for time', 'schedule'], ['days', 'Dagskort', 'calendar_month'], ['tiles', 'Detaljkort', 'grid_view'], ['moon', 'Månefase', 'bedtime']];
 const VTILES = [['sky', 'Skydekke', 'cloud'], ['wind', 'Vind', 'air'], ['gust', 'Vindkast', 'storm'], ['sun', 'Sol opp og ned', 'wb_twilight'], ['hum', 'Fukt', 'humidity_percentage'], ['uv', 'UV-indeks', 'light_mode'], ['press', 'Trykk', 'compress'], ['rain', 'Nedbør', 'water_drop']];
+// ─────────── Live (Home Assistant weather.* + sun/moon/alerts/pollen) ───────────
+const HA_WX = { sunny: 'sun', 'clear-night': 'sun', partlycloudy: 'part', cloudy: 'cloud', rainy: 'rain', pouring: 'rain', snowy: 'snow', 'snowy-rainy': 'sleet', hail: 'sleet', fog: 'fog', lightning: 'thunder', 'lightning-rainy': 'thunder', windy: 'wind', 'windy-variant': 'wind', exceptional: 'thunder' };
+const COND_NB = { sunny: 'Sol', 'clear-night': 'Klart', partlycloudy: 'Delvis skyet', cloudy: 'Overskyet', rainy: 'Regn', pouring: 'Kraftig regn', snowy: 'Snø', 'snowy-rainy': 'Sludd', hail: 'Hagl', fog: 'Tåke', lightning: 'Torden', 'lightning-rainy': 'Tordenbyger', windy: 'Kraftig vind', 'windy-variant': 'Vind og skyer', exceptional: 'Ekstremvær' };
+const icKey = (cond, night) => { const k = HA_WX[cond] || 'cloud'; return night ? (k === 'sun' ? 'moon' : k === 'part' ? 'partn' : k) : k === 'wind' ? 'cloud' : k; };
+const DIRS = ['N', 'NØ', 'Ø', 'SØ', 'S', 'SV', 'V', 'NV'];
+const dirOf = b => Number.isFinite(b) ? DIRS[Math.round(((b % 360) + 360) % 360 / 45) % 8] : '';
+const hm2 = d => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+const n1 = v => Number.isFinite(v) ? f1(v) : '–';
+const MOON_NB = { new_moon: ['Nymåne', { left: 0, width: '100%' }], waxing_crescent: ['Voksende månesigd', { left: 0, width: '75%' }], first_quarter: ['Første kvarter', { left: 0, width: '50%' }], waxing_gibbous: ['Voksende måne', { left: 0, width: '25%' }], full_moon: ['Fullmåne', { left: 0, width: '0%' }], waning_gibbous: ['Minkende måne', { right: 0, width: '25%' }], last_quarter: ['Siste kvarter', { right: 0, width: '50%' }], waning_crescent: ['Minkende månesigd', { right: 0, width: '75%' }] };
+const UVL = v => v < 3 ? (v < 1 ? ['Svært lav', 'rgb(102 209 158)'] : ['Lav', 'rgb(102 209 158)']) : v < 6 ? ['Moderat', 'rgb(242 210 111)'] : v < 8 ? ['Høy', 'rgb(242 181 115)'] : ['Svært høy', 'rgb(242 128 115)'];
+const skyText = c => c < 13 ? 'Klart' : c < 38 ? 'Lettskyet' : c < 63 ? 'Delvis skyet' : c < 88 ? 'Skyet' : 'Overskyet';
+const toMs = (v, u) => !Number.isFinite(v) ? NaN : u === 'km/h' ? v / 3.6 : u === 'mph' ? v * 0.44704 : u === 'kn' ? v * 0.514444 : v;
+function loadLive() {
+  const id = ha.first('vaer', ha.config.weather, 'weather.forecast_home', 'weather.home') || ha.domain('weather')[0];
+  const st = id && ha.state(id);
+  if (!st || st.state === 'unavailable') return null;
+  const A = st.attributes || {}, wu = A.wind_speed_unit || 'm/s';
+  const sunId = ha.first('sol', 'sun.sun');
+  const elev = ha.attr(sunId, 'elevation', NaN);
+  const night = sunId ? ha.val(sunId) === 'below_horizon' : st.state === 'clear-night';
+  const daily = ha.forecast(id, 'daily') || [], hourly = ha.forecast(id, 'hourly') || [];
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const d0 = daily.find(f => new Date(f.datetime) >= today && new Date(f.datetime) < new Date(today.getTime() + 864e5)) || daily[0];
+  const rise = sunId ? new Date(ha.attr(sunId, 'next_rising', '')) : null, set = sunId ? new Date(ha.attr(sunId, 'next_setting', '')) : null;
+  const moonId = ha.first('maane', 'sensor.moon_phase', 'sensor.moon');
+  const uvId = ha.first('uv', 'sensor.uv_index');
+  const uv = ha.num(uvId, Number.isFinite(A.uv_index) ? A.uv_index : NaN);
+  return { id, st, A, cond: st.state, night, key: HA_WX[st.state] || 'cloud',
+    temp: A.temperature, hi: d0?.temperature, lo: d0?.templow,
+    wind: toMs(A.wind_speed, wu), gust: toMs(A.wind_gust_speed, wu), bearing: A.wind_bearing, hum: A.humidity, dew: A.dew_point, press: A.pressure, cloud: A.cloud_coverage, uv, elev,
+    rise: rise && !isNaN(rise) ? rise : null, set: set && !isNaN(set) ? set : null,
+    moon: moonId ? ha.val(moonId, '') : '',
+    hourly: hourly.filter(h => new Date(h.datetime) > new Date(Date.now() - 3600e3)).slice(0, 24), daily: daily.filter(f => new Date(f.datetime) >= new Date(today.getTime() + 864e5 - 3600e3)).slice(0, 7), windU: wu };
+}
+// Farevarsler: alias `farevarsel` (eller config `alerts: [ids]`), ellers sensorer fra met_alerts / norway_alerts / MeteoAlarm.
+const LVL = { green: 1, yellow: 2, orange: 3, red: 4, black: 5 };
+const TYPE_RE = [[/wind|vind|storm|gale|kuling/i, 'wind'], [/snow|snø/i, 'snow'], [/thunder|lightning|torden/i, 'thunder'], [/ice|is|glatt|polar/i, 'ice'], [/forest|skogbrann|fire/i, 'forestfire'], [/avalanche|snøskred/i, 'avalanche'], [/landslide|jordskred|skred/i, 'landslide'], [/flood|flom/i, 'flood'], [/coast|kyst|storm ?surge|stormflo/i, 'coast'], [/rain|regn/i, 'rain']];
+function liveAlerts() {
+  const cfg = Array.isArray(ha.config.alerts) ? ha.config.alerts : null;
+  const ids = cfg || [ha.first('farevarsel'), ...ha.domain('sensor', (st, id) => /^sensor\.(met_?alerts|metalerts|norway_alerts|meteoalarm|farevarsel)/.test(id))].filter(Boolean);
+  const uniq = [...new Set(ids)].filter(id => ha.state(id));
+  if (!uniq.length) return null;
+  const out = [];
+  const wk = d => d.toLocaleDateString('nb-NO', { weekday: 'short' }).replace('.', '') + ' ' + hm2(d);
+  uniq.forEach(id => {
+    const A = ha.state(id).attributes || {};
+    const list = Array.isArray(A.alerts) ? A.alerts : Array.isArray(A.warnings) ? A.warnings : (A.title || A.event || A.headline) ? [A] : [];
+    list.forEach((x, i) => {
+      const al = String(x.awareness_level || x.level || x.severity || x.color || '');
+      let level = parseInt(al, 10); if (!Number.isFinite(level)) level = LVL[(/(green|yellow|orange|red|black)/i.exec(al) || [])[1]?.toLowerCase()] || ({ Minor: 1, Moderate: 2, Severe: 3, Extreme: 4 })[x.severity] || 2;
+      const start = new Date(x.starttime || x.start || x.onset || x.effective || ''), end = new Date(x.endtime || x.end || x.expires || '');
+      const now = new Date(), status = !isNaN(end) && end < now ? 'Utløpt' : !isNaN(start) && start > now ? 'Ventet' : 'Pågår';
+      const txt = [x.event, x.awareness_type, x.title, x.headline, id].join(' ');
+      const type = (TYPE_RE.find(([re]) => re.test(txt)) || [0, 'wind'])[1];
+      const src = /flood|flom|landslide|skred|avalanche|nve|varsom/i.test(id + ' ' + (x.event || '')) ? 'NVE · Varsom' : 'Met.no';
+      out.push({ id: id + '#' + i, type, src, ent: id, level, status, title: x.title || x.headline || x.event || 'Farevarsel', from: isNaN(start) ? 'nå' : wk(start), to: isNaN(end) ? '' : wk(end), text: x.description || '',
+        blocks: [['Råd', x.instruction], ['Konsekvenser', x.consequences], ['Område', x.area || x.areaDesc]].filter(b => b[1]), url: x.map_url || x.web || x.url });
+    });
+  });
+  return out.filter(x => x.status !== 'Utløpt');
+}
+// Pollen: sensor.pollen_<plante>_<sted>_today (NAAF/pollenvarsel), alias pollen_<plante>.
+const POLLEN_LVL = { 0: 'Ingen', 1: 'Beskjeden', 2: 'Moderat', 3: 'Kraftig', 4: 'Ekstrem', none: 'Ingen', low: 'Beskjeden', moderate: 'Moderat', severe: 'Kraftig', high: 'Kraftig', extreme: 'Ekstrem', ingen: 'Ingen', beskjeden: 'Beskjeden', moderat: 'Moderat', kraftig: 'Kraftig', ekstrem: 'Ekstrem' };
+function pollenOf(key) {
+  const id = ha.first('pollen_' + key) || ha.domain('sensor', (st, x) => x.startsWith(`sensor.pollen_${key}_`) && /today|i_dag/.test(x))[0] || ha.domain('sensor', (st, x) => x.startsWith(`sensor.pollen_${key}`))[0];
+  if (!id) return null;
+  const v = String(ha.val(id, '')).toLowerCase();
+  return POLLEN_LVL[v] || POLLEN_LVL[Math.round(parseFloat(v))] || 'Ingen';
+}
 class Component extends DCLogic {
   state = { hero: 0, open: null, alertOpen: null, wx: 'sun' };
   alertVals() {
     const s = this.state, LV = { 1: ['Grønt', 'rgb(102 209 158)'], 2: ['Gult', 'rgb(242 210 111)'], 3: ['Oransje', 'rgb(242 181 115)'], 4: ['Rødt', 'rgb(242 128 115)'], 5: ['Svart', '#fafafa'] };
     const TY = { wind: 'air', rain: 'rainy', snow: 'weather_snowy', flood: 'flood', landslide: 'landslide', avalanche: 'ac_unit', forestfire: 'local_fire_department', coast: 'waves', ice: 'severe_cold', thunder: 'thunderstorm' };
-    const A = [
+    const A = this.LA || [
       { id: 'm1', type: 'wind', src: 'Met.no', ent: 'sensor.norway_alerts_metalerts_stromstad', level: 2, status: 'Pågår', title: 'Gult farevarsel · Kraftige vindkast', from: 'søn 18:00', to: 'man 08:00', text: 'Vindkast opp mot 20 m/s langs kysten.', blocks: [['Råd', 'Sikre løse gjenstander. Vær forsiktig langs kysten og i fjellet.'], ['Konsekvenser', 'Løse gjenstander kan blåse vekk. Mindre skader på bygninger mulig.'], ['Område', 'Østfold, Oslofjorden']] },
       { id: 'n1', type: 'flood', src: 'NVE · Varsom', ent: 'sensor.norway_alerts_flood_ostfold', level: 2, status: 'Ventet', title: 'Gult flomvarsel · Halden og Aremark', from: 'man 06:00', to: 'tir 23:59', text: 'Mye regn kan gi stor vannføring i mindre elver og bekker.', blocks: [['Råd', 'Hold stikkrenner og sluk åpne. Unngå å ferdes nær elver.'], ['Konsekvenser', 'Oversvømmelse av veier og lavtliggende områder.'], ['Kommuner', 'Halden, Aremark, Marker']] },
       { id: 'n2', type: 'landslide', src: 'NVE · Varsom', ent: 'sensor.norway_alerts_landslide_ostfold', level: 1, status: 'Ingen fare', title: 'Jord- og flomskredfare · lav', from: 'i dag', to: 'i morgen', text: 'Generelt trygge forhold.', blocks: [] }];
@@ -303,9 +373,44 @@ class Component extends DCLogic {
           eye: () => this.setVcfg({ tileHidden: { ...c.tileHidden, [k]: !hid } }), eyeIcon: hid ? 'visibility_off' : 'visibility', eyeStyle: { fontSize: 18, color: hid ? '#696969' : '#afafaf' },
           style: { display: 'flex', alignItems: 'center', gap: 8, height: 48, padding: '0 4px 0 12px', borderRadius: 16, background: '#3a3a3a', opacity: hid ? 0.5 : 1, boxShadow: over === k ? 'inset 0 0 0 2px rgb(242 133 201)' : 'none', cursor: 'grab' } }; }) } };
   }
+  liveOverlay(out, L, H) {
+    const nm = (v, suf = '') => Number.isFinite(v) ? f1(v) + suf : '–';
+    const moon = MOON_NB[L.moon];
+    const [uvText, uvCol] = Number.isFinite(L.uv) ? UVL(L.uv) : ['–', '#979797'];
+    const mins = d => d ? d.getHours() * 60 + d.getMinutes() : NaN, now = new Date(), nowM = now.getHours() * 60 + now.getMinutes();
+    const rM = mins(L.rise), sM = mins(L.set), frac = Number.isFinite(rM) && Number.isFinite(sM) && sM > rM ? Math.max(0, Math.min(1, (nowM - rM) / (sM - rM))) : 0.5, ang = Math.PI * (1 - frac);
+    const nextH = H !== HOURS ? H[0] : null;
+    out.place = ha.config.place || String(ha.name(L.id, 'Hjemme')).replace(/^(forecast|værmelding|vær)\s+/i, '');
+    out.now = { cond: COND_NB[L.cond] || L.cond, temp: nm(L.temp), feels: Number.isFinite(L.hi) ? `H ${Math.round(L.hi)}° · L ${Math.round(L.lo)}` : Number.isFinite(L.A.apparent_temperature) ? `Føles ${f1(L.A.apparent_temperature)}` : '–',
+      wind: Number.isFinite(L.wind) ? `${f1(L.wind)} m/s ${dirOf(L.bearing)}`.trim() : '–', rain: nextH ? `${nextH[3] ? f1(nextH[3]) : 0} mm` : '–' };
+    out.rain24 = f1((L.hourly || []).slice(0, 24).reduce((t, h) => t + (h.precipitation || 0), 0));
+    out.moonName = moon ? moon[0] : L.moon || '–';
+    out.moonShade = { position: 'absolute', top: 0, bottom: 0, ...(moon ? moon[1] : { left: 0, width: '50%' }), background: '#16161a', boxShadow: moon && moon[1].right === 0 ? '-6px 0 14px rgba(0,0,0,0.5)' : '6px 0 14px rgba(0,0,0,0.5)' };
+    out.extras = [['wb_twilight', L.rise ? hm2(L.rise) : '–', 'rgb(242 181 115)'], ['wb_twilight', L.set ? hm2(L.set) : '–', 'rgb(242 133 201)'], ['bedtime', out.moonName, MOON], ['light_mode', Number.isFinite(L.uv) ? `UV ${uvText.toLowerCase()} (${f1(L.uv)})` : 'UV –', SUNY]].map(([icon, label, c], i) => ({ icon, label, iconStyle: { fontSize: 30, color: c, fontVariationSettings: "'FILL' 1", transform: i === 1 ? 'scaleY(-1)' : 'none' } }));
+    const PM = { Ingen: '#7f7f7f', Beskjeden: 'rgb(102 209 158)', Moderat: 'rgb(242 210 111)', Kraftig: 'rgb(242 181 115)', Ekstrem: 'rgb(242 128 115)' };
+    out.pollenMini = [['Hassel', 'nature', 'hazel'], ['Or', 'forest', 'alder'], ['Salix', 'spa', 'salix'], ['Bjørk', 'park', 'birch'], ['Gress', 'grass', 'grass'], ['Burot', 'eco', 'mugwort']].map(([name, icon, key]) => { const level = pollenOf(key) || '—', c = PM[level] || '#7f7f7f';
+      return { name, icon, level, iconStyle: { fontSize: 20, color: c, fontVariationSettings: "'FILL' 1", flex: 'none' }, levelStyle: { fontSize: 10, color: c } }; });
+    const cc = L.cloud;
+    out.tile = { sky: Number.isFinite(cc) ? `${Math.round(cc)} %` : '–', skyText: Number.isFinite(cc) ? skyText(cc) : COND_NB[L.cond] || '', skyBar: { ...out.tile.skyBar, width: `${Number.isFinite(cc) ? Math.round(cc) : 0}%` },
+      wind: nm(L.wind), windDir: `m/s${Number.isFinite(L.bearing) ? ' · ' + dirOf(L.bearing) : ''}`, gust: nm(L.gust),
+      rise: L.rise ? hm2(L.rise) : '–', set: L.set ? hm2(L.set) : '–', elev: Number.isFinite(L.elev) ? `Solhøyde ${Math.round(L.elev)}°` : '',
+      hum: Number.isFinite(L.hum) ? `${Math.round(L.hum)} %` : '–', dew: Number.isFinite(L.dew) ? `Duggpunkt ${f1(L.dew)}°` : '',
+      uv: nm(L.uv), uvText, uvStyle: { fontSize: 12, fontWeight: 600, color: uvCol }, press: Number.isFinite(L.press) ? String(Math.round(L.press)) : '–' };
+    out.wind = { arrow: { ...out.wind.arrow, transform: `rotate(${Number.isFinite(L.bearing) ? (L.bearing + 180) % 360 : 45}deg)` } };
+    out.sun = { dot: { ...out.sun.dot, left: `calc(${50 + Math.cos(ang) * 46}% - 9px)`, top: `${6 + 50 - Math.sin(ang) * 50 - 9}px` } };
+    if (Number.isFinite(L.press)) { const deg = Math.max(0, Math.min(270, (L.press - 960) / (1060 - 960) * 270)); out.pressRing = { ...out.pressRing, background: `conic-gradient(from 225deg, ${RAIN} 0 ${deg}deg, #3a3a3a ${deg}deg 270deg, transparent 270deg)` }; }
+  }
   renderVals() {
     const s = this.state;
-    const tMin = Math.min(...HOURS.map(h => h[2])), tMax = Math.max(...HOURS.map(h => h[2]));
+    const L = this.L = loadLive();
+    const LA = liveAlerts();
+    this.LA = LA || (L ? [] : null);
+    const H = L && L.hourly.length ? L.hourly.slice(0, 12).map((h, i) => { const t = new Date(h.datetime), hh = String(t.getHours()).padStart(2, '0');
+      const nightH = h.is_daytime === false || (h.is_daytime === undefined && L.rise && L.set && (t.getHours() * 60 + t.getMinutes() < L.rise.getHours() * 60 + L.rise.getMinutes() || t.getHours() * 60 + t.getMinutes() > L.set.getHours() * 60 + L.set.getMinutes()));
+      return [hh, icKey(h.condition, nightH), h.temperature, h.precipitation || 0, toMs(h.wind_speed, L.windU)]; }) : HOURS;
+    const D2 = L && L.daily.length ? L.daily.map(f => { const d = new Date(f.datetime), wd = d.toLocaleDateString('nb-NO', { weekday: 'long' });
+      return [wd.charAt(0).toUpperCase() + wd.slice(1), icKey(f.condition, false), f.temperature, Number.isFinite(f.templow) ? f.templow : f.temperature, COND_NB[f.condition] || f.condition || '', f.precipitation || 0, Math.round(toMs(f.wind_speed, L.windU)) || 0, f.humidity]; }) : DAYS2;
+    const tMin = Math.min(...H.map(h => h[2])), tMax = Math.max(...H.map(h => h[2]));
     const lo = Math.min(...DAYS.map(d => d[3])), hi = Math.max(...DAYS.map(d => d[2]));
     const sunFrac = (16 * 60 - 390) / (1184 - 390), ang = Math.PI * (1 - sunFrac);
     const PM = { Ingen: '#7f7f7f', Beskjeden: 'rgb(102 209 158)', Moderat: 'rgb(242 210 111)', Kraftig: 'rgb(242 181 115)', Ekstrem: 'rgb(242 128 115)' };
@@ -316,12 +421,12 @@ class Component extends DCLogic {
       heroScroll: e => { const el = e.currentTarget, n = Math.round(el.scrollLeft / el.clientWidth); if (n !== this.state.hero) this.setState({ hero: n }); },
       heroDots: [0, 1, 2].map(i => ({ width: (i === s.hero) ? 12 : 10, height: (i === s.hero) ? 12 : 10, borderRadius: 6, background: (i === s.hero) ? '#8a8a8a' : '#454545', transition: 'background .2s' })),
       extras: [['wb_twilight', '06:30', 'rgb(242 181 115)'], ['wb_twilight', '19:44', 'rgb(242 133 201)'], ['bedtime', 'Første kvarter', MOON], ['light_mode', 'UV svært lav (0,8)', SUNY]].map(([icon, label, c], i) => ({ icon, label, iconStyle: { fontSize: 30, color: c, fontVariationSettings: "'FILL' 1", transform: i === 1 ? 'scaleY(-1)' : 'none' } })),
-      hours: HOURS.map(([t, k, temp, r], i) => ({ t: i ? t + ':00' : 'Nå', temp: f1(temp), wind: `${f1(WIND[i] || 4)} m/s`,
+      hours: H.map(([t, k, temp, r, wv], i) => ({ t: i ? t + ':00' : 'Nå', temp: n1(temp), wind: `${n1(H === HOURS ? WIND[i] || 4 : wv)} m/s`,
         box: { flex: 'none', width: 92, height: 172, boxSizing: 'border-box', borderRadius: 24, background: i === 0 ? '#3a3a3a' : '#2f2f2f', boxShadow: i === 0 ? 'inset 0 0 0 1px rgba(255,255,255,0.08)' : 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0' }, icon: IC[k][0], rain: `${f1(r)} mm`, iconStyle: { fontSize: 30, color: IC[k][1], fontVariationSettings: "'FILL' 1" },
         dot: { position: 'absolute', left: '50%', top: `${(1 - (temp - tMin) / (tMax - tMin || 1)) * 32}px`, width: 8, height: 8, marginLeft: -4, borderRadius: 4, background: i ? SUNY : '#fafafa', boxShadow: i ? 'none' : '0 0 0 3px rgb(242 210 111 / 0.4)' },
         rainStyle: { fontSize: 10, color: RAIN, height: 12 }, tStyle: { fontSize: 12, color: i ? '#979797' : '#fafafa', fontWeight: i ? 400 : 600 } })),
-      days: DAYS2.map(([day, k, hi, lo, cond, r, w, hum]) => { const open = s.open === day; return { day, hi: f1(hi), lo: f1(lo), cond, rain: `${f1(r)} mm`, icon: IC[k][0], iconStyle: { fontSize: 64, color: IC[k][1], fontVariationSettings: "'FILL' 1", flex: 'none' }, open,
-        toggle: () => this.setState({ open: open ? null : day }), more: [{ l: 'Vind', v: `${w} m/s` }, { l: 'Lavest', v: `${f1(lo)}°` }, { l: 'Nedbør', v: `${f1(r)} mm` }],
+      days: D2.map(([day, k, hi, lo, cond, r, w, hum]) => { const open = s.open === day; return { day, hi: n1(hi), lo: n1(lo), cond, rain: `${f1(r)} mm`, icon: IC[k][0], iconStyle: { fontSize: 64, color: IC[k][1], fontVariationSettings: "'FILL' 1", flex: 'none' }, open,
+        toggle: () => this.setState({ open: open ? null : day }), more: [{ l: 'Vind', v: `${w} m/s` }, { l: 'Lavest', v: `${n1(lo)}°` }, { l: 'Nedbør', v: `${f1(r)} mm` }],
         card: { display: 'flex', flexDirection: 'column', padding: '18px 24px', borderRadius: 28, background: '#2f2f2f', width: '100%', boxSizing: 'border-box' } }; }),
       daysOld: DAYS.map(([day, k, h, l, r], i) => ({ day, icon: IC[k][0], hi: h, lo: l, rain: r ? `${f1(r)} mm` : '',
         row: { display: 'flex', alignItems: 'center', gap: 10, height: 48, borderTop: '1px solid rgba(255,255,255,0.05)' },
@@ -338,14 +443,19 @@ class Component extends DCLogic {
           days: d.map((v, k) => ({ width: 10, height: 10, borderRadius: 5, background: L[v][1], opacity: k ? 0.7 : 1 })),
           chip: { minWidth: 58, textAlign: 'center', fontSize: 11, fontWeight: 600, padding: '4px 8px', borderRadius: 9, background: d[0] ? L[d[0]][1].replace(')', ' / 0.18)') : '#3a3a3a', color: d[0] ? L[d[0]][1] : '#7f7f7f' } }; }); })(),
     };
-    const W = WX[s.wx] || WX.sun;
+    // demo values of the detail tiles / moon (bound in the template)
+    out.tile = { sky: '18 %', skyText: 'Lettskyet', skyBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: '18%', borderRadius: 3, background: '#c7c7c7' }, wind: '7,8', windDir: 'm/s · SV', gust: '11,4', rise: '06:30', set: '19:44', elev: 'Solhøyde 18°', hum: '82 %', dew: 'Duggpunkt 11,6°', uv: '0,8', uvText: 'Svært lav', uvStyle: { fontSize: 12, fontWeight: 600, color: 'rgb(102 209 158)' }, press: '1008' };
+    out.moonShade = { position: 'absolute', top: 0, bottom: 0, left: 0, width: '50%', background: '#16161a', boxShadow: '6px 0 14px rgba(0,0,0,0.5)' };
+    if (L) this.liveOverlay(out, L, H);
+    const wxKey = L && !s.wxSet ? L.key : s.wx;
+    const W = L && !s.wxSet ? (L.cond === 'clear-night' || (L.night && L.key === 'sun') ? ['bedtime', COND_NB[L.cond] || 'Klart', MOON] : [...(WX[L.key] || WX.cloud).slice(0, 1), COND_NB[L.cond] || L.cond, (WX[L.key] || WX.cloud)[2]]) : WX[s.wx] || WX.sun;
     out.now = { ...out.now, cond: W[1] };
-    out.heroIcon = { icon: W[0], style: { fontSize: 120, color: W[2], fontVariationSettings: "'FILL' 1", ...wxa(W[0]), filter: s.wx === 'sun' ? undefined : `drop-shadow(0 0 20px ${W[2].startsWith('#') ? 'rgba(255,255,255,0.15)' : W[2].replace(')', ' / 0.3)')})` } };
-    out.heroFx = heroFxOf(s.wx);
+    out.heroIcon = { icon: W[0], style: { fontSize: 120, color: W[2], fontVariationSettings: "'FILL' 1", ...wxa(W[0]), filter: wxKey === 'sun' ? undefined : `drop-shadow(0 0 20px ${W[2].startsWith('#') ? 'rgba(255,255,255,0.15)' : W[2].replace(')', ' / 0.3)')})` } };
+    out.heroFx = heroFxOf(wxKey);
     out.hours = out.hours.map(h => ({ ...h, iconStyle: { ...h.iconStyle, ...wxa(h.icon) } }));
     out.days = out.days.map(d => ({ ...d, iconStyle: { ...d.iconStyle, ...wxa(d.icon) } }));
     out.extras = out.extras.map(x => ({ ...x, iconStyle: { ...x.iconStyle, ...wxa(x.icon === 'light_mode' ? 'clear_day' : x.icon) } }));
-    out.ed = { ...out.ed, wx: Object.entries(WX).map(([k, [icon, label]]) => ({ icon, label, go: () => this.setState({ wx: k }), style: { height: 34, padding: '0 12px 0 9px', borderRadius: 17, display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: s.wx === k ? 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)' : '#3a3a3a', color: s.wx === k ? '#5a3a48' : '#fafafa' } })) };
+    out.ed = { ...out.ed, wx: Object.entries(WX).map(([k, [icon, label]]) => ({ icon, label, go: () => this.setState({ wx: k, wxSet: true }), style: { height: 34, padding: '0 12px 0 9px', borderRadius: 17, display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', background: wxKey === k ? 'linear-gradient(145deg, rgb(242 133 201) -10%, rgb(245 205 198) 100%)' : '#3a3a3a', color: wxKey === k ? '#5a3a48' : '#fafafa' } })) };
     return out;
   }
 }
