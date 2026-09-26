@@ -34,7 +34,7 @@ function generate() {
     const name = f.replace(/\.dc\.html$/, '').normalize('NFC');
     const { html, js } = parseDc(readFileSync(join(SCREEN_DIR, f), 'utf8'), f);
     out.push(`SCREENS[${JSON.stringify(name)}] = { html: ${JSON.stringify(html)}, factory: (DCLogic, React, ha, document) => {\n${js}\n;return typeof Component !== 'undefined' ? Component : undefined;\n} };`);
-    aliases[alias(name)] = name;
+    if (!name.startsWith('_')) aliases[alias(name)] = name;
   }
   for (const [from, to] of Object.entries(REDIRECTS)) out.push(`SCREENS[${JSON.stringify(from)}] = SCREENS[${JSON.stringify(to)}];`);
   out.push(`export const ALIASES = ${JSON.stringify(aliases, null, 1)};`);

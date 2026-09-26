@@ -127,6 +127,10 @@ export function createBridge(card) {
     select(id, option) { return id && ha.call(id.split('.')[0], 'select_option', { entity_id: id, option }); },
     moreInfo(id) { if (!id) return; const ev = new Event('hass-more-info', { bubbles: true, composed: true }); ev.detail = { entityId: id }; card.dispatchEvent(ev); },
     navigate(path) { history.pushState(null, '', path); window.dispatchEvent(new CustomEvent('location-changed', { detail: { replace: false } })); },
+    /** Bubble Card-pop-ups åpnes/lukkes med URL-hash (#ki-<nøkkel>). */
+    openPopup(key) { history.pushState(null, '', `${location.pathname}${location.search}#ki-${key}`); window.dispatchEvent(new CustomEvent('location-changed', { detail: { replace: false } })); },
+    closePopup() { if (!location.hash) return; history.replaceState(null, '', `${location.pathname}${location.search}`); window.dispatchEvent(new CustomEvent('location-changed', { detail: { replace: true } })); window.dispatchEvent(new PopStateEvent('popstate')); },
+    get bubble() { return config.popups === 'bubble'; },
     toast(message) { const ev = new Event('hass-notification', { bubbles: true, composed: true }); ev.detail = { message }; card.dispatchEvent(ev); },
 
     // ── async data (cached, re-renders on arrival) ──

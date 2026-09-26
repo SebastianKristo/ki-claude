@@ -40,4 +40,8 @@ Handlinger fra fliser/snarveier/tekst (Veksle dørlås, Armer alarm, Alle lys av
 TV, Støvsuger, egendefinert tjeneste med mål og data) kaller de tilsvarende HA-tjenestene.
 Alarm med kode åpner Home Assistants egen dialog.
 
+Med `popups: bubble` (settes automatisk av strategien når Bubble Card er installert) åpnes alle
+skjerm-popups som Bubble Card-pop-ups via `#ki-<nøkkel>` – se README. De små hurtigarkene
+(dørlås, person-hurtigvalg) og «Tilpass»-editorene ligger fortsatt i kortet.
+
 Langt trykk på en flis/et rom/en person åpner Home Assistants more-info.
